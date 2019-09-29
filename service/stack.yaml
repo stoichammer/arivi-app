@@ -1,0 +1,21 @@
+resolver: lts-12.26
+allow-newer: true
+
+packages:
+    - .
+    - ../utils
+    - ../p2p
+    - ../network
+    - ../crypto
+
+extra-deps:
+- serialise-0.2.0.0
+- cborg-0.2.0.0
+- statsd-client-0.3.0.0
+- time-units-1.0.0
+- timers-updatable-0.2.0.2
+- digest-pure-0.0.3
+- DRBG-0.5.5
+- stm-containers-0.2.16
+- either-unwrap-1.1
+- raaz-0.2.1
