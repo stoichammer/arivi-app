@@ -126,7 +126,7 @@ runNode configPath = do
     runFileLoggingT (toS $ Config.logFile config) $
         runAppM
             env
-            (do
+            (do 
                 let resourceHandlers = HM.insert HelloWorld handler HM.empty
                 initP2P config resourceHandlers
                 -- tid' <-
@@ -147,15 +147,21 @@ runNode configPath = do
                 -- getHelloWorld
                 -- liftIO $ threadDelay 3000000
                 getHelloWorld
+                loopCall
                 liftIO $ threadDelay 500000000
                 )
 
+                
+
+
+                
 main :: IO ()
 main = do
     (path:_) <- getArgs
     b <- doesPathExist (path <> "/config.yaml")
     unless b (defaultConfig path)
     runNode (path <> "/config.yaml")
+    
 
 a :: Int -> BSL.ByteString
 a n = BSLC.pack (Prelude.replicate n 'a')

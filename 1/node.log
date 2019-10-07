@@ -1,29 +1,58 @@
-[Info] 2019-10-07 13:04:48.410299477 UTCLogNetworkStatement TCP Server started...
-[Debug] 2019-10-07 13:04:48.410272592 UTCLogNetworkStatement UDP Server started...
-[Debug] 2019-10-07 13:04:55.352929821 UTCLogNetworkStatement newUdpConnection latest: 127.0.0.1:47895
-[Info] 2019-10-07 13:04:55.356814996 UTCLogNetworkStatement readUdpSock: 
+[Info] 2019-10-07 16:37:07.442422253 UTCLogNetworkStatement TCP Server started...
+[Debug] 2019-10-07 16:37:07.442416969 UTCLogNetworkStatement UDP Server started...
+[Debug] 2019-10-07 16:37:35.593785925 UTCLogNetworkStatement newUdpConnection latest: 127.0.0.1:56760
+[Info] 2019-10-07 16:37:35.596656093 UTCLogNetworkStatement readUdpSock: 
 [Debug] Find_Node Message Recieved from : NodeEndPoint {nodeIp = "127.0.0.1", udpPort = 5680, tcpPort = 5680} @(arivi-p2p-0.1.0.0-65KjXlX0niK7sGMmESc4BH:Arivi.P2P.Kademlia.MessageHandler lib/Arivi/P2P/Kademlia/MessageHandler.hs:70:15)
 [Debug] Add to kbucket called  @(arivi-p2p-0.1.0.0-65KjXlX0niK7sGMmESc4BH:Arivi.P2P.Kademlia.Kbucket lib/Arivi/P2P/Kademlia/Kbucket.hs:112:7)
+[Info] 2019-10-07 16:37:35.600650792 UTCLogNetworkStatement readUdpSock: 
 [Debug] First_Element in respective kbucket @(arivi-p2p-0.1.0.0-65KjXlX0niK7sGMmESc4BH:Arivi.P2P.Kademlia.Kbucket lib/Arivi/P2P/Kademlia/Kbucket.hs:121:15)
 [Debug] Kbucket after adding : [(0,[Peer {nodeID = "-\v6\228\175\CAN\SUB\130=<\238&\RS[\179f\t\DC2\154\202\185\143:\151\DC1\225\179\\\148\158U\152\137\223\183\175\&4\ACKA\130\SYNn\b\196x\155\175\185\222\&4\NAKo\179\143y\221aB\131\220e\211\240#", nodeEndPoint = NodeEndPoint {nodeIp = "127.0.0.1", udpPort = 5678, tcpPort = 5678}}]),(509,[Peer {nodeID = ";\230\213}ip\DC2\243Q\224\129o\176p`R'\178E\nQ\158[\186\225N\146\175\248\239-\245\240\GSZ\b~\203\rg\171\185\220\211\220\237k\249\STX\DEL\f\206\221\244\206\ETB4W(\168\a:\EM&", nodeEndPoint = NodeEndPoint {nodeIp = "127.0.0.1", udpPort = 5680, tcpPort = 5680}}])] @(arivi-p2p-0.1.0.0-65KjXlX0niK7sGMmESc4BH:Arivi.P2P.Kademlia.Kbucket lib/Arivi/P2P/Kademlia/Kbucket.hs:129:7)
-[Info] 2019-10-07 13:04:55.361281941 UTCLogNetworkStatement readUdpSock: 
-[Info] 2019-10-07 13:04:55.365101625 UTCLogNetworkStatement sendUdpMessage: Host: 127.0.0.1: Port: 47895: MsgLength: 146
-[Info] 2019-10-07 13:05:00.38099685 UTCLogNetworkStatement sendUdpMessage: Host: 127.0.0.1: Port: 47895: MsgLength: 54
-[Info] 2019-10-07 13:05:00.381979539 UTCLogNetworkStatement readUdpSock: 
-[Debug] 2019-10-07 13:05:05.379430324 UTCLogNetworkStatement handleInboundConnection: 
-[Info] 2019-10-07 13:05:05.38321826 UTCLogNetworkStatement readTcpSock: 
-[Info] 2019-10-07 13:05:05.384988851 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
-[Info] 2019-10-07 13:05:05.385902418 UTCLogNetworkStatement readTcpSock: 
-[Info] 2019-10-07 13:05:30.383965826 UTCLogNetworkStatement readUdpSock: 
-[Info] 2019-10-07 13:05:33.424184969 UTCLogNetworkStatement sendUdpMessage: Host: 127.0.0.1: Port: 47895: MsgLength: 50
-[Info] 2019-10-07 13:05:33.426637168 UTCLogNetworkStatement readUdpSock: 
-[Info] 2019-10-07 13:05:35.389034908 UTCLogNetworkStatement readTcpSock: 
-[Info] 2019-10-07 13:05:40.389237556 UTCLogNetworkStatement sendUdpMessage: Host: 127.0.0.1: Port: 47895: MsgLength: 54
-[Info] 2019-10-07 13:05:40.39003666 UTCLogNetworkStatement readUdpSock: 
-[Info] 2019-10-07 13:06:05.392505806 UTCLogNetworkStatement readTcpSock: 
-[Info] 2019-10-07 13:06:10.393044504 UTCLogNetworkStatement readUdpSock: 
-[Info] 2019-10-07 13:06:13.429509677 UTCLogNetworkStatement sendUdpMessage: Host: 127.0.0.1: Port: 47895: MsgLength: 50
-[Info] 2019-10-07 13:06:13.431775298 UTCLogNetworkStatement readUdpSock: 
-[Info] 2019-10-07 13:06:20.392956654 UTCLogNetworkStatement sendUdpMessage: Host: 127.0.0.1: Port: 47895: MsgLength: 54
-[Info] 2019-10-07 13:06:20.393745663 UTCLogNetworkStatement readUdpSock: 
-[Info] 2019-10-07 13:06:35.39555871 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-07 16:37:35.605125767 UTCLogNetworkStatement sendUdpMessage: Host: 127.0.0.1: Port: 56760: MsgLength: 146
+[Info] 2019-10-07 16:37:40.617038861 UTCLogNetworkStatement sendUdpMessage: Host: 127.0.0.1: Port: 56760: MsgLength: 54
+[Info] 2019-10-07 16:37:40.617903727 UTCLogNetworkStatement readUdpSock: 
+[Debug] 2019-10-07 16:37:45.618338433 UTCLogNetworkStatement handleInboundConnection: 
+[Info] 2019-10-07 16:37:45.622018129 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-07 16:37:45.623796988 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-07 16:37:45.624619208 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-07 16:37:45.626475467 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-07 16:37:45.627316341 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-07 16:37:48.632867354 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-07 16:37:48.633825126 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-07 16:37:51.639304154 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-07 16:37:51.640249136 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-07 16:37:52.453179086 UTCLogNetworkStatement sendUdpMessage: Host: 127.0.0.1: Port: 56760: MsgLength: 50
+[Info] 2019-10-07 16:37:52.456072702 UTCLogNetworkStatement readUdpSock: 
+[Info] 2019-10-07 16:37:53.485725494 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-07 16:37:53.488388781 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-07 16:37:54.643814989 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-07 16:37:54.644575775 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-07 16:37:56.491140103 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-07 16:37:56.49350368 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-07 16:37:57.648262052 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-07 16:37:57.649046064 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-07 16:37:59.49625877 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-07 16:37:59.500409904 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-07 16:38:00.652737688 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-07 16:38:00.653567512 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-07 16:38:02.501855363 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-07 16:38:02.504400714 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-07 16:38:03.657272864 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-07 16:38:03.658555221 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-07 16:38:05.507254852 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-07 16:38:05.509592998 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-07 16:38:06.662176154 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-07 16:38:06.663008334 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-07 16:38:08.51236641 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-07 16:38:08.514703885 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-07 16:38:09.66665908 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-07 16:38:09.667501465 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-07 16:38:11.51742508 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-07 16:38:11.519842454 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-07 16:38:12.671323865 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-07 16:38:12.672172051 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-07 16:38:14.522687298 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-07 16:38:14.526101469 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-07 16:38:15.675860514 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-07 16:38:15.676621712 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-07 16:38:17.528856552 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-07 16:38:17.531196138 UTCLogNetworkStatement readTcpSock: 

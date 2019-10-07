@@ -15,6 +15,8 @@ import Codec.Serialise
 import Control.Monad.IO.Class
 import Data.ByteString.Lazy as Lazy
 import Data.Hashable
+import Control.Concurrent    (threadDelay)
+
 
 type ServiceMsg = Lazy.ByteString
 
@@ -24,7 +26,7 @@ instance Serialise ServiceResource
 instance Hashable ServiceResource
 
 handler :: ResourceHandler ServiceResource String
-handler = ResourceHandler (\(RpcPayload resource serviceMsg) -> RpcPayload resource (serviceMsg ++ "Praise Jesus"))
+handler = ResourceHandler (\(RpcPayload resource serviceMsg) -> RpcPayload resource (serviceMsg ++ " Praise Jesus"))
 
 -- registerHelloWorld :: (HasP2PEnv env m ServiceResource String String String) => m ()
 -- registerHelloWorld =
@@ -37,3 +39,12 @@ getHelloWorld = do
     resource <- fetchResource (RpcPayload HelloWorld "HelloWorld")
     liftIO $ print "here"
     liftIO $ print resource
+
+loopCall :: (HasP2PEnv env m ServiceResource ByteString String ByteString) => m () 
+loopCall = do
+    liftIO $ print "calling..."
+    --getHelloWorld
+    resource <- fetchResource (RpcPayload HelloWorld "HelloWorld")
+    liftIO $ print resource
+    liftIO $ threadDelay 3000000
+    loopCall
