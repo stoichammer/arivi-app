@@ -67,8 +67,8 @@ addPeerFromKademliaHelper peerFromKademlia nodeIdPeerMapTVar =
     liftIO $
         atomically
             (do nodeIdPeerMap <- readTVar nodeIdPeerMapTVar
-                let _nodeId = fst $ KademliaTypes.getPeer peerFromKademlia
-                    kadNodeEndPoint = snd $ KademliaTypes.getPeer peerFromKademlia
+                let _nodeId = KademliaTypes.nodeID peerFromKademlia
+                    kadNodeEndPoint = KademliaTypes.nodeEndPoint peerFromKademlia
                     mapEntry = HM.lookup _nodeId nodeIdPeerMap
                     _ip = KademliaTypes.nodeIp kadNodeEndPoint
                     _udpPort = KademliaTypes.udpPort kadNodeEndPoint

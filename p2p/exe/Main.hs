@@ -131,6 +131,7 @@ defaultConfig path = do
 
 runNode :: String -> IO ()
 runNode configPath = do
+    print "reading config..."
     config <- Config.readConfig configPath
     env <- mkP2PEnv config
     runFileLoggingT (toS $ Config.logFile config) $

@@ -6,7 +6,8 @@ module Arivi.P2P.Config
     ( module Arivi.P2P.Config
     ) where
 
-import           Arivi.P2P.Kademlia.Types (NodeEndPoint, Peer (..))
+import           Arivi.P2P.Kademlia.Types 
+
 import           Control.Exception
 import           Crypto.Error             (throwCryptoError)
 import           Crypto.PubKey.Ed25519
@@ -17,6 +18,8 @@ import           Data.Yaml
 import           GHC.Generics
 import           Network.Socket
 
+
+    
 data Config = Config
     { tcpPort                      :: PortNumber
     , udpPort                      :: PortNumber
@@ -35,10 +38,40 @@ instance FromJSON ByteString where
         withText "ByteString" $ \t ->
             pure $ Data.ByteString.Char8.pack (T.unpack t)
 
-instance FromJSON Peer
+        
+-- instance FromJSON Peer 
 
-instance FromJSON NodeEndPoint
+newtype PeerList = PeerList {peerList :: [Peer]}
 
+
+instance FromJSON PeerList where
+    parseJSON (Object o) = PeerList <$> o .: "trustedPeers"
+    parseJSON _ = error "Can't parse PeerList"
+
+                           
+instance FromJSON NodeEndPoint where
+    parseJSON  (Object v) = NodeEndPoint <$>
+                           v .: "nodeIp" <*>
+                           v .: "udpPort" <*>
+                           v .: "tcpPort"
+    parseJSON _ = error "Can't parse NodeEndPoint from YAML"
+
+--instance FromJSON Peer where
+--    parseJSON (Object o) = do
+--        v <- Prelude.head <$> o .: "trustedPeers"
+--        --Peer <$> v .: "nodeID" <*> v .: "endPoint"
+--        Peer <$> ((,) <$> v .: "nodeID" <*> v .: "endPoint")
+        
+--    parseJSON _ = error "Can't parse "
+
+instance FromJSON Peer where
+    parseJSON  (Object v) = Peer <$>
+                            v .: "nodeID" <*>
+                            v .: "endPoint" 
+    parseJSON _ = error "Can't parse Peer"
+
+
+    
 instance FromJSON PortNumber where
     parseJSON v = fromInteger <$> parseJSON v
 

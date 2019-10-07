@@ -57,7 +57,7 @@ kademliaMessageHandler (KademliaRequest payload) = KademliaResponse <$> do
     let msgb = messageBody $ message payload
         rnep = fromEndPoint msgb
         rnid = Arivi.P2P.Kademlia.Types.nodeId msgb
-        rpeer = Peer (rnid, rnep)
+        rpeer = Peer rnid rnep
     nc@NetworkConfig {..} <- asks (^. networkConfig)
     case msgb of
         PING {} -> do

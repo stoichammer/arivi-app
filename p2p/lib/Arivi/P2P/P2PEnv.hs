@@ -79,7 +79,8 @@ mkKademlia :: NetworkConfig -> Int -> Int -> Int -> IO KademliaEnv
 mkKademlia NetworkConfig{..} sbound pingThreshold kademliaConcurrencyFactor =
     KademliaEnv <$>
         T.createKbucket
-            (T.Peer (_nodeId, T.NodeEndPoint _ip _tcpPort _udpPort))
+            --(T.Peer (_nodeId, T.NodeEndPoint _ip _tcpPort _udpPort))
+            (T.getPeer _nodeId  _ip _tcpPort _udpPort)
             sbound
             pingThreshold
             kademliaConcurrencyFactor

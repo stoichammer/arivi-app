@@ -85,7 +85,7 @@ initBootStrap ::
 initBootStrap peer = do
     kb <- lift getKb
     liftIO $
-        atomically $ H.insert Verified (fst $ getPeer peer) (nodeStatusTable kb)
+        atomically $ H.insert Verified (nodeID peer) (nodeStatusTable kb)
     $(logDebug) "BootStrap Node marked as Verified"
 
 -- | Simple function to check the status of a Peer
@@ -96,7 +96,7 @@ isVerified ::
 isVerified peer = do
     kb <- lift getKb
     let vt = nodeStatusTable kb
-        peer' = fst $ getPeer peer
+        peer' = nodeID peer
     st <- liftIO $ atomically $ H.lookup peer' vt
     case st of
         Just st' -> return st'
@@ -109,7 +109,7 @@ getVerifiedPeers ::
     -> Int
     -> ExceptT AriviP2PException m [Peer]
 getVerifiedPeers peerR k = do
-    let nid = fst $ getPeer peerR
+    let nid = nodeID peerR
     -- kb <- getKb
     -- Todo think about below point
     -- ? Should this multiplier factor exist (2*k)
@@ -138,7 +138,7 @@ filterPeer nid rnid peerL = result
                  rXor >=
                  getXorDistance
                      (C.unpack $ BS.encode nid)
-                     (C.unpack $ BS.encode $ fst $ getPeer x))
+                     (C.unpack $ BS.encode $ nodeID x))
             peerL
     rXor = getXorDistance (C.unpack $ BS.encode rnid) (C.unpack $ BS.encode nid)
 
@@ -165,11 +165,11 @@ isVNRESPValid ::
     -> ExceptT AriviP2PException m Bool
 isVNRESPValid peerL peerR = do
     dnid <- getDefaultNodeId
-    let temp = filterPeer dnid (fst $ getPeer peerR) peerL
+    let temp = filterPeer dnid (nodeID peerR) peerL
         minLessPeer = (1 / 10) * fromIntegral (Prelude.length peerL)
         -- TODO address conditions when (In) is retruned or not
     let firstCheck
-            | Peer (dnid, undefined) `elem` temp = True
+            | Peer dnid undefined `elem` temp = True
             | fromIntegral (Prelude.length temp) >= minLessPeer = True
             | Prelude.null temp = False
             | otherwise = False
@@ -187,18 +187,18 @@ issueVerifyNode ::
 issueVerifyNode peerV peerT peerR = do
     nc@NetworkConfig {..} <- asks (^. networkConfig)
         -- TODO randomly select a verified node and not as a parameter
-    let vnid = fst $ getPeer peerV
-        vnep = snd $ getPeer peerV
+    let vnid = nodeID peerV
+        vnep = nodeEndPoint peerV
         vuport = Arivi.P2P.Kademlia.Types.udpPort vnep
         vip = nodeIp vnep
-        tnid = fst $ getPeer peerT
-        tnep = snd $ getPeer peerT
+        tnid = nodeID peerT
+        tnep = nodeEndPoint peerT
         tuport = Arivi.P2P.Kademlia.Types.udpPort tnep
         ttport = Arivi.P2P.Kademlia.Types.tcpPort tnep
         tip = nodeIp tnep
         tnc = NetworkConfig tnid tip tuport ttport
         vnc = NetworkConfig vnid vip vuport vuport
-        vmsg = packVerifyMsg nc tnc (fst $ getPeer peerR)
+        vmsg = packVerifyMsg nc tnc (nodeID peerR)
     $(logDebug) $
         T.pack ("Issueing Verify_Node for : " ++ show tip ++ ":" ++ show tuport)
     resp <- runExceptT $ issueKademliaRequest vnc (KademliaRequest vmsg)
@@ -247,10 +247,10 @@ responseHandler resp peerR peerT =
             kb <- lift getKb
             rl <- isVNRESPValid pl peerR
             if rl
-                then updateNodeStatus Verified (fst $ getPeer peerT)
+                then updateNodeStatus Verified (nodeID peerT)
                 else do
                     moveToHardBound peerT
-                    updateNodeStatus UnVerified (fst $ getPeer peerT)
+                    updateNodeStatus UnVerified (nodeID peerT)
             -- Logs the NodeStatus Table
             let kbm2 = nodeStatusTable kb
                 kbtemp = H.stream kbm2

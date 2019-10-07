@@ -23,6 +23,7 @@ module Arivi.P2P.Kademlia.Types
     , packPing
     , packPong
     , createKbucket
+    , getPeer
     , packVnR
     , packVerifyMsg
     , Peer(..)
@@ -79,12 +80,14 @@ data MessageType
     deriving (Show, Generic)
 
 -- | Peer information encapsulated in a single structure
-newtype Peer = Peer
-    { getPeer :: (NodeId, NodeEndPoint)
-    } deriving (Show, Generic)
+data Peer = Peer
+    { nodeID :: NodeId
+    , nodeEndPoint :: NodeEndPoint
+    } deriving (Eq, Show, Generic)
 
-instance Eq Peer where
-    Peer (x, _) == Peer (a, _) = a == x
+--instance Eq Peer where
+    --Peer (x, _) == Peer (a, _) = a == x
+  --  nodeID == nodeID
 
 -- | K-bucket to store peers
 data Kbucket k v = Kbucket
@@ -98,6 +101,9 @@ data Kbucket k v = Kbucket
 class HasKbucket m where
     getKb :: m (Kbucket Int [Peer])
 
+getPeer :: NodeId -> HostName -> PortNumber -> PortNumber ->  Peer
+getPeer nodeId ip tcpPort udpPort = (Peer nodeId (NodeEndPoint ip tcpPort udpPort))
+    
 -- | Creates a new K-bucket which is a mutable hash table, and inserts the local
 -- node with position 0 i.e kb index is zero since the distance of a node
 -- from it's own address is zero. This will help insert the new peers into
@@ -107,7 +113,7 @@ createKbucket localPeer sbound pingThreshold' kademliaConcurrencyFactor' = do
     m <- atomically H.new
     n <- atomically H.new
     atomically $ H.insert [localPeer] 0 m
-    atomically $ H.insert Verified (fst $ getPeer localPeer) n
+    atomically $ H.insert Verified (nodeID localPeer) n
     return (Kbucket m n sbound pingThreshold' kademliaConcurrencyFactor')
 
 -- Custom data type to send & receive message

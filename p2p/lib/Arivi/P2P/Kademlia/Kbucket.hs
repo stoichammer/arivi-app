@@ -68,7 +68,9 @@ getDefaultNodeId = do
     let localPeer = fromMaybe [] lp
     if Prelude.null localPeer
         then throwError KademliaDefaultPeerDoesNotExists
-        else return $ fst $ getPeer $ Prelude.head localPeer
+        else return $ nodeID $ Prelude.head localPeer
+
+            --else return $ fst $ getPeer $ Prelude.head localPeer
 
 -- | Gives a peerList of which a peer is part of in kbucket hashtable for any
 --   given peer with respect to the default peer or local peer for which
@@ -94,9 +96,10 @@ getPeerListByKIndex kbi = do
 -- |Checks if a peer already exists
 ifPeerExist ::
        (HasKbucket m, MonadIO m) => NodeId -> ExceptT AriviP2PException m Bool
-ifPeerExist peer = do
-    mPeerList <- getPeerList peer
-    return $ peer `elem` fmap (fst . getPeer) mPeerList
+ifPeerExist nID = do
+    mPeerList <- getPeerList nID
+    return $ nID `elem` fmap nodeID mPeerList
+    --return $ peer `elem` fmap (fst . getPeer) mPeerList
 
 -- |Adds a given peer to kbucket hash table by calculating the appropriate
 --  kbindex based on the XOR Distance.
@@ -110,8 +113,8 @@ addToKBucket peerR = do
     lp <- getDefaultNodeId
     kb'' <- lift getKb
     let kb = getKbucket kb''
-        kbDistance = getKbIndex lp (fst $ getPeer peerR)
-    pl <- getPeerList (fst $ getPeer peerR)
+        kbDistance = getKbIndex lp (nodeID peerR)
+    pl <- getPeerList (nodeID peerR)
     if Prelude.null pl
         then do
             liftIO $ atomically $ H.insert [peerR] kbDistance kb
@@ -136,13 +139,13 @@ removePeer peerR = do
     pl <- getPeerList peerR
     let kb = getKbucket kbb'
         kbDistance = getKbIndex localPeer peerR
-        pl2 = fmap (fst . getPeer) pl
+        pl2 = fmap nodeID pl
     if peerR `elem` pl2
         then liftIO $
              atomically $
              H.insert
                  (L.deleteBy
-                      (\p1 p2 -> fst (getPeer p1) == fst (getPeer p2))
+                      (\p1 p2 -> (nodeID p1) == (nodeID p2))
                       fp
                       pl)
                  kbDistance
@@ -150,7 +153,7 @@ removePeer peerR = do
         else liftIO $ atomically $ H.insert pl kbDistance kb
   where
     fnep = NodeEndPoint "" 0 0
-    fp = Peer (peerR, fnep)
+    fp = Peer peerR fnep
 
 -- Gives a peer list given a list of keys
 getPeerListFromKeyList :: (HasKbucket m, MonadIO m) => Int -> [Int] -> m [Peer]
@@ -179,7 +182,7 @@ getKClosestPeersByPeer peerR k = do
     kbbb' <- lift getKb
     let kbtemp = H.stream (getKbucket kbbb')
     kvList <- liftIO $ atomically $ toList kbtemp
-    let peer = fst $ getPeer peerR
+    let peer = nodeID peerR
         kbi = getKbIndex localPeer peer
         tkeys = L.sort $ fmap fst kvList
         keys = (\(x, y) -> L.reverse x ++ y) (L.splitAt kbi tkeys)
@@ -203,10 +206,10 @@ getKClosestPeersByNodeid nid k = do
         keys = (\(x, y) -> L.reverse x ++ y) (L.splitAt kbi tkeys)
     peerl <- lift $ getPeerListFromKeyList k keys
     let dnep = NodeEndPoint "" 0 0
-        dpeer = Peer (nid, dnep)
+        dpeer = Peer nid dnep
         pl2 =
             L.deleteBy
-                (\p1 p2 -> fst (getPeer p1) == fst (getPeer p2))
+                (\p1 p2 -> (nodeID p1) == (nodeID p2))
                 dpeer
                 peerl
     return pl2
@@ -224,7 +227,7 @@ getPeerByNodeId nid = do
     localPeer <- getDefaultNodeId
     let kbi = getKbIndex localPeer nid
     pl <- getPeerListByKIndex kbi
-    let t = filter (\x -> fst (getPeer x) == nid) pl
+    let t = filter (\x -> (nodeID x) == nid) pl
     if null t
         then throwError KademliaPeerDoesNotExist
         else return $ head t
@@ -242,7 +245,7 @@ moveToHardBound ::
 moveToHardBound peer = do
     kb <- lift getKb
     lp' <- getDefaultNodeId
-    pl' <- getPeerList (fst $ getPeer peer)
+    pl' <- getPeerList (nodeID peer)
     _ <-
         liftIO $
         atomically $ do
@@ -250,6 +253,6 @@ moveToHardBound peer = do
                 tpl = L.splitAt (kademliaSoftBound kb) pl''
                 hb = peer : snd tpl
                 fpl = fst tpl ++ hb
-                kbd = getKbIndex lp' (fst $ getPeer peer)
+                kbd = getKbIndex lp' (nodeID peer)
             H.insert fpl kbd (getKbucket kb)
     return ()

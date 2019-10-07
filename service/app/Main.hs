@@ -126,7 +126,7 @@ runNode configPath = do
     runFileLoggingT (toS $ Config.logFile config) $
         runAppM
             env
-            (do 
+            (do
                 let resourceHandlers = HM.insert HelloWorld handler HM.empty
                 initP2P config resourceHandlers
                 -- tid' <-

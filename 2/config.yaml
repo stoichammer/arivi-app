@@ -1,0 +1,23 @@
+           
+{
+  "logFile": "2/node.log",
+  "myIp": "127.0.0.1",
+  "sbound": 20,
+  "secretKey": ! "\"Ò^hmé6ì·áÎ\x82\x82î6|A©\x92Í\n·\x7F,·`\eï\x98\x02£\x80",
+  "pingThreshold": 5,
+  "kademliaConcurrencyFactor": 3,
+  "udpPort": 5680,
+  "tcpPort": 5680,
+  "myNodeId": ! ";æÕ}ip\x12óQà\x81o°p`R'²E\nQ\x9E[ºáN\x92¯øï-õð\x1DZ\b~Ë\rg«¹ÜÓÜíkù\x02\x7F\fÎÝôÎ\x174W(¨\a:\x19&",
+  "trustedPeers": [
+    {
+        "nodeID": ! "-\v6ä¯\x18\x1A\x82=<î&\x1E[³f\t\x12\x9AÊ¹\x8F:\x97\x11á³\\\x94\x9EU\x98\x89ß·¯4\x06A\x82\x16n\bÄx\x9B¯¹Þ4\x15o³\x8FyÝaB\x83ÜeÓð#",
+        "endPoint": {
+          "nodeIp": "127.0.0.1",
+          "udpPort": 5678,
+          "tcpPort": 5678
+        }
+
+    }
+  ]
+}

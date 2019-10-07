@@ -68,7 +68,7 @@ ifPeerExist' nid = do
 deleteIfPeerExist :: (HasKbucket m, MonadIO m) => [Peer] -> m [Peer]
 deleteIfPeerExist [] = return []
 deleteIfPeerExist (x:xs) = do
-    ife <- ifPeerExist' (fst $ getPeer x)
+    ife <- ifPeerExist' (nodeID x)
     t <- deleteIfPeerExist xs
     if not ife
         then return (x : t)
@@ -83,8 +83,8 @@ issueFindNode ::
     -> m ()
 issueFindNode rpeer = do
     nc@NetworkConfig {..} <- asks (^. networkConfig)
-    let rnid = fst $ getPeer rpeer
-        rnep = snd $ getPeer rpeer
+    let rnid = nodeID rpeer
+        rnep = nodeEndPoint rpeer
         ruport = Arivi.P2P.Kademlia.Types.udpPort rnep
         rip = nodeIp rnep
         rnc = NetworkConfig rnid rip ruport ruport
