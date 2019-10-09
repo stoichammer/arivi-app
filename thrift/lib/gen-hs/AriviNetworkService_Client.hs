@@ -13,7 +13,8 @@
 -- DO NOT EDIT UNLESS YOU ARE SURE YOU KNOW WHAT YOU ARE DOING --
 -----------------------------------------------------------------
 
-module Service_Consts where
+module AriviNetworkService_Client(ping,sendRequest) where
+import qualified Data.IORef as R
 import Prelude (($), (.), (>>=), (==), (++))
 import qualified Prelude as P
 import qualified Control.Exception as X
@@ -39,3 +40,32 @@ import qualified Thrift.Arbitraries as T
 
 
 import Service_Types
+import AriviNetworkService
+seqid = R.newIORef 0
+ping (ip,op) = do
+  send_ping op
+  recv_ping ip
+send_ping op = do
+  seq <- seqid
+  seqn <- R.readIORef seq
+  T.writeMessage op ("ping", T.M_CALL, seqn) $
+    write_Ping_args op (Ping_args{})
+recv_ping ip = do
+  T.readMessage ip $ \(fname, mtype, rseqid) -> do
+    M.when (mtype == T.M_EXCEPTION) $ do { exn <- T.readAppExn ip ; X.throw exn }
+    res <- read_Ping_result ip
+    P.return $ ping_result_success res
+sendRequest (ip,op) arg_logid arg_msg = do
+  send_sendRequest op arg_logid arg_msg
+  recv_sendRequest ip
+send_sendRequest op arg_logid arg_msg = do
+  seq <- seqid
+  seqn <- R.readIORef seq
+  T.writeMessage op ("sendRequest", T.M_CALL, seqn) $
+    write_SendRequest_args op (SendRequest_args{sendRequest_args_logid=arg_logid,sendRequest_args_msg=arg_msg})
+recv_sendRequest ip = do
+  T.readMessage ip $ \(fname, mtype, rseqid) -> do
+    M.when (mtype == T.M_EXCEPTION) $ do { exn <- T.readAppExn ip ; X.throw exn }
+    res <- read_SendRequest_result ip
+    P.maybe (P.return ()) X.throw (sendRequest_result_ouch res)
+    P.return $ sendRequest_result_success res

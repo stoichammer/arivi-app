@@ -22,8 +22,9 @@ import qualified Arivi.P2P.Config                       as Config
 import           Arivi.P2P.P2PEnv as PE
 import           Arivi.P2P.ServiceRegistry
 import           Arivi.P2P.Types
-import           Arivi.P2P.Handler  (newIncomingConnectionHandler)
-import           Arivi.P2P.Kademlia.LoadDefaultPeers
+
+-- import           Arivi.P2P.Handler  (newIncomingConnectionHandler)
+-- import           Arivi.P2P.Kademlia.LoadDefaultPeers
 import           Arivi.P2P.MessageHandler.HandlerTypes
 import           Arivi.P2P.PubSub.Env
 import           Arivi.P2P.PubSub.Class
@@ -40,6 +41,15 @@ import           Data.String.Conv
 import           Data.Text
 import           System.Directory                       (doesPathExist)
 import           System.Environment                     (getArgs)
+--import           Control.Concurrent.Async.Lifted (async)
+
+--import ThriftServer
+import qualified AriviNetworkService
+import AriviNetworkServiceHandler
+import AriviNetworkService_Iface
+import Service_Types
+import SharedService_Iface
+import Shared_Types
 
 type AppM = ReaderT (P2PEnv ServiceResource ByteString String ByteString) (LoggingT IO)
 
@@ -126,7 +136,7 @@ runNode configPath = do
     runFileLoggingT (toS $ Config.logFile config) $
         runAppM
             env
-            (do 
+            (do
                 let resourceHandlers = HM.insert HelloWorld handler HM.empty
                 initP2P config resourceHandlers
                 -- tid' <-
@@ -148,22 +158,21 @@ runNode configPath = do
                 -- liftIO $ threadDelay 3000000
                 getHelloWorld
                 loopCall
+
                 liftIO $ threadDelay 500000000
                 )
 
-                
 
-
-                
 main :: IO ()
 main = do
     (path:_) <- getArgs
     b <- doesPathExist (path <> "/config.yaml")
     unless b (defaultConfig path)
+    async runThriftServer
     runNode (path <> "/config.yaml")
-    
 
-a :: Int -> BSL.ByteString
+
+a :: Prelude.Int -> BSL.ByteString
 a n = BSLC.pack (Prelude.replicate n 'a')
 
 myAmazingHandler :: (HasLogging m) => ConnectionHandle -> m ()

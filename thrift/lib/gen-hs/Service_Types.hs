@@ -38,5 +38,140 @@ import qualified Thrift.Types as T
 import qualified Thrift.Arbitraries as T
 
 
+data Priority = HIGH|MEDIUM|LOW  deriving (P.Show, P.Eq, G.Generic, TY.Typeable, P.Ord, P.Bounded)
+instance P.Enum Priority where
+  fromEnum t = case t of
+    HIGH -> 1
+    MEDIUM -> 2
+    LOW -> 3
+  toEnum t = case t of
+    1 -> HIGH
+    2 -> MEDIUM
+    3 -> LOW
+    _ -> X.throw T.ThriftException
+instance H.Hashable Priority where
+  hashWithSalt salt = H.hashWithSalt salt P.. P.fromEnum
+instance QC.Arbitrary Priority where
+  arbitrary = QC.elements (P.enumFromTo P.minBound P.maxBound)
+data Operation = SET_NODE_CAPABILITY|GET_BLOCK_HEADERS|GET_ESTIMATE_FEE|SUBSCRIBE_NEW_HEADERS|GET_UNCONFIRMED_TX|GET_UTXOS|SUBSCRIBE_SCRIPT_HASH|UNSUBSCRIBE_SCRIPT_HASH|BROADCAST_TX|GET_RAW_TX_FROM_HASH|GET_TX_MERKLE_PATH  deriving (P.Show, P.Eq, G.Generic, TY.Typeable, P.Ord, P.Bounded)
+instance P.Enum Operation where
+  fromEnum t = case t of
+    SET_NODE_CAPABILITY -> 1
+    GET_BLOCK_HEADERS -> 2
+    GET_ESTIMATE_FEE -> 3
+    SUBSCRIBE_NEW_HEADERS -> 4
+    GET_UNCONFIRMED_TX -> 5
+    GET_UTXOS -> 6
+    SUBSCRIBE_SCRIPT_HASH -> 7
+    UNSUBSCRIBE_SCRIPT_HASH -> 8
+    BROADCAST_TX -> 9
+    GET_RAW_TX_FROM_HASH -> 10
+    GET_TX_MERKLE_PATH -> 11
+  toEnum t = case t of
+    1 -> SET_NODE_CAPABILITY
+    2 -> GET_BLOCK_HEADERS
+    3 -> GET_ESTIMATE_FEE
+    4 -> SUBSCRIBE_NEW_HEADERS
+    5 -> GET_UNCONFIRMED_TX
+    6 -> GET_UTXOS
+    7 -> SUBSCRIBE_SCRIPT_HASH
+    8 -> UNSUBSCRIBE_SCRIPT_HASH
+    9 -> BROADCAST_TX
+    10 -> GET_RAW_TX_FROM_HASH
+    11 -> GET_TX_MERKLE_PATH
+    _ -> X.throw T.ThriftException
+instance H.Hashable Operation where
+  hashWithSalt salt = H.hashWithSalt salt P.. P.fromEnum
+instance QC.Arbitrary Operation where
+  arbitrary = QC.elements (P.enumFromTo P.minBound P.maxBound)
 type Int = I.Int32
 
+data Message = Message  { message_count :: I.Int32
+  , message_priority :: Priority
+  , message_opcode :: Operation
+  , message_payload :: P.Maybe LT.Text
+  } deriving (P.Show,P.Eq,G.Generic,TY.Typeable)
+instance H.Hashable Message where
+  hashWithSalt salt record = salt   `H.hashWithSalt` message_count record   `H.hashWithSalt` message_priority record   `H.hashWithSalt` message_opcode record   `H.hashWithSalt` message_payload record  
+instance QC.Arbitrary Message where 
+  arbitrary = M.liftM Message (QC.arbitrary)
+          `M.ap`(QC.arbitrary)
+          `M.ap`(QC.arbitrary)
+          `M.ap`(M.liftM P.Just QC.arbitrary)
+  shrink obj | obj == default_Message = []
+             | P.otherwise = M.catMaybes
+    [ if obj == default_Message{message_count = message_count obj} then P.Nothing else P.Just $ default_Message{message_count = message_count obj}
+    , if obj == default_Message{message_priority = message_priority obj} then P.Nothing else P.Just $ default_Message{message_priority = message_priority obj}
+    , if obj == default_Message{message_opcode = message_opcode obj} then P.Nothing else P.Just $ default_Message{message_opcode = message_opcode obj}
+    , if obj == default_Message{message_payload = message_payload obj} then P.Nothing else P.Just $ default_Message{message_payload = message_payload obj}
+    ]
+from_Message :: Message -> T.ThriftVal
+from_Message record = T.TStruct $ Map.fromList $ M.catMaybes
+  [ (\_v2 -> P.Just (1, ("count",T.TI32 _v2))) $ message_count record
+  , (\_v2 -> P.Just (2, ("priority",T.TI32 $ P.fromIntegral $ P.fromEnum _v2))) $ message_priority record
+  , (\_v2 -> P.Just (3, ("opcode",T.TI32 $ P.fromIntegral $ P.fromEnum _v2))) $ message_opcode record
+  , (\_v2 -> (4, ("payload",T.TString $ E.encodeUtf8 _v2))) <$> message_payload record
+  ]
+write_Message :: T.Protocol p => p -> Message -> P.IO ()
+write_Message oprot record = T.writeVal oprot $ from_Message record
+encode_Message :: T.StatelessProtocol p => p -> Message -> LBS.ByteString
+encode_Message oprot record = T.serializeVal oprot $ from_Message record
+to_Message :: T.ThriftVal -> Message
+to_Message (T.TStruct fields) = Message{
+  message_count = P.maybe (message_count default_Message) (\(_,_val4) -> (case _val4 of {T.TI32 _val5 -> _val5; _ -> P.error "wrong type"})) (Map.lookup (1) fields),
+  message_priority = P.maybe (message_priority default_Message) (\(_,_val4) -> (case _val4 of {T.TI32 _val6 -> P.toEnum $ P.fromIntegral _val6; _ -> P.error "wrong type"})) (Map.lookup (2) fields),
+  message_opcode = P.maybe (message_opcode default_Message) (\(_,_val4) -> (case _val4 of {T.TI32 _val7 -> P.toEnum $ P.fromIntegral _val7; _ -> P.error "wrong type"})) (Map.lookup (3) fields),
+  message_payload = P.maybe (P.Nothing) (\(_,_val4) -> P.Just (case _val4 of {T.TString _val8 -> E.decodeUtf8 _val8; _ -> P.error "wrong type"})) (Map.lookup (4) fields)
+  }
+to_Message _ = P.error "not a struct"
+read_Message :: T.Protocol p => p -> P.IO Message
+read_Message iprot = to_Message <$> T.readVal iprot (T.T_STRUCT typemap_Message)
+decode_Message :: T.StatelessProtocol p => p -> LBS.ByteString -> Message
+decode_Message iprot bs = to_Message $ T.deserializeVal iprot (T.T_STRUCT typemap_Message) bs
+typemap_Message :: T.TypeMap
+typemap_Message = Map.fromList [(1,("count",T.T_I32)),(2,("priority",T.T_I32)),(3,("opcode",T.T_I32)),(4,("payload",T.T_STRING))]
+default_Message :: Message
+default_Message = Message{
+  message_count = (0),
+  message_priority = (P.toEnum 0),
+  message_opcode = (P.toEnum 0),
+  message_payload = P.Nothing}
+data InvalidOperation = InvalidOperation  { invalidOperation_failedOpcode :: I.Int32
+  , invalidOperation_reason :: LT.Text
+  } deriving (P.Show,P.Eq,G.Generic,TY.Typeable)
+instance X.Exception InvalidOperation
+instance H.Hashable InvalidOperation where
+  hashWithSalt salt record = salt   `H.hashWithSalt` invalidOperation_failedOpcode record   `H.hashWithSalt` invalidOperation_reason record  
+instance QC.Arbitrary InvalidOperation where 
+  arbitrary = M.liftM InvalidOperation (QC.arbitrary)
+          `M.ap`(QC.arbitrary)
+  shrink obj | obj == default_InvalidOperation = []
+             | P.otherwise = M.catMaybes
+    [ if obj == default_InvalidOperation{invalidOperation_failedOpcode = invalidOperation_failedOpcode obj} then P.Nothing else P.Just $ default_InvalidOperation{invalidOperation_failedOpcode = invalidOperation_failedOpcode obj}
+    , if obj == default_InvalidOperation{invalidOperation_reason = invalidOperation_reason obj} then P.Nothing else P.Just $ default_InvalidOperation{invalidOperation_reason = invalidOperation_reason obj}
+    ]
+from_InvalidOperation :: InvalidOperation -> T.ThriftVal
+from_InvalidOperation record = T.TStruct $ Map.fromList $ M.catMaybes
+  [ (\_v11 -> P.Just (1, ("failedOpcode",T.TI32 _v11))) $ invalidOperation_failedOpcode record
+  , (\_v11 -> P.Just (2, ("reason",T.TString $ E.encodeUtf8 _v11))) $ invalidOperation_reason record
+  ]
+write_InvalidOperation :: T.Protocol p => p -> InvalidOperation -> P.IO ()
+write_InvalidOperation oprot record = T.writeVal oprot $ from_InvalidOperation record
+encode_InvalidOperation :: T.StatelessProtocol p => p -> InvalidOperation -> LBS.ByteString
+encode_InvalidOperation oprot record = T.serializeVal oprot $ from_InvalidOperation record
+to_InvalidOperation :: T.ThriftVal -> InvalidOperation
+to_InvalidOperation (T.TStruct fields) = InvalidOperation{
+  invalidOperation_failedOpcode = P.maybe (invalidOperation_failedOpcode default_InvalidOperation) (\(_,_val13) -> (case _val13 of {T.TI32 _val14 -> _val14; _ -> P.error "wrong type"})) (Map.lookup (1) fields),
+  invalidOperation_reason = P.maybe (invalidOperation_reason default_InvalidOperation) (\(_,_val13) -> (case _val13 of {T.TString _val15 -> E.decodeUtf8 _val15; _ -> P.error "wrong type"})) (Map.lookup (2) fields)
+  }
+to_InvalidOperation _ = P.error "not a struct"
+read_InvalidOperation :: T.Protocol p => p -> P.IO InvalidOperation
+read_InvalidOperation iprot = to_InvalidOperation <$> T.readVal iprot (T.T_STRUCT typemap_InvalidOperation)
+decode_InvalidOperation :: T.StatelessProtocol p => p -> LBS.ByteString -> InvalidOperation
+decode_InvalidOperation iprot bs = to_InvalidOperation $ T.deserializeVal iprot (T.T_STRUCT typemap_InvalidOperation) bs
+typemap_InvalidOperation :: T.TypeMap
+typemap_InvalidOperation = Map.fromList [(1,("failedOpcode",T.T_I32)),(2,("reason",T.T_STRING))]
+default_InvalidOperation :: InvalidOperation
+default_InvalidOperation = InvalidOperation{
+  invalidOperation_failedOpcode = 0,
+  invalidOperation_reason = ""}

@@ -13,7 +13,7 @@
 -- DO NOT EDIT UNLESS YOU ARE SURE YOU KNOW WHAT YOU ARE DOING --
 -----------------------------------------------------------------
 
-module MultiplicationService_Iface where
+module AriviNetworkService_Iface where
 import Prelude (($), (.), (>>=), (==), (++))
 import qualified Prelude as P
 import qualified Control.Exception as X
@@ -40,5 +40,6 @@ import qualified Thrift.Arbitraries as T
 
 import Service_Types
 
-class MultiplicationService_Iface a where
-  multiply :: a -> I.Int32 -> I.Int32 -> P.IO I.Int32
+class AriviNetworkService_Iface a where
+  ping :: a -> P.IO P.Bool
+  sendRequest :: a -> I.Int32 -> Message -> P.IO LT.Text
