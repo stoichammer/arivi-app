@@ -45,6 +45,7 @@ import Data.Typeable
 import           System.Directory                       (doesPathExist)
 import           System.Environment                     (getArgs)
 --import           Control.Concurrent.Async.Lifted (async)
+import Control.Concurrent.MVar
 
 --import ThriftServer
 import qualified AriviNetworkService
@@ -53,6 +54,7 @@ import AriviNetworkService_Iface
 import Service_Types
 import SharedService_Iface as SharedIface
 import Shared_Types
+import Data.Int
 
 type AppM = ReaderT (P2PEnv ServiceResource ByteString String ByteString) (LoggingT IO)
 
@@ -134,8 +136,8 @@ defaultConfig path = do
 
     Config.makeConfig config (path <> "/config.yaml")
 
-runNode :: Config.Config -> IO ()
-runNode config = do
+runNode :: Config.Config -> M.Map Int32 (MVar RPCCall) -> IO ()
+runNode config mp = do
     -- config <- Config.readConfig configPath
     env <- mkP2PEnv config
     runFileLoggingT (toS $ Config.logFile config) $
@@ -147,8 +149,8 @@ runNode config = do
 
                 liftIO $ threadDelay 5000000
 
-                --getAriviSecureRPC
-                loopCall
+                --getAriviSecureRPC mp
+                loopCall mp
 
                 --liftIO $ threadDelay 500000000
                 )
@@ -163,12 +165,18 @@ main = do
 
     handler <- newAriviNetworkServiceHandler
 
+    let mv = ariviThriftLog handler
+    let queue = rpcQueue handler
+    print (typeOf mv)
+    print (typeOf queue)
+    mp <- readMVar queue
+    print (size mp)
 
-    let xx =  SharedIface.getStruct handler 0
-    print (typeOf  xx)
-
-    let yy = ariviThriftLog handler
-    print (typeOf yy)
+    -- st <-  SharedIface.getStruct handler 0
+    -- print (typeOf  st)
+    -- print (sharedStruct_key st)
+    -- print (sharedStruct_value st)
+    --
 
     --let flag = M.member (SharedStruct 1 "hello") xx
     --print (flag)
@@ -176,8 +184,8 @@ main = do
 
 
     async ( runThriftServer handler (Config.thriftServerPort config))
-    runNode config
-
+    runNode config mp
+    return ()
 
 a :: Prelude.Int -> BSL.ByteString
 a n = BSLC.pack (Prelude.replicate n 'a')

@@ -6,6 +6,7 @@ packages:
     - ../crypto
     - ../utils
     - ../network
+    - ../service
 
 
 extra-deps:

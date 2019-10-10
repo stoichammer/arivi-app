@@ -17,7 +17,11 @@ import Control.Monad.IO.Class
 import Data.ByteString.Lazy as Lazy
 import Data.Hashable
 import Control.Concurrent    (threadDelay)
-
+import  Shared_Types
+import Control.Concurrent.MVar
+import           Data.Int
+import           Data.Map as M
+import Data.Typeable
 
 type ServiceMsg = Lazy.ByteString
 
@@ -35,17 +39,21 @@ handler = ResourceHandler (\(RpcPayload resource serviceMsg) -> RpcPayload resou
 --     liftIO (threadDelay 5000000) >>
 --     updatePeerInResourceMap AriviSecureRPC
 
-getAriviSecureRPC :: (HasP2PEnv env m ServiceResource ByteString String ByteString) => m ()
-getAriviSecureRPC = do
-    resource <- fetchResource (RpcPayload AriviSecureRPC "<GET_Resource>")
-    liftIO $ print "here"
-    liftIO $ print resource
+-- getAriviSecureRPC :: (HasP2PEnv env m ServiceResource ByteString String ByteString) => (M.Map Int32 (MVar RPCCall)) -> m ()
+-- getAriviSecureRPC mp = do
+--     resource <- fetchResource (RpcPayload AriviSecureRPC "<GET_Resource>")
+--
+--     liftIO $ print "here"
+--     liftIO $ print resource
 
-loopCall :: (HasP2PEnv env m ServiceResource ByteString String ByteString) => m ()
-loopCall = do
+
+loopCall :: (HasP2PEnv env m ServiceResource ByteString String ByteString) => (M.Map Int32 (MVar RPCCall)) -> m ()
+loopCall mp = do
     liftIO $ print "calling..."
     --getAriviSecureRPC
     resource <- fetchResource (RpcPayload AriviSecureRPC "<GET_Resource>")
     liftIO $ print resource
+    liftIO $ print (typeOf mp)
     liftIO $ threadDelay 3000000
-    loopCall
+
+    loopCall mp

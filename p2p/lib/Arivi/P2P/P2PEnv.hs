@@ -31,6 +31,12 @@ import           Data.ByteString.Lazy                  (ByteString)
 import           Data.HashMap.Strict                   as HM
 import           Data.Hashable
 import           Data.Ratio                            (Rational, (%))
+--import  Shared_Types
+--import Service_Types
+import Prelude as P
+-- import           Data.Map
+-- import Control.Concurrent.MVar
+-- import           Data.Int
 
 -- |Upon writing services, we might discover that topic (t) and resource (r)
 -- can be the same type, and the same with rpc message (rmsg) and
@@ -72,10 +78,10 @@ mkRpcEnv =
            <*> newTVarIO (TransientResourceToPeerMap HM.empty)
 
 data KademliaEnv = KademliaEnv {
-    kbucket :: T.Kbucket Int [T.Peer]
+    kbucket :: T.Kbucket P.Int [T.Peer]
 }
 
-mkKademlia :: NetworkConfig -> Int -> Int -> Int -> IO KademliaEnv
+mkKademlia :: NetworkConfig -> P.Int -> P.Int -> P.Int -> IO KademliaEnv
 mkKademlia NetworkConfig{..} sbound pingThreshold kademliaConcurrencyFactor =
     KademliaEnv <$>
         T.createKbucket
@@ -93,6 +99,8 @@ data P2PEnv r t rmsg pmsg = P2PEnv {
     , kademliaEnv :: KademliaEnv
     , statsdClient :: StatsdClient
     , prtEnv       :: PRTEnv
+    --, thriftHandle :: SharedStruct
+    --, thriftHandle :: Map Int32 (MVar RPCCall)
 }
 
 class (HasSecretKey m) => HasNodeEndpoint m where
@@ -131,14 +139,14 @@ class HasPRT m where
     getReputedVsOtherTVar :: m (TVar Rational)
     getKClosestVsRandomTVar :: m (TVar Rational)
 
-mkPRTEnv :: IO PRTEnv 
+mkPRTEnv :: IO PRTEnv
 mkPRTEnv = do
     peerReputationHashTable <- newTVarIO HM.empty
     servicesReputationHashMapTVar <- newTVarIO HM.empty
     p2pReputationHashMapTVar <- newTVarIO HM.empty
     reputedVsOtherTVar <- newTVarIO (1 % 1 :: Rational)
     kClosestVsRandomTVar <- newTVarIO (1 % 1 :: Rational)
-    return (PRTEnv peerReputationHashTable servicesReputationHashMapTVar p2pReputationHashMapTVar reputedVsOtherTVar kClosestVsRandomTVar) 
+    return (PRTEnv peerReputationHashTable servicesReputationHashMapTVar p2pReputationHashMapTVar reputedVsOtherTVar kClosestVsRandomTVar)
 
 
 -- class HasPubSub where
@@ -184,12 +192,12 @@ mkPRTEnv = do
 --     -- notifierMap <- newTVarIO HM.empty
 --     -- topicHandleMap <- newTVarIO HM.empty
 --     -- messageMap <- newTVarIO HM.empty
---     -- let pubSubEnv = PubSubEnv 
+--     -- let pubSubEnv = PubSubEnv
 --     return P2PEnv {
 --         rpcEnv = rpcEnv
 --       , kademliaEnv = kademliaEnv
 --       -- , pubSubEnv :: PubSubEnv
---     } 
+--     }
         -- P2PEnv
         --     { _networkConfig = nc
         --     , tvarNodeIdPeerMap = nmap

@@ -42,3 +42,4 @@ import Shared_Types
 
 class SharedService_Iface a where
   getStruct :: a -> I.Int32 -> P.IO SharedStruct
+  getRPCCallItem :: a -> I.Int32 -> P.IO RPCCall

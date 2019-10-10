@@ -31,7 +31,7 @@ namespace perl shared
 namespace php shared
 namespace haxe shared
 namespace netcore shared
-namespace netstd shared
+//namespace netstd shared
 
 
 struct SharedStruct {
@@ -39,6 +39,16 @@ struct SharedStruct {
   2: string value
 }
 
+struct RPCCall {
+  1: i32 key
+  2: string request
+  3: string response
+}
+
 service SharedService {
+
   SharedStruct getStruct(1: i32 key)
-} 
+
+  RPCCall getRPCCallItem(1: i32 key)
+
+}

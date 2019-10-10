@@ -30,19 +30,30 @@ import Data.Map ((!))
 --import Data.Monoid
 import           Network.Socket
 import           Service.AriviSecureRPC
+import Data.Typeable
 
-data AriviNetworkServiceHandler = AriviNetworkServiceHandler {ariviThriftLog :: MVar (M.Map Int32 SharedStruct)}
+data AriviNetworkServiceHandler = AriviNetworkServiceHandler {
+                      ariviThriftLog :: MVar (M.Map Int32 SharedStruct)
+                    , rpcQueue :: MVar (M.Map Int32 (MVar RPCCall))
+                }
 
 newAriviNetworkServiceHandler :: IO AriviNetworkServiceHandler
 newAriviNetworkServiceHandler = do
   logg <- newMVar mempty
-  return $ AriviNetworkServiceHandler logg
+  rpcQ <- newMVar mempty
+  return $ AriviNetworkServiceHandler logg rpcQ
 
 instance SharedService_Iface AriviNetworkServiceHandler where
+
   getStruct self k = do
     myLog <- readMVar (ariviThriftLog self)
     return $ (myLog ! k)
 
+  getRPCCallItem self k = do
+    queue <- readMVar (rpcQueue self)
+    let key = (queue ! k)
+    val <- readMVar (key)
+    return $ val
 
 instance AriviNetworkService_Iface AriviNetworkServiceHandler where
 
@@ -53,6 +64,8 @@ instance AriviNetworkService_Iface AriviNetworkServiceHandler where
       printf "sendRequest(%d, %s)\n" logid (show msg)
       --printf "%s" show message_count ::Int32
 
+      let req = payload msg
+      print (typeOf req)
       let val = case opcode msg of
                   SET_NODE_CAPABILITY -> "dummy-resp SET_NODE_CAPABILITY"
                   GET_BLOCK_HEADERS -> "dummy-resp GET_BLOCK_HEADERS"
@@ -69,6 +82,9 @@ instance AriviNetworkService_Iface AriviNetworkServiceHandler where
       let logEntry = SharedStruct logid (fromString $ show $ val)
       modifyMVar_ (ariviThriftLog self) $ return .(M.insert logid logEntry)
 
+      --let rpcEntry = newMVar (RPCCall logid req)
+      --modifyMVar_ (rpcQueue self) $ return .(M.insert logid rpcEntry)
+
       return $! val
 
      where
@@ -76,7 +92,7 @@ instance AriviNetworkService_Iface AriviNetworkServiceHandler where
        --count = message_count
        --priority = message_priority
        opcode = message_opcode
-       --payload = message_payload
+       payload = message_payload
        logid = mlogid
        msg = mmsg
 

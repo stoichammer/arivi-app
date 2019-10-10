@@ -11,6 +11,9 @@ import           Arivi.P2P.P2PEnv
 import           Arivi.P2P.RPC.Handler
 import           Arivi.P2P.Types
 import           Arivi.Utils.Statsd
+-- import  Shared_Types
+-- import Control.Concurrent.MVar
+-- import           Data.Int
 
 mkHandlers :: Handlers
 mkHandlers = Handlers rpcHandler kademliaMessageHandler optionsHandler pubSubHandler
@@ -21,6 +24,7 @@ mkP2PEnv config = do
     let nc = NetworkConfig (Config.myNodeId config) (Config.myIp config) (Config.tcpPort config) (Config.udpPort config)
     let networkEnv = mkAriviEnv (read $ show $ Config.tcpPort config) (read $ show $ Config.udpPort config) (Config.secretKey config)
     P2PEnv <$> mkNodeEndpoint nc mkHandlers networkEnv <*> mkRpcEnv <*> mkPubSub <*> mkKademlia nc (Config.sbound config) (Config.pingThreshold config) (Config.kademliaConcurrencyFactor config) <*> createStatsdClient "127.0.0.1" 8080 "statsdPrefix" <*> mkPRTEnv
+
 
 -- makeP2Pinstance ::
 --        NodeId
