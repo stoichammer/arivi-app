@@ -66,3 +66,281 @@
 [Info] 2019-10-09 06:34:39.573362065 UTCLogNetworkStatement TCP Server started...
 [Debug] 2019-10-09 06:36:13.619694803 UTCLogNetworkStatement UDP Server started...
 [Info] 2019-10-09 06:36:13.619859232 UTCLogNetworkStatement TCP Server started...
+[Debug] 2019-10-09 06:47:12.786904256 UTCLogNetworkStatement UDP Server started...
+[Info] 2019-10-09 06:47:12.787116013 UTCLogNetworkStatement TCP Server started...
+[Debug] 2019-10-09 07:32:11.662262465 UTCLogNetworkStatement UDP Server started...
+[Info] 2019-10-09 07:32:11.662451596 UTCLogNetworkStatement TCP Server started...
+[Debug] 2019-10-09 07:32:20.570765739 UTCLogNetworkStatement newUdpConnection latest: 127.0.0.1:34895
+[Info] 2019-10-09 07:32:20.571293972 UTCLogNetworkStatement readUdpSock: 
+[Debug] Find_Node Message Recieved from : NodeEndPoint {nodeIp = "127.0.0.1", udpPort = 5680, tcpPort = 5680} @(arivi-p2p-0.1.0.0-65KjXlX0niK7sGMmESc4BH:Arivi.P2P.Kademlia.MessageHandler lib/Arivi/P2P/Kademlia/MessageHandler.hs:70:15)
+[Debug] Add to kbucket called  @(arivi-p2p-0.1.0.0-65KjXlX0niK7sGMmESc4BH:Arivi.P2P.Kademlia.Kbucket lib/Arivi/P2P/Kademlia/Kbucket.hs:112:7)
+[Debug] First_Element in respective kbucket @(arivi-p2p-0.1.0.0-65KjXlX0niK7sGMmESc4BH:Arivi.P2P.Kademlia.Kbucket lib/Arivi/P2P/Kademlia/Kbucket.hs:121:15)
+[Debug] Kbucket after adding : [(0,[Peer {nodeID = "-\v6\228\175\CAN\SUB\130=<\238&\RS[\179f\t\DC2\154\202\185\143:\151\DC1\225\179\\\148\158U\152\137\223\183\175\&4\ACKA\130\SYNn\b\196x\155\175\185\222\&4\NAKo\179\143y\221aB\131\220e\211\240#", nodeEndPoint = NodeEndPoint {nodeIp = "127.0.0.1", udpPort = 5678, tcpPort = 5678}}]),(509,[Peer {nodeID = ";\230\213}ip\DC2\243Q\224\129o\176p`R'\178E\nQ\158[\186\225N\146\175\248\239-\245\240\GSZ\b~\203\rg\171\185\220\211\220\237k\249\STX\DEL\f\206\221\244\206\ETB4W(\168\a:\EM&", nodeEndPoint = NodeEndPoint {nodeIp = "127.0.0.1", udpPort = 5680, tcpPort = 5680}}])] @(arivi-p2p-0.1.0.0-65KjXlX0niK7sGMmESc4BH:Arivi.P2P.Kademlia.Kbucket lib/Arivi/P2P/Kademlia/Kbucket.hs:129:7)
+[Info] 2019-10-09 07:32:20.572148745 UTCLogNetworkStatement readUdpSock: 
+[Info] 2019-10-09 07:32:20.572837121 UTCLogNetworkStatement sendUdpMessage: Host: 127.0.0.1: Port: 34895: MsgLength: 146
+[Info] 2019-10-09 07:32:25.579610685 UTCLogNetworkStatement sendUdpMessage: Host: 127.0.0.1: Port: 34895: MsgLength: 54
+[Info] 2019-10-09 07:32:25.580006983 UTCLogNetworkStatement readUdpSock: 
+[Debug] 2019-10-09 07:32:30.58140802 UTCLogNetworkStatement handleInboundConnection: 
+[Info] 2019-10-09 07:32:30.582398261 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 07:32:30.58290651 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 07:32:30.583083532 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 07:32:30.583539588 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 07:32:30.583712034 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 07:32:33.587357374 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 07:32:33.587559158 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 07:32:36.592309691 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 07:32:36.593198259 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 07:32:39.599298398 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 07:32:39.600067948 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 07:32:42.605515299 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 07:32:42.60642926 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 07:32:45.610145969 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 07:32:45.610962783 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 07:32:48.616066859 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 07:32:48.616669213 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 07:32:51.619617058 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 07:32:51.619813393 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 07:32:54.624088939 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 07:32:54.624944188 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 07:32:55.5817434 UTCLogNetworkStatement readUdpSock: 
+[Info] 2019-10-09 07:32:56.66984016 UTCLogNetworkStatement sendUdpMessage: Host: 127.0.0.1: Port: 34895: MsgLength: 50
+[Info] 2019-10-09 07:32:56.672589699 UTCLogNetworkStatement readUdpSock: 
+[Debug] 2019-10-09 08:22:13.755231456 UTCLogNetworkStatement UDP Server started...
+[Info] 2019-10-09 08:22:13.755397609 UTCLogNetworkStatement TCP Server started...
+[Debug] 2019-10-09 08:22:21.528086206 UTCLogNetworkStatement newUdpConnection latest: 127.0.0.1:50583
+[Info] 2019-10-09 08:22:21.52872135 UTCLogNetworkStatement readUdpSock: 
+[Debug] Find_Node Message Recieved from : NodeEndPoint {nodeIp = "127.0.0.1", udpPort = 5680, tcpPort = 5680} @(arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Kademlia.MessageHandler lib/Arivi/P2P/Kademlia/MessageHandler.hs:70:15)
+[Debug] Add to kbucket called  @(arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Kademlia.Kbucket lib/Arivi/P2P/Kademlia/Kbucket.hs:112:7)
+[Debug] First_Element in respective kbucket @(arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Kademlia.Kbucket lib/Arivi/P2P/Kademlia/Kbucket.hs:121:15)
+[Debug] Kbucket after adding : [(0,[Peer {nodeID = "-\v6\228\175\CAN\SUB\130=<\238&\RS[\179f\t\DC2\154\202\185\143:\151\DC1\225\179\\\148\158U\152\137\223\183\175\&4\ACKA\130\SYNn\b\196x\155\175\185\222\&4\NAKo\179\143y\221aB\131\220e\211\240#", nodeEndPoint = NodeEndPoint {nodeIp = "127.0.0.1", udpPort = 5678, tcpPort = 5678}}]),(509,[Peer {nodeID = ";\230\213}ip\DC2\243Q\224\129o\176p`R'\178E\nQ\158[\186\225N\146\175\248\239-\245\240\GSZ\b~\203\rg\171\185\220\211\220\237k\249\STX\DEL\f\206\221\244\206\ETB4W(\168\a:\EM&", nodeEndPoint = NodeEndPoint {nodeIp = "127.0.0.1", udpPort = 5680, tcpPort = 5680}}])] @(arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Kademlia.Kbucket lib/Arivi/P2P/Kademlia/Kbucket.hs:129:7)
+[Info] 2019-10-09 08:22:21.529664816 UTCLogNetworkStatement readUdpSock: 
+[Info] 2019-10-09 08:22:21.530539877 UTCLogNetworkStatement sendUdpMessage: Host: 127.0.0.1: Port: 50583: MsgLength: 146
+[Info] 2019-10-09 08:22:26.54208831 UTCLogNetworkStatement sendUdpMessage: Host: 127.0.0.1: Port: 50583: MsgLength: 54
+[Info] 2019-10-09 08:22:26.542993842 UTCLogNetworkStatement readUdpSock: 
+[Debug] 2019-10-09 08:22:31.543306567 UTCLogNetworkStatement handleInboundConnection: 
+[Info] 2019-10-09 08:22:31.546940425 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:22:31.548705918 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:22:31.549573824 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:22:31.551466938 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:22:31.552334729 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:22:34.556737904 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:22:34.556932674 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:22:37.561675488 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:22:37.562600175 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:22:40.568630115 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:22:40.570058133 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:22:43.574991421 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:22:43.575838968 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:22:46.581222266 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:22:46.582017147 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:22:49.586523939 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:22:49.586783749 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:22:52.591194528 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:22:52.592839395 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:22:55.598992165 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:22:55.599843762 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:22:56.544525477 UTCLogNetworkStatement readUdpSock: 
+[Info] 2019-10-09 08:22:58.604695543 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:22:58.605470122 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:22:58.766236137 UTCLogNetworkStatement sendUdpMessage: Host: 127.0.0.1: Port: 50583: MsgLength: 50
+[Info] 2019-10-09 08:22:58.768402139 UTCLogNetworkStatement readUdpSock: 
+[Info] 2019-10-09 08:22:59.783265072 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:22:59.785676306 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:23:01.608601034 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:23:01.608785302 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:23:02.787358499 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:23:02.788943477 UTCLogNetworkStatement readTcpSock: 
+[Info] Exception occured: NetworkSocketExceptionat"CallStack (from HasCallStack):\n  logToF, called at ./Arivi/Utils/Logging.hs:61:5 in arivi-utils-0.1.0.0-D7sYDHhNIR4Fp85G6tmuz5:Arivi.Utils.Logging\n  withLocLogging, called at lib/Arivi/Network/ConnectionHandler.hs:208:7 in arivi-network-0.1.0.0-CmWbqBxaGB0FcYsCbK8lSI:Arivi.Network.ConnectionHandler\n  readTcpSock, called at lib/Arivi/Network/StreamServer.hs:100:42 in arivi-network-0.1.0.0-CmWbqBxaGB0FcYsCbK8lSI:Arivi.Network.StreamServer\n  $sel:recv:ConnectionHandle, called at lib/Arivi/Network/Types.hs:287:7 in arivi-network-0.1.0.0-CmWbqBxaGB0FcYsCbK8lSI:Arivi.Network.Types\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:100:5 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  newIncomingConnectionHandler, called at lib/Arivi/P2P.hs:28:61 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P\n  initP2P, called at app/Main.hs:143:17 in main:Main" @(arivi-network-0.1.0.0-CmWbqBxaGB0FcYsCbK8lSI:Arivi.Network.ConnectionHandler lib/Arivi/Network/ConnectionHandler.hs:208:7)
+[Debug] network recv failed from readIncomingMessageNetworkSocketException";\230\213}ip\DC2\243Q\224\129o\176p`R'\178E\nQ\158[\186\225N\146\175\248\239-\245\240\GSZ\b~\203\rg\171\185\220\211\220\237k\249\STX\DEL\f\206\221\244\206\ETB4W(\168\a:\EM&" @(arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.MessageHandler.Utils lib/Arivi/P2P/MessageHandler/Utils.hs:26:38)
+[Debug] 2019-10-09 08:23:25.169737396 UTCLogNetworkStatement UDP Server started...
+[Info] 2019-10-09 08:23:25.170453597 UTCLogNetworkStatement TCP Server started...
+[Debug] 2019-10-09 08:23:31.339294036 UTCLogNetworkStatement newUdpConnection latest: 127.0.0.1:54009
+[Info] 2019-10-09 08:23:31.339833161 UTCLogNetworkStatement readUdpSock: 
+[Debug] Find_Node Message Recieved from : NodeEndPoint {nodeIp = "127.0.0.1", udpPort = 5680, tcpPort = 5680} @(arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Kademlia.MessageHandler lib/Arivi/P2P/Kademlia/MessageHandler.hs:70:15)
+[Debug] Add to kbucket called  @(arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Kademlia.Kbucket lib/Arivi/P2P/Kademlia/Kbucket.hs:112:7)
+[Debug] First_Element in respective kbucket @(arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Kademlia.Kbucket lib/Arivi/P2P/Kademlia/Kbucket.hs:121:15)
+[Debug] Kbucket after adding : [(0,[Peer {nodeID = "-\v6\228\175\CAN\SUB\130=<\238&\RS[\179f\t\DC2\154\202\185\143:\151\DC1\225\179\\\148\158U\152\137\223\183\175\&4\ACKA\130\SYNn\b\196x\155\175\185\222\&4\NAKo\179\143y\221aB\131\220e\211\240#", nodeEndPoint = NodeEndPoint {nodeIp = "127.0.0.1", udpPort = 5678, tcpPort = 5678}}]),(509,[Peer {nodeID = ";\230\213}ip\DC2\243Q\224\129o\176p`R'\178E\nQ\158[\186\225N\146\175\248\239-\245\240\GSZ\b~\203\rg\171\185\220\211\220\237k\249\STX\DEL\f\206\221\244\206\ETB4W(\168\a:\EM&", nodeEndPoint = NodeEndPoint {nodeIp = "127.0.0.1", udpPort = 5680, tcpPort = 5680}}])] @(arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Kademlia.Kbucket lib/Arivi/P2P/Kademlia/Kbucket.hs:129:7)
+[Info] 2019-10-09 08:23:31.340626531 UTCLogNetworkStatement readUdpSock: 
+[Info] 2019-10-09 08:23:31.341291775 UTCLogNetworkStatement sendUdpMessage: Host: 127.0.0.1: Port: 54009: MsgLength: 146
+[Info] 2019-10-09 08:23:36.35064183 UTCLogNetworkStatement sendUdpMessage: Host: 127.0.0.1: Port: 54009: MsgLength: 54
+[Info] 2019-10-09 08:23:36.35146414 UTCLogNetworkStatement readUdpSock: 
+[Debug] 2019-10-09 08:23:41.349704415 UTCLogNetworkStatement handleInboundConnection: 
+[Info] 2019-10-09 08:23:41.353379827 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:23:41.355252196 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:23:41.356153456 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:23:41.358122895 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:23:41.359002766 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:23:44.364638794 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:23:44.365553031 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:23:47.370968769 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:23:47.371818203 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:23:50.377728105 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:23:50.379414134 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:23:53.383704253 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:23:53.384458088 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:23:56.389815092 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:23:56.390652204 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:23:59.393628163 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:23:59.394194656 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:24:02.396890214 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:24:02.397759164 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:24:05.40126962 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:24:05.401895082 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:24:06.353425442 UTCLogNetworkStatement readUdpSock: 
+[Info] 2019-10-09 08:24:08.405765328 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:24:08.406611979 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:24:10.182019819 UTCLogNetworkStatement sendUdpMessage: Host: 127.0.0.1: Port: 54009: MsgLength: 50
+[Info] 2019-10-09 08:24:10.182625827 UTCLogNetworkStatement readUdpSock: 
+[Info] 2019-10-09 08:24:11.215583889 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:24:11.216210107 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:24:11.407907296 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:24:11.408089102 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:24:14.219175976 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:24:14.219817621 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:24:14.408900229 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:24:14.409086145 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:24:16.35198528 UTCLogNetworkStatement sendUdpMessage: Host: 127.0.0.1: Port: 54009: MsgLength: 54
+[Info] 2019-10-09 08:24:16.352197427 UTCLogNetworkStatement readUdpSock: 
+[Info] 2019-10-09 08:24:17.220994286 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:24:17.223393071 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:24:17.411300071 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:24:17.412110558 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:24:20.225634483 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:24:20.22627286 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:24:20.413323797 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:24:20.413612427 UTCLogNetworkStatement readTcpSock: 
+[Debug] 2019-10-09 08:37:25.7436053 UTCLogNetworkStatement UDP Server started...
+[Info] 2019-10-09 08:37:25.744294465 UTCLogNetworkStatement TCP Server started...
+[Debug] 2019-10-09 08:37:37.078018112 UTCLogNetworkStatement newUdpConnection latest: 127.0.0.1:58710
+[Info] 2019-10-09 08:37:37.078567639 UTCLogNetworkStatement readUdpSock: 
+[Debug] Find_Node Message Recieved from : NodeEndPoint {nodeIp = "127.0.0.1", udpPort = 5680, tcpPort = 5680} @(arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Kademlia.MessageHandler lib/Arivi/P2P/Kademlia/MessageHandler.hs:70:15)
+[Debug] Add to kbucket called  @(arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Kademlia.Kbucket lib/Arivi/P2P/Kademlia/Kbucket.hs:112:7)
+[Debug] First_Element in respective kbucket @(arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Kademlia.Kbucket lib/Arivi/P2P/Kademlia/Kbucket.hs:121:15)
+[Debug] Kbucket after adding : [(0,[Peer {nodeID = "-\v6\228\175\CAN\SUB\130=<\238&\RS[\179f\t\DC2\154\202\185\143:\151\DC1\225\179\\\148\158U\152\137\223\183\175\&4\ACKA\130\SYNn\b\196x\155\175\185\222\&4\NAKo\179\143y\221aB\131\220e\211\240#", nodeEndPoint = NodeEndPoint {nodeIp = "127.0.0.1", udpPort = 5678, tcpPort = 5678}}]),(509,[Peer {nodeID = ";\230\213}ip\DC2\243Q\224\129o\176p`R'\178E\nQ\158[\186\225N\146\175\248\239-\245\240\GSZ\b~\203\rg\171\185\220\211\220\237k\249\STX\DEL\f\206\221\244\206\ETB4W(\168\a:\EM&", nodeEndPoint = NodeEndPoint {nodeIp = "127.0.0.1", udpPort = 5680, tcpPort = 5680}}])] @(arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Kademlia.Kbucket lib/Arivi/P2P/Kademlia/Kbucket.hs:129:7)
+[Info] 2019-10-09 08:37:37.079408473 UTCLogNetworkStatement readUdpSock: 
+[Info] 2019-10-09 08:37:37.080176369 UTCLogNetworkStatement sendUdpMessage: Host: 127.0.0.1: Port: 58710: MsgLength: 146
+[Info] 2019-10-09 08:37:42.092036024 UTCLogNetworkStatement sendUdpMessage: Host: 127.0.0.1: Port: 58710: MsgLength: 54
+[Info] 2019-10-09 08:37:42.092910379 UTCLogNetworkStatement readUdpSock: 
+[Debug] 2019-10-09 08:37:47.092732482 UTCLogNetworkStatement handleInboundConnection: 
+[Info] 2019-10-09 08:37:47.093486497 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:37:47.09391934 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:37:47.094092253 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:37:47.09452798 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:37:47.094698309 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:37:50.09591811 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:37:50.096110578 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:37:53.100897222 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:37:53.101760746 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:37:56.107756679 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:37:56.109151959 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:37:59.114608712 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:37:59.115480459 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:38:02.119751526 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:38:02.119940639 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 08:38:05.123580717 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 08:38:05.123772154 UTCLogNetworkStatement readTcpSock: 
+[Info] Exception occured: NetworkSocketExceptionat"CallStack (from HasCallStack):\n  logToF, called at ./Arivi/Utils/Logging.hs:61:5 in arivi-utils-0.1.0.0-D7sYDHhNIR4Fp85G6tmuz5:Arivi.Utils.Logging\n  withLocLogging, called at lib/Arivi/Network/ConnectionHandler.hs:208:7 in arivi-network-0.1.0.0-CmWbqBxaGB0FcYsCbK8lSI:Arivi.Network.ConnectionHandler\n  readTcpSock, called at lib/Arivi/Network/StreamServer.hs:100:42 in arivi-network-0.1.0.0-CmWbqBxaGB0FcYsCbK8lSI:Arivi.Network.StreamServer\n  $sel:recv:ConnectionHandle, called at lib/Arivi/Network/Types.hs:287:7 in arivi-network-0.1.0.0-CmWbqBxaGB0FcYsCbK8lSI:Arivi.Network.Types\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:100:5 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  newIncomingConnectionHandler, called at lib/Arivi/P2P.hs:28:61 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P\n  initP2P, called at app/Main.hs:143:17 in main:Main" @(arivi-network-0.1.0.0-CmWbqBxaGB0FcYsCbK8lSI:Arivi.Network.ConnectionHandler lib/Arivi/Network/ConnectionHandler.hs:208:7)
+[Debug] network recv failed from readIncomingMessageNetworkSocketException";\230\213}ip\DC2\243Q\224\129o\176p`R'\178E\nQ\158[\186\225N\146\175\248\239-\245\240\GSZ\b~\203\rg\171\185\220\211\220\237k\249\STX\DEL\f\206\221\244\206\ETB4W(\168\a:\EM&" @(arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.MessageHandler.Utils lib/Arivi/P2P/MessageHandler/Utils.hs:26:38)
+[Debug] 2019-10-09 09:05:03.299426331 UTCLogNetworkStatement UDP Server started...
+[Info] 2019-10-09 09:05:03.300129594 UTCLogNetworkStatement TCP Server started...
+[Debug] 2019-10-09 09:05:09.60816186 UTCLogNetworkStatement newUdpConnection latest: 127.0.0.1:38539
+[Info] 2019-10-09 09:05:09.608733614 UTCLogNetworkStatement readUdpSock: 
+[Debug] Find_Node Message Recieved from : NodeEndPoint {nodeIp = "127.0.0.1", udpPort = 5680, tcpPort = 5680} @(arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Kademlia.MessageHandler lib/Arivi/P2P/Kademlia/MessageHandler.hs:70:15)
+[Debug] Add to kbucket called  @(arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Kademlia.Kbucket lib/Arivi/P2P/Kademlia/Kbucket.hs:112:7)
+[Debug] First_Element in respective kbucket @(arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Kademlia.Kbucket lib/Arivi/P2P/Kademlia/Kbucket.hs:121:15)
+[Debug] Kbucket after adding : [(0,[Peer {nodeID = "-\v6\228\175\CAN\SUB\130=<\238&\RS[\179f\t\DC2\154\202\185\143:\151\DC1\225\179\\\148\158U\152\137\223\183\175\&4\ACKA\130\SYNn\b\196x\155\175\185\222\&4\NAKo\179\143y\221aB\131\220e\211\240#", nodeEndPoint = NodeEndPoint {nodeIp = "127.0.0.1", udpPort = 5678, tcpPort = 5678}}]),(509,[Peer {nodeID = ";\230\213}ip\DC2\243Q\224\129o\176p`R'\178E\nQ\158[\186\225N\146\175\248\239-\245\240\GSZ\b~\203\rg\171\185\220\211\220\237k\249\STX\DEL\f\206\221\244\206\ETB4W(\168\a:\EM&", nodeEndPoint = NodeEndPoint {nodeIp = "127.0.0.1", udpPort = 5680, tcpPort = 5680}}])] @(arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Kademlia.Kbucket lib/Arivi/P2P/Kademlia/Kbucket.hs:129:7)
+[Info] 2019-10-09 09:05:09.609505054 UTCLogNetworkStatement readUdpSock: 
+[Info] 2019-10-09 09:05:09.610151235 UTCLogNetworkStatement sendUdpMessage: Host: 127.0.0.1: Port: 38539: MsgLength: 146
+[Info] 2019-10-09 09:05:14.620401952 UTCLogNetworkStatement sendUdpMessage: Host: 127.0.0.1: Port: 38539: MsgLength: 54
+[Info] 2019-10-09 09:05:14.621223137 UTCLogNetworkStatement readUdpSock: 
+[Debug] 2019-10-09 09:05:19.621543964 UTCLogNetworkStatement handleInboundConnection: 
+[Info] 2019-10-09 09:05:19.626158842 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:05:19.627855979 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:05:19.62869227 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:05:19.629980327 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:05:19.630144406 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:05:22.635097942 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:05:22.636028715 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:05:25.641429183 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:05:25.642407441 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:05:28.648402435 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:05:28.650248716 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:05:31.652428078 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:05:31.652602901 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:05:34.657550865 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:05:34.658366425 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:05:37.663936522 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:05:37.664765765 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:05:40.670415618 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:05:40.671268587 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:05:43.675746787 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:05:43.675941117 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:05:44.622414064 UTCLogNetworkStatement readUdpSock: 
+[Info] 2019-10-09 09:05:46.678668315 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:05:46.678861861 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:05:48.313016544 UTCLogNetworkStatement sendUdpMessage: Host: 127.0.0.1: Port: 38539: MsgLength: 50
+[Info] 2019-10-09 09:05:48.315142739 UTCLogNetworkStatement readUdpSock: 
+[Info] 2019-10-09 09:05:49.340213718 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:05:49.342627027 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:05:49.681263858 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:05:49.682095635 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:05:52.346432617 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:05:52.348783462 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:05:52.684996594 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:05:52.685850559 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:05:54.623126165 UTCLogNetworkStatement sendUdpMessage: Host: 127.0.0.1: Port: 38539: MsgLength: 54
+[Info] 2019-10-09 09:05:54.623297212 UTCLogNetworkStatement readUdpSock: 
+[Info] 2019-10-09 09:05:55.349824052 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:05:55.350486019 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:05:55.68727501 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:05:55.687454914 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:05:58.353223319 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:05:58.35386084 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:05:58.688381279 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:05:58.688672306 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:06:01.356609756 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:06:01.357193783 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:06:01.690055067 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:06:01.690422835 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:06:04.359942233 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:06:04.360566499 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:06:04.691324704 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:06:04.691504425 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:06:07.363325632 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:06:07.364048618 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:06:07.692402387 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:06:07.692597465 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:06:10.366779116 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:06:10.367565774 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:06:10.693495048 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:06:10.693664777 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:06:13.370339757 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:06:13.371001362 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:06:13.695857034 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:06:13.696665754 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:06:16.374409498 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:06:16.376788833 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:06:16.700011185 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:06:16.700786951 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:06:19.380365284 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:06:19.382718361 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:06:19.7023164 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:06:19.702875369 UTCLogNetworkStatement readTcpSock: 
+[Info] 2019-10-09 09:06:22.386312345 UTCLogNetworkStatement sendTcpMessage: Host: 127.0.0.1 
+[Info] 2019-10-09 09:06:22.38709123 UTCLogNetworkStatement readTcpSock: 
+[Info] Exception occured: NetworkSocketExceptionat"CallStack (from HasCallStack):\n  logToF, called at ./Arivi/Utils/Logging.hs:61:5 in arivi-utils-0.1.0.0-D7sYDHhNIR4Fp85G6tmuz5:Arivi.Utils.Logging\n  withLocLogging, called at lib/Arivi/Network/ConnectionHandler.hs:208:7 in arivi-network-0.1.0.0-CmWbqBxaGB0FcYsCbK8lSI:Arivi.Network.ConnectionHandler\n  readTcpSock, called at lib/Arivi/Network/StreamServer.hs:100:42 in arivi-network-0.1.0.0-CmWbqBxaGB0FcYsCbK8lSI:Arivi.Network.StreamServer\n  $sel:recv:ConnectionHandle, called at lib/Arivi/Network/Types.hs:287:7 in arivi-network-0.1.0.0-CmWbqBxaGB0FcYsCbK8lSI:Arivi.Network.Types\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:81:13 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  readIncomingMessage, called at lib/Arivi/P2P/Handler.hs:100:5 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.Handler\n  newIncomingConnectionHandler, called at lib/Arivi/P2P.hs:28:61 in arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P\n  initP2P, called at app/Main.hs:143:17 in main:Main" @(arivi-network-0.1.0.0-CmWbqBxaGB0FcYsCbK8lSI:Arivi.Network.ConnectionHandler lib/Arivi/Network/ConnectionHandler.hs:208:7)
+[Debug] network recv failed from readIncomingMessageNetworkSocketException";\230\213}ip\DC2\243Q\224\129o\176p`R'\178E\nQ\158[\186\225N\146\175\248\239-\245\240\GSZ\b~\203\rg\171\185\220\211\220\237k\249\STX\DEL\f\206\221\244\206\ETB4W(\168\a:\EM&" @(arivi-p2p-0.1.0.0-E6t0NqHv7u6KU4TWRVnej3:Arivi.P2P.MessageHandler.Utils lib/Arivi/P2P/MessageHandler/Utils.hs:26:38)
+[Debug] 2019-10-10 04:42:50.238719785 UTCLogNetworkStatement UDP Server started...
+[Info] 2019-10-10 04:42:50.239454928 UTCLogNetworkStatement TCP Server started...
+[Debug] 2019-10-10 04:50:39.607835161 UTCLogNetworkStatement UDP Server started...
+[Info] 2019-10-10 04:50:39.607997324 UTCLogNetworkStatement TCP Server started...
+[Debug] 2019-10-10 04:55:01.21382308 UTCLogNetworkStatement UDP Server started...
+[Info] 2019-10-10 04:55:01.214002287 UTCLogNetworkStatement TCP Server started...
+[Debug] 2019-10-10 05:00:11.248645682 UTCLogNetworkStatement UDP Server started...
+[Info] 2019-10-10 05:00:11.248828967 UTCLogNetworkStatement TCP Server started...
+[Debug] 2019-10-10 05:18:39.905354511 UTCLogNetworkStatement UDP Server started...
+[Info] 2019-10-10 05:18:39.906044895 UTCLogNetworkStatement TCP Server started...
+[Debug] 2019-10-10 05:25:12.417779128 UTCLogNetworkStatement UDP Server started...
+[Info] 2019-10-10 05:25:12.41795773 UTCLogNetworkStatement TCP Server started...
+[Debug] 2019-10-10 05:27:24.001442751 UTCLogNetworkStatement UDP Server started...
+[Info] 2019-10-10 05:27:24.001605247 UTCLogNetworkStatement TCP Server started...

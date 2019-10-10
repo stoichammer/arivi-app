@@ -7,7 +7,6 @@ packages:
     - ../p2p
     - ../network
     - ../crypto
-    - ../thrift
 
 extra-deps:
 - serialise-0.2.0.0

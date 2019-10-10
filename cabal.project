@@ -1,2 +1,2 @@
-packages: crypto, network, p2p, utils, thrift
+packages: crypto, network, p2p, utils, service
 allow-newer: base, Cabal

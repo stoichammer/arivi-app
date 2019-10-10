@@ -1,4 +1,4 @@
-           
+
 {
   "logFile": "2/node.log",
   "myIp": "127.0.0.1",
@@ -8,6 +8,7 @@
   "kademliaConcurrencyFactor": 3,
   "udpPort": 5680,
   "tcpPort": 5680,
+  "thriftServerPort": 9095,
   "myNodeId": ! ";æÕ}ip\x12óQà\x81o°p`R'²E\nQ\x9E[ºáN\x92¯øï-õð\x1DZ\b~Ë\rg«¹ÜÓÜíkù\x02\x7F\fÎÝôÎ\x174W(¨\a:\x19&",
   "trustedPeers": [
     {

@@ -11,7 +11,7 @@ module Main
     ( module Main
     ) where
 
-import           Service.HelloWorld
+import           Service.AriviSecureRPC
 
 import           Arivi.Crypto.Utils.PublicKey.Signature as ACUPS
 import           Arivi.Crypto.Utils.PublicKey.Utils
@@ -39,6 +39,9 @@ import qualified Data.HashMap.Strict                    as HM
 import           Data.Monoid                            ((<>))
 import           Data.String.Conv
 import           Data.Text
+import           Data.Map as M
+import Data.Typeable
+
 import           System.Directory                       (doesPathExist)
 import           System.Environment                     (getArgs)
 --import           Control.Concurrent.Async.Lifted (async)
@@ -48,7 +51,7 @@ import qualified AriviNetworkService
 import AriviNetworkServiceHandler
 import AriviNetworkService_Iface
 import Service_Types
-import SharedService_Iface
+import SharedService_Iface as SharedIface
 import Shared_Types
 
 type AppM = ReaderT (P2PEnv ServiceResource ByteString String ByteString) (LoggingT IO)
@@ -127,39 +130,27 @@ defaultConfig path = do
                 20
                 5
                 3
+                9090
+
     Config.makeConfig config (path <> "/config.yaml")
 
-runNode :: String -> IO ()
-runNode configPath = do
-    config <- Config.readConfig configPath
+runNode :: Config.Config -> IO ()
+runNode config = do
+    -- config <- Config.readConfig configPath
     env <- mkP2PEnv config
     runFileLoggingT (toS $ Config.logFile config) $
         runAppM
             env
             (do
-                let resourceHandlers = HM.insert HelloWorld handler HM.empty
+                let resourceHandlers = HM.insert AriviSecureRPC handler HM.empty
                 initP2P config resourceHandlers
-                -- tid' <-
-                --     async
-                --         (runUdpServer
-                --              (show (Config.udpPort config))
-                --              newIncomingConnectionHandler)
-                -- tid <-
-                --     async
-                --         (runTcpServer
-                --              (show (Config.tcpPort config))
-                --              newIncomingConnectionHandler)
-                -- liftIO $ threadDelay 1000000
-                -- void $ async (loadDefaultPeers (Config.trustedPeers config))
+
                 liftIO $ threadDelay 5000000
-                -- -- registerHelloWorld
-                -- -- liftIO $ threadDelay 3000000
-                -- getHelloWorld
-                -- liftIO $ threadDelay 3000000
-                getHelloWorld
+
+                --getAriviSecureRPC
                 loopCall
 
-                liftIO $ threadDelay 500000000
+                --liftIO $ threadDelay 500000000
                 )
 
 
@@ -168,8 +159,24 @@ main = do
     (path:_) <- getArgs
     b <- doesPathExist (path <> "/config.yaml")
     unless b (defaultConfig path)
-    async runThriftServer
-    runNode (path <> "/config.yaml")
+    config <- Config.readConfig (path <> "/config.yaml")
+
+    handler <- newAriviNetworkServiceHandler
+
+
+    let xx =  SharedIface.getStruct handler 0
+    print (typeOf  xx)
+
+    let yy = ariviThriftLog handler
+    print (typeOf yy)
+
+    --let flag = M.member (SharedStruct 1 "hello") xx
+    --print (flag)
+    --M.insert (SharedStruct 1 "hello") xx
+
+
+    async ( runThriftServer handler (Config.thriftServerPort config))
+    runNode config
 
 
 a :: Prelude.Int -> BSL.ByteString
