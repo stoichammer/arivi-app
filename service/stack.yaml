@@ -19,3 +19,4 @@ extra-deps:
 - stm-containers-0.2.16
 - either-unwrap-1.1
 - raaz-0.2.1
+- queue-0.1.2

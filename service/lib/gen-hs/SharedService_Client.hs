@@ -13,7 +13,7 @@
 -- DO NOT EDIT UNLESS YOU ARE SURE YOU KNOW WHAT YOU ARE DOING --
 -----------------------------------------------------------------
 
-module SharedService_Client(getStruct,getRPCCallItem) where
+module SharedService_Client(getStruct,getRPCReq,getRPCResp) where
 import qualified Data.IORef as R
 import Prelude (($), (.), (>>=), (==), (++))
 import qualified Prelude as P
@@ -55,16 +55,29 @@ recv_getStruct ip = do
     M.when (mtype == T.M_EXCEPTION) $ do { exn <- T.readAppExn ip ; X.throw exn }
     res <- read_GetStruct_result ip
     P.return $ getStruct_result_success res
-getRPCCallItem (ip,op) arg_key = do
-  send_getRPCCallItem op arg_key
-  recv_getRPCCallItem ip
-send_getRPCCallItem op arg_key = do
+getRPCReq (ip,op) arg_key = do
+  send_getRPCReq op arg_key
+  recv_getRPCReq ip
+send_getRPCReq op arg_key = do
   seq <- seqid
   seqn <- R.readIORef seq
-  T.writeMessage op ("getRPCCallItem", T.M_CALL, seqn) $
-    write_GetRPCCallItem_args op (GetRPCCallItem_args{getRPCCallItem_args_key=arg_key})
-recv_getRPCCallItem ip = do
+  T.writeMessage op ("getRPCReq", T.M_CALL, seqn) $
+    write_GetRPCReq_args op (GetRPCReq_args{getRPCReq_args_key=arg_key})
+recv_getRPCReq ip = do
   T.readMessage ip $ \(fname, mtype, rseqid) -> do
     M.when (mtype == T.M_EXCEPTION) $ do { exn <- T.readAppExn ip ; X.throw exn }
-    res <- read_GetRPCCallItem_result ip
-    P.return $ getRPCCallItem_result_success res
+    res <- read_GetRPCReq_result ip
+    P.return $ getRPCReq_result_success res
+getRPCResp (ip,op) arg_key = do
+  send_getRPCResp op arg_key
+  recv_getRPCResp ip
+send_getRPCResp op arg_key = do
+  seq <- seqid
+  seqn <- R.readIORef seq
+  T.writeMessage op ("getRPCResp", T.M_CALL, seqn) $
+    write_GetRPCResp_args op (GetRPCResp_args{getRPCResp_args_key=arg_key})
+recv_getRPCResp ip = do
+  T.readMessage ip $ \(fname, mtype, rseqid) -> do
+    M.when (mtype == T.M_EXCEPTION) $ do { exn <- T.readAppExn ip ; X.throw exn }
+    res <- read_GetRPCResp_result ip
+    P.return $ getRPCResp_result_success res

@@ -74,6 +74,13 @@ packages:
       sha256: 61b1dc751b8975175e691b8e1370a249ea523943e40746193c42293a9afc8a03
   original:
     hackage: raaz-0.2.1
+- completed:
+    hackage: queue-0.1.2@sha256:4efac395db09637ec7b667dc09b74ff80e0b83452088540e1d1b2ec262f4defa,1312
+    pantry-tree:
+      size: 413
+      sha256: b5b7354ae3452e5ac12db165f0c625c67e02ab6206c8c7a5c2497403e671f70f
+  original:
+    hackage: queue-0.1.2
 snapshots:
 - completed:
     size: 509471

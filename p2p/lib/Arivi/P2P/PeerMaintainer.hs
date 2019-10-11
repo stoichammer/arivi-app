@@ -36,7 +36,8 @@ fillQuotas numPeers = forever $ do
                 peerNodeIds <- addPeerFromKademlia peers
                 sendOptionsMessage peerNodeIds Options
                 liftIO $ print "waiting"
-                liftIO $ threadDelay (40 * 1000000)            
+                liftIO $ threadDelay (40 * 1000000)
+
             -- fillQuotas numPeers
 
 isFilledHelper ::Int -> [TVar [a]] -> IO Bool

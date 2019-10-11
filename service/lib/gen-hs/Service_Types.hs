@@ -89,7 +89,7 @@ type Int = I.Int32
 data Message = Message  { message_count :: I.Int32
   , message_priority :: Priority
   , message_opcode :: Operation
-  , message_payload :: P.Maybe LT.Text
+  , message_payload :: LT.Text
   } deriving (P.Show,P.Eq,G.Generic,TY.Typeable)
 instance H.Hashable Message where
   hashWithSalt salt record = salt   `H.hashWithSalt` message_count record   `H.hashWithSalt` message_priority record   `H.hashWithSalt` message_opcode record   `H.hashWithSalt` message_payload record  
@@ -97,7 +97,7 @@ instance QC.Arbitrary Message where
   arbitrary = M.liftM Message (QC.arbitrary)
           `M.ap`(QC.arbitrary)
           `M.ap`(QC.arbitrary)
-          `M.ap`(M.liftM P.Just QC.arbitrary)
+          `M.ap`(QC.arbitrary)
   shrink obj | obj == default_Message = []
              | P.otherwise = M.catMaybes
     [ if obj == default_Message{message_count = message_count obj} then P.Nothing else P.Just $ default_Message{message_count = message_count obj}
@@ -110,7 +110,7 @@ from_Message record = T.TStruct $ Map.fromList $ M.catMaybes
   [ (\_v2 -> P.Just (1, ("count",T.TI32 _v2))) $ message_count record
   , (\_v2 -> P.Just (2, ("priority",T.TI32 $ P.fromIntegral $ P.fromEnum _v2))) $ message_priority record
   , (\_v2 -> P.Just (3, ("opcode",T.TI32 $ P.fromIntegral $ P.fromEnum _v2))) $ message_opcode record
-  , (\_v2 -> (4, ("payload",T.TString $ E.encodeUtf8 _v2))) <$> message_payload record
+  , (\_v2 -> P.Just (4, ("payload",T.TString $ E.encodeUtf8 _v2))) $ message_payload record
   ]
 write_Message :: T.Protocol p => p -> Message -> P.IO ()
 write_Message oprot record = T.writeVal oprot $ from_Message record
@@ -121,7 +121,7 @@ to_Message (T.TStruct fields) = Message{
   message_count = P.maybe (message_count default_Message) (\(_,_val4) -> (case _val4 of {T.TI32 _val5 -> _val5; _ -> P.error "wrong type"})) (Map.lookup (1) fields),
   message_priority = P.maybe (message_priority default_Message) (\(_,_val4) -> (case _val4 of {T.TI32 _val6 -> P.toEnum $ P.fromIntegral _val6; _ -> P.error "wrong type"})) (Map.lookup (2) fields),
   message_opcode = P.maybe (message_opcode default_Message) (\(_,_val4) -> (case _val4 of {T.TI32 _val7 -> P.toEnum $ P.fromIntegral _val7; _ -> P.error "wrong type"})) (Map.lookup (3) fields),
-  message_payload = P.maybe (P.Nothing) (\(_,_val4) -> P.Just (case _val4 of {T.TString _val8 -> E.decodeUtf8 _val8; _ -> P.error "wrong type"})) (Map.lookup (4) fields)
+  message_payload = P.maybe (message_payload default_Message) (\(_,_val4) -> (case _val4 of {T.TString _val8 -> E.decodeUtf8 _val8; _ -> P.error "wrong type"})) (Map.lookup (4) fields)
   }
 to_Message _ = P.error "not a struct"
 read_Message :: T.Protocol p => p -> P.IO Message
@@ -135,7 +135,7 @@ default_Message = Message{
   message_count = (0),
   message_priority = (P.toEnum 0),
   message_opcode = (P.toEnum 0),
-  message_payload = P.Nothing}
+  message_payload = ""}
 data InvalidOperation = InvalidOperation  { invalidOperation_failedOpcode :: I.Int32
   , invalidOperation_reason :: LT.Text
   } deriving (P.Show,P.Eq,G.Generic,TY.Typeable)

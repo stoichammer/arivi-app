@@ -54,7 +54,7 @@ instance QC.Arbitrary GetStruct_args where
     ]
 from_GetStruct_args :: GetStruct_args -> T.ThriftVal
 from_GetStruct_args record = T.TStruct $ Map.fromList $ M.catMaybes
-  [ (\_v17 -> P.Just (1, ("key",T.TI32 _v17))) $ getStruct_args_key record
+  [ (\_v23 -> P.Just (1, ("key",T.TI32 _v23))) $ getStruct_args_key record
   ]
 write_GetStruct_args :: T.Protocol p => p -> GetStruct_args -> P.IO ()
 write_GetStruct_args oprot record = T.writeVal oprot $ from_GetStruct_args record
@@ -62,7 +62,7 @@ encode_GetStruct_args :: T.StatelessProtocol p => p -> GetStruct_args -> LBS.Byt
 encode_GetStruct_args oprot record = T.serializeVal oprot $ from_GetStruct_args record
 to_GetStruct_args :: T.ThriftVal -> GetStruct_args
 to_GetStruct_args (T.TStruct fields) = GetStruct_args{
-  getStruct_args_key = P.maybe (getStruct_args_key default_GetStruct_args) (\(_,_val19) -> (case _val19 of {T.TI32 _val20 -> _val20; _ -> P.error "wrong type"})) (Map.lookup (1) fields)
+  getStruct_args_key = P.maybe (getStruct_args_key default_GetStruct_args) (\(_,_val25) -> (case _val25 of {T.TI32 _val26 -> _val26; _ -> P.error "wrong type"})) (Map.lookup (1) fields)
   }
 to_GetStruct_args _ = P.error "not a struct"
 read_GetStruct_args :: T.Protocol p => p -> P.IO GetStruct_args
@@ -86,7 +86,7 @@ instance QC.Arbitrary GetStruct_result where
     ]
 from_GetStruct_result :: GetStruct_result -> T.ThriftVal
 from_GetStruct_result record = T.TStruct $ Map.fromList $ M.catMaybes
-  [ (\_v23 -> P.Just (0, ("success",from_SharedStruct _v23))) $ getStruct_result_success record
+  [ (\_v29 -> P.Just (0, ("success",from_SharedStruct _v29))) $ getStruct_result_success record
   ]
 write_GetStruct_result :: T.Protocol p => p -> GetStruct_result -> P.IO ()
 write_GetStruct_result oprot record = T.writeVal oprot $ from_GetStruct_result record
@@ -94,7 +94,7 @@ encode_GetStruct_result :: T.StatelessProtocol p => p -> GetStruct_result -> LBS
 encode_GetStruct_result oprot record = T.serializeVal oprot $ from_GetStruct_result record
 to_GetStruct_result :: T.ThriftVal -> GetStruct_result
 to_GetStruct_result (T.TStruct fields) = GetStruct_result{
-  getStruct_result_success = P.maybe (getStruct_result_success default_GetStruct_result) (\(_,_val25) -> (case _val25 of {T.TStruct _val26 -> (to_SharedStruct (T.TStruct _val26)); _ -> P.error "wrong type"})) (Map.lookup (0) fields)
+  getStruct_result_success = P.maybe (getStruct_result_success default_GetStruct_result) (\(_,_val31) -> (case _val31 of {T.TStruct _val32 -> (to_SharedStruct (T.TStruct _val32)); _ -> P.error "wrong type"})) (Map.lookup (0) fields)
   }
 to_GetStruct_result _ = P.error "not a struct"
 read_GetStruct_result :: T.Protocol p => p -> P.IO GetStruct_result
@@ -106,70 +106,134 @@ typemap_GetStruct_result = Map.fromList [(0,("success",(T.T_STRUCT typemap_Share
 default_GetStruct_result :: GetStruct_result
 default_GetStruct_result = GetStruct_result{
   getStruct_result_success = default_SharedStruct}
-data GetRPCCallItem_args = GetRPCCallItem_args  { getRPCCallItem_args_key :: I.Int32
+data GetRPCReq_args = GetRPCReq_args  { getRPCReq_args_key :: I.Int32
   } deriving (P.Show,P.Eq,G.Generic,TY.Typeable)
-instance H.Hashable GetRPCCallItem_args where
-  hashWithSalt salt record = salt   `H.hashWithSalt` getRPCCallItem_args_key record  
-instance QC.Arbitrary GetRPCCallItem_args where 
-  arbitrary = M.liftM GetRPCCallItem_args (QC.arbitrary)
-  shrink obj | obj == default_GetRPCCallItem_args = []
+instance H.Hashable GetRPCReq_args where
+  hashWithSalt salt record = salt   `H.hashWithSalt` getRPCReq_args_key record  
+instance QC.Arbitrary GetRPCReq_args where 
+  arbitrary = M.liftM GetRPCReq_args (QC.arbitrary)
+  shrink obj | obj == default_GetRPCReq_args = []
              | P.otherwise = M.catMaybes
-    [ if obj == default_GetRPCCallItem_args{getRPCCallItem_args_key = getRPCCallItem_args_key obj} then P.Nothing else P.Just $ default_GetRPCCallItem_args{getRPCCallItem_args_key = getRPCCallItem_args_key obj}
+    [ if obj == default_GetRPCReq_args{getRPCReq_args_key = getRPCReq_args_key obj} then P.Nothing else P.Just $ default_GetRPCReq_args{getRPCReq_args_key = getRPCReq_args_key obj}
     ]
-from_GetRPCCallItem_args :: GetRPCCallItem_args -> T.ThriftVal
-from_GetRPCCallItem_args record = T.TStruct $ Map.fromList $ M.catMaybes
-  [ (\_v29 -> P.Just (1, ("key",T.TI32 _v29))) $ getRPCCallItem_args_key record
+from_GetRPCReq_args :: GetRPCReq_args -> T.ThriftVal
+from_GetRPCReq_args record = T.TStruct $ Map.fromList $ M.catMaybes
+  [ (\_v35 -> P.Just (1, ("key",T.TI32 _v35))) $ getRPCReq_args_key record
   ]
-write_GetRPCCallItem_args :: T.Protocol p => p -> GetRPCCallItem_args -> P.IO ()
-write_GetRPCCallItem_args oprot record = T.writeVal oprot $ from_GetRPCCallItem_args record
-encode_GetRPCCallItem_args :: T.StatelessProtocol p => p -> GetRPCCallItem_args -> LBS.ByteString
-encode_GetRPCCallItem_args oprot record = T.serializeVal oprot $ from_GetRPCCallItem_args record
-to_GetRPCCallItem_args :: T.ThriftVal -> GetRPCCallItem_args
-to_GetRPCCallItem_args (T.TStruct fields) = GetRPCCallItem_args{
-  getRPCCallItem_args_key = P.maybe (getRPCCallItem_args_key default_GetRPCCallItem_args) (\(_,_val31) -> (case _val31 of {T.TI32 _val32 -> _val32; _ -> P.error "wrong type"})) (Map.lookup (1) fields)
+write_GetRPCReq_args :: T.Protocol p => p -> GetRPCReq_args -> P.IO ()
+write_GetRPCReq_args oprot record = T.writeVal oprot $ from_GetRPCReq_args record
+encode_GetRPCReq_args :: T.StatelessProtocol p => p -> GetRPCReq_args -> LBS.ByteString
+encode_GetRPCReq_args oprot record = T.serializeVal oprot $ from_GetRPCReq_args record
+to_GetRPCReq_args :: T.ThriftVal -> GetRPCReq_args
+to_GetRPCReq_args (T.TStruct fields) = GetRPCReq_args{
+  getRPCReq_args_key = P.maybe (getRPCReq_args_key default_GetRPCReq_args) (\(_,_val37) -> (case _val37 of {T.TI32 _val38 -> _val38; _ -> P.error "wrong type"})) (Map.lookup (1) fields)
   }
-to_GetRPCCallItem_args _ = P.error "not a struct"
-read_GetRPCCallItem_args :: T.Protocol p => p -> P.IO GetRPCCallItem_args
-read_GetRPCCallItem_args iprot = to_GetRPCCallItem_args <$> T.readVal iprot (T.T_STRUCT typemap_GetRPCCallItem_args)
-decode_GetRPCCallItem_args :: T.StatelessProtocol p => p -> LBS.ByteString -> GetRPCCallItem_args
-decode_GetRPCCallItem_args iprot bs = to_GetRPCCallItem_args $ T.deserializeVal iprot (T.T_STRUCT typemap_GetRPCCallItem_args) bs
-typemap_GetRPCCallItem_args :: T.TypeMap
-typemap_GetRPCCallItem_args = Map.fromList [(1,("key",T.T_I32))]
-default_GetRPCCallItem_args :: GetRPCCallItem_args
-default_GetRPCCallItem_args = GetRPCCallItem_args{
-  getRPCCallItem_args_key = 0}
-data GetRPCCallItem_result = GetRPCCallItem_result  { getRPCCallItem_result_success :: RPCCall
+to_GetRPCReq_args _ = P.error "not a struct"
+read_GetRPCReq_args :: T.Protocol p => p -> P.IO GetRPCReq_args
+read_GetRPCReq_args iprot = to_GetRPCReq_args <$> T.readVal iprot (T.T_STRUCT typemap_GetRPCReq_args)
+decode_GetRPCReq_args :: T.StatelessProtocol p => p -> LBS.ByteString -> GetRPCReq_args
+decode_GetRPCReq_args iprot bs = to_GetRPCReq_args $ T.deserializeVal iprot (T.T_STRUCT typemap_GetRPCReq_args) bs
+typemap_GetRPCReq_args :: T.TypeMap
+typemap_GetRPCReq_args = Map.fromList [(1,("key",T.T_I32))]
+default_GetRPCReq_args :: GetRPCReq_args
+default_GetRPCReq_args = GetRPCReq_args{
+  getRPCReq_args_key = 0}
+data GetRPCReq_result = GetRPCReq_result  { getRPCReq_result_success :: RPCReq
   } deriving (P.Show,P.Eq,G.Generic,TY.Typeable)
-instance H.Hashable GetRPCCallItem_result where
-  hashWithSalt salt record = salt   `H.hashWithSalt` getRPCCallItem_result_success record  
-instance QC.Arbitrary GetRPCCallItem_result where 
-  arbitrary = M.liftM GetRPCCallItem_result (QC.arbitrary)
-  shrink obj | obj == default_GetRPCCallItem_result = []
+instance H.Hashable GetRPCReq_result where
+  hashWithSalt salt record = salt   `H.hashWithSalt` getRPCReq_result_success record  
+instance QC.Arbitrary GetRPCReq_result where 
+  arbitrary = M.liftM GetRPCReq_result (QC.arbitrary)
+  shrink obj | obj == default_GetRPCReq_result = []
              | P.otherwise = M.catMaybes
-    [ if obj == default_GetRPCCallItem_result{getRPCCallItem_result_success = getRPCCallItem_result_success obj} then P.Nothing else P.Just $ default_GetRPCCallItem_result{getRPCCallItem_result_success = getRPCCallItem_result_success obj}
+    [ if obj == default_GetRPCReq_result{getRPCReq_result_success = getRPCReq_result_success obj} then P.Nothing else P.Just $ default_GetRPCReq_result{getRPCReq_result_success = getRPCReq_result_success obj}
     ]
-from_GetRPCCallItem_result :: GetRPCCallItem_result -> T.ThriftVal
-from_GetRPCCallItem_result record = T.TStruct $ Map.fromList $ M.catMaybes
-  [ (\_v35 -> P.Just (0, ("success",from_RPCCall _v35))) $ getRPCCallItem_result_success record
+from_GetRPCReq_result :: GetRPCReq_result -> T.ThriftVal
+from_GetRPCReq_result record = T.TStruct $ Map.fromList $ M.catMaybes
+  [ (\_v41 -> P.Just (0, ("success",from_RPCReq _v41))) $ getRPCReq_result_success record
   ]
-write_GetRPCCallItem_result :: T.Protocol p => p -> GetRPCCallItem_result -> P.IO ()
-write_GetRPCCallItem_result oprot record = T.writeVal oprot $ from_GetRPCCallItem_result record
-encode_GetRPCCallItem_result :: T.StatelessProtocol p => p -> GetRPCCallItem_result -> LBS.ByteString
-encode_GetRPCCallItem_result oprot record = T.serializeVal oprot $ from_GetRPCCallItem_result record
-to_GetRPCCallItem_result :: T.ThriftVal -> GetRPCCallItem_result
-to_GetRPCCallItem_result (T.TStruct fields) = GetRPCCallItem_result{
-  getRPCCallItem_result_success = P.maybe (getRPCCallItem_result_success default_GetRPCCallItem_result) (\(_,_val37) -> (case _val37 of {T.TStruct _val38 -> (to_RPCCall (T.TStruct _val38)); _ -> P.error "wrong type"})) (Map.lookup (0) fields)
+write_GetRPCReq_result :: T.Protocol p => p -> GetRPCReq_result -> P.IO ()
+write_GetRPCReq_result oprot record = T.writeVal oprot $ from_GetRPCReq_result record
+encode_GetRPCReq_result :: T.StatelessProtocol p => p -> GetRPCReq_result -> LBS.ByteString
+encode_GetRPCReq_result oprot record = T.serializeVal oprot $ from_GetRPCReq_result record
+to_GetRPCReq_result :: T.ThriftVal -> GetRPCReq_result
+to_GetRPCReq_result (T.TStruct fields) = GetRPCReq_result{
+  getRPCReq_result_success = P.maybe (getRPCReq_result_success default_GetRPCReq_result) (\(_,_val43) -> (case _val43 of {T.TStruct _val44 -> (to_RPCReq (T.TStruct _val44)); _ -> P.error "wrong type"})) (Map.lookup (0) fields)
   }
-to_GetRPCCallItem_result _ = P.error "not a struct"
-read_GetRPCCallItem_result :: T.Protocol p => p -> P.IO GetRPCCallItem_result
-read_GetRPCCallItem_result iprot = to_GetRPCCallItem_result <$> T.readVal iprot (T.T_STRUCT typemap_GetRPCCallItem_result)
-decode_GetRPCCallItem_result :: T.StatelessProtocol p => p -> LBS.ByteString -> GetRPCCallItem_result
-decode_GetRPCCallItem_result iprot bs = to_GetRPCCallItem_result $ T.deserializeVal iprot (T.T_STRUCT typemap_GetRPCCallItem_result) bs
-typemap_GetRPCCallItem_result :: T.TypeMap
-typemap_GetRPCCallItem_result = Map.fromList [(0,("success",(T.T_STRUCT typemap_RPCCall)))]
-default_GetRPCCallItem_result :: GetRPCCallItem_result
-default_GetRPCCallItem_result = GetRPCCallItem_result{
-  getRPCCallItem_result_success = default_RPCCall}
+to_GetRPCReq_result _ = P.error "not a struct"
+read_GetRPCReq_result :: T.Protocol p => p -> P.IO GetRPCReq_result
+read_GetRPCReq_result iprot = to_GetRPCReq_result <$> T.readVal iprot (T.T_STRUCT typemap_GetRPCReq_result)
+decode_GetRPCReq_result :: T.StatelessProtocol p => p -> LBS.ByteString -> GetRPCReq_result
+decode_GetRPCReq_result iprot bs = to_GetRPCReq_result $ T.deserializeVal iprot (T.T_STRUCT typemap_GetRPCReq_result) bs
+typemap_GetRPCReq_result :: T.TypeMap
+typemap_GetRPCReq_result = Map.fromList [(0,("success",(T.T_STRUCT typemap_RPCReq)))]
+default_GetRPCReq_result :: GetRPCReq_result
+default_GetRPCReq_result = GetRPCReq_result{
+  getRPCReq_result_success = default_RPCReq}
+data GetRPCResp_args = GetRPCResp_args  { getRPCResp_args_key :: I.Int32
+  } deriving (P.Show,P.Eq,G.Generic,TY.Typeable)
+instance H.Hashable GetRPCResp_args where
+  hashWithSalt salt record = salt   `H.hashWithSalt` getRPCResp_args_key record  
+instance QC.Arbitrary GetRPCResp_args where 
+  arbitrary = M.liftM GetRPCResp_args (QC.arbitrary)
+  shrink obj | obj == default_GetRPCResp_args = []
+             | P.otherwise = M.catMaybes
+    [ if obj == default_GetRPCResp_args{getRPCResp_args_key = getRPCResp_args_key obj} then P.Nothing else P.Just $ default_GetRPCResp_args{getRPCResp_args_key = getRPCResp_args_key obj}
+    ]
+from_GetRPCResp_args :: GetRPCResp_args -> T.ThriftVal
+from_GetRPCResp_args record = T.TStruct $ Map.fromList $ M.catMaybes
+  [ (\_v47 -> P.Just (1, ("key",T.TI32 _v47))) $ getRPCResp_args_key record
+  ]
+write_GetRPCResp_args :: T.Protocol p => p -> GetRPCResp_args -> P.IO ()
+write_GetRPCResp_args oprot record = T.writeVal oprot $ from_GetRPCResp_args record
+encode_GetRPCResp_args :: T.StatelessProtocol p => p -> GetRPCResp_args -> LBS.ByteString
+encode_GetRPCResp_args oprot record = T.serializeVal oprot $ from_GetRPCResp_args record
+to_GetRPCResp_args :: T.ThriftVal -> GetRPCResp_args
+to_GetRPCResp_args (T.TStruct fields) = GetRPCResp_args{
+  getRPCResp_args_key = P.maybe (getRPCResp_args_key default_GetRPCResp_args) (\(_,_val49) -> (case _val49 of {T.TI32 _val50 -> _val50; _ -> P.error "wrong type"})) (Map.lookup (1) fields)
+  }
+to_GetRPCResp_args _ = P.error "not a struct"
+read_GetRPCResp_args :: T.Protocol p => p -> P.IO GetRPCResp_args
+read_GetRPCResp_args iprot = to_GetRPCResp_args <$> T.readVal iprot (T.T_STRUCT typemap_GetRPCResp_args)
+decode_GetRPCResp_args :: T.StatelessProtocol p => p -> LBS.ByteString -> GetRPCResp_args
+decode_GetRPCResp_args iprot bs = to_GetRPCResp_args $ T.deserializeVal iprot (T.T_STRUCT typemap_GetRPCResp_args) bs
+typemap_GetRPCResp_args :: T.TypeMap
+typemap_GetRPCResp_args = Map.fromList [(1,("key",T.T_I32))]
+default_GetRPCResp_args :: GetRPCResp_args
+default_GetRPCResp_args = GetRPCResp_args{
+  getRPCResp_args_key = 0}
+data GetRPCResp_result = GetRPCResp_result  { getRPCResp_result_success :: RPCResp
+  } deriving (P.Show,P.Eq,G.Generic,TY.Typeable)
+instance H.Hashable GetRPCResp_result where
+  hashWithSalt salt record = salt   `H.hashWithSalt` getRPCResp_result_success record  
+instance QC.Arbitrary GetRPCResp_result where 
+  arbitrary = M.liftM GetRPCResp_result (QC.arbitrary)
+  shrink obj | obj == default_GetRPCResp_result = []
+             | P.otherwise = M.catMaybes
+    [ if obj == default_GetRPCResp_result{getRPCResp_result_success = getRPCResp_result_success obj} then P.Nothing else P.Just $ default_GetRPCResp_result{getRPCResp_result_success = getRPCResp_result_success obj}
+    ]
+from_GetRPCResp_result :: GetRPCResp_result -> T.ThriftVal
+from_GetRPCResp_result record = T.TStruct $ Map.fromList $ M.catMaybes
+  [ (\_v53 -> P.Just (0, ("success",from_RPCResp _v53))) $ getRPCResp_result_success record
+  ]
+write_GetRPCResp_result :: T.Protocol p => p -> GetRPCResp_result -> P.IO ()
+write_GetRPCResp_result oprot record = T.writeVal oprot $ from_GetRPCResp_result record
+encode_GetRPCResp_result :: T.StatelessProtocol p => p -> GetRPCResp_result -> LBS.ByteString
+encode_GetRPCResp_result oprot record = T.serializeVal oprot $ from_GetRPCResp_result record
+to_GetRPCResp_result :: T.ThriftVal -> GetRPCResp_result
+to_GetRPCResp_result (T.TStruct fields) = GetRPCResp_result{
+  getRPCResp_result_success = P.maybe (getRPCResp_result_success default_GetRPCResp_result) (\(_,_val55) -> (case _val55 of {T.TStruct _val56 -> (to_RPCResp (T.TStruct _val56)); _ -> P.error "wrong type"})) (Map.lookup (0) fields)
+  }
+to_GetRPCResp_result _ = P.error "not a struct"
+read_GetRPCResp_result :: T.Protocol p => p -> P.IO GetRPCResp_result
+read_GetRPCResp_result iprot = to_GetRPCResp_result <$> T.readVal iprot (T.T_STRUCT typemap_GetRPCResp_result)
+decode_GetRPCResp_result :: T.StatelessProtocol p => p -> LBS.ByteString -> GetRPCResp_result
+decode_GetRPCResp_result iprot bs = to_GetRPCResp_result $ T.deserializeVal iprot (T.T_STRUCT typemap_GetRPCResp_result) bs
+typemap_GetRPCResp_result :: T.TypeMap
+typemap_GetRPCResp_result = Map.fromList [(0,("success",(T.T_STRUCT typemap_RPCResp)))]
+default_GetRPCResp_result :: GetRPCResp_result
+default_GetRPCResp_result = GetRPCResp_result{
+  getRPCResp_result_success = default_RPCResp}
 process_getStruct (seqid, iprot, oprot, handler) = do
   args <- read_GetStruct_args iprot
   (X.catch
@@ -181,20 +245,32 @@ process_getStruct (seqid, iprot, oprot, handler) = do
     ((\_ -> do
       T.writeMessage oprot ("getStruct", T.M_EXCEPTION, seqid) $
         T.writeAppExn oprot (T.AppExn T.AE_UNKNOWN "")) :: X.SomeException -> P.IO ()))
-process_getRPCCallItem (seqid, iprot, oprot, handler) = do
-  args <- read_GetRPCCallItem_args iprot
+process_getRPCReq (seqid, iprot, oprot, handler) = do
+  args <- read_GetRPCReq_args iprot
   (X.catch
     (do
-      val <- Iface.getRPCCallItem handler (getRPCCallItem_args_key args)
-      let res = default_GetRPCCallItem_result{getRPCCallItem_result_success = val}
-      T.writeMessage oprot ("getRPCCallItem", T.M_REPLY, seqid) $
-        write_GetRPCCallItem_result oprot res)
+      val <- Iface.getRPCReq handler (getRPCReq_args_key args)
+      let res = default_GetRPCReq_result{getRPCReq_result_success = val}
+      T.writeMessage oprot ("getRPCReq", T.M_REPLY, seqid) $
+        write_GetRPCReq_result oprot res)
     ((\_ -> do
-      T.writeMessage oprot ("getRPCCallItem", T.M_EXCEPTION, seqid) $
+      T.writeMessage oprot ("getRPCReq", T.M_EXCEPTION, seqid) $
+        T.writeAppExn oprot (T.AppExn T.AE_UNKNOWN "")) :: X.SomeException -> P.IO ()))
+process_getRPCResp (seqid, iprot, oprot, handler) = do
+  args <- read_GetRPCResp_args iprot
+  (X.catch
+    (do
+      val <- Iface.getRPCResp handler (getRPCResp_args_key args)
+      let res = default_GetRPCResp_result{getRPCResp_result_success = val}
+      T.writeMessage oprot ("getRPCResp", T.M_REPLY, seqid) $
+        write_GetRPCResp_result oprot res)
+    ((\_ -> do
+      T.writeMessage oprot ("getRPCResp", T.M_EXCEPTION, seqid) $
         T.writeAppExn oprot (T.AppExn T.AE_UNKNOWN "")) :: X.SomeException -> P.IO ()))
 proc_ handler (iprot,oprot) (name,typ,seqid) = case name of
   "getStruct" -> process_getStruct (seqid,iprot,oprot,handler)
-  "getRPCCallItem" -> process_getRPCCallItem (seqid,iprot,oprot,handler)
+  "getRPCReq" -> process_getRPCReq (seqid,iprot,oprot,handler)
+  "getRPCResp" -> process_getRPCResp (seqid,iprot,oprot,handler)
   _ -> do
     _ <- T.readVal iprot (T.T_STRUCT Map.empty)
     T.writeMessage oprot (name,T.M_EXCEPTION,seqid) $

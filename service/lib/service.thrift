@@ -8,7 +8,7 @@ struct Message {
   1: i32 count = 0,
   2: Priority priority,
   3: Operation opcode,
-  4: optional string payload,
+  4: string payload,
 }
 
 enum Priority {

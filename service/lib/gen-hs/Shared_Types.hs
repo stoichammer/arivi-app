@@ -76,47 +76,79 @@ default_SharedStruct :: SharedStruct
 default_SharedStruct = SharedStruct{
   sharedStruct_key = 0,
   sharedStruct_value = ""}
-data RPCCall = RPCCall  { rPCCall_key :: I.Int32
-  , rPCCall_request :: LT.Text
-  , rPCCall_response :: LT.Text
+data RPCReq = RPCReq  { rPCReq_key :: I.Int32
+  , rPCReq_request :: LT.Text
   } deriving (P.Show,P.Eq,G.Generic,TY.Typeable)
-instance H.Hashable RPCCall where
-  hashWithSalt salt record = salt   `H.hashWithSalt` rPCCall_key record   `H.hashWithSalt` rPCCall_request record   `H.hashWithSalt` rPCCall_response record  
-instance QC.Arbitrary RPCCall where 
-  arbitrary = M.liftM RPCCall (QC.arbitrary)
+instance H.Hashable RPCReq where
+  hashWithSalt salt record = salt   `H.hashWithSalt` rPCReq_key record   `H.hashWithSalt` rPCReq_request record  
+instance QC.Arbitrary RPCReq where 
+  arbitrary = M.liftM RPCReq (QC.arbitrary)
           `M.ap`(QC.arbitrary)
-          `M.ap`(QC.arbitrary)
-  shrink obj | obj == default_RPCCall = []
+  shrink obj | obj == default_RPCReq = []
              | P.otherwise = M.catMaybes
-    [ if obj == default_RPCCall{rPCCall_key = rPCCall_key obj} then P.Nothing else P.Just $ default_RPCCall{rPCCall_key = rPCCall_key obj}
-    , if obj == default_RPCCall{rPCCall_request = rPCCall_request obj} then P.Nothing else P.Just $ default_RPCCall{rPCCall_request = rPCCall_request obj}
-    , if obj == default_RPCCall{rPCCall_response = rPCCall_response obj} then P.Nothing else P.Just $ default_RPCCall{rPCCall_response = rPCCall_response obj}
+    [ if obj == default_RPCReq{rPCReq_key = rPCReq_key obj} then P.Nothing else P.Just $ default_RPCReq{rPCReq_key = rPCReq_key obj}
+    , if obj == default_RPCReq{rPCReq_request = rPCReq_request obj} then P.Nothing else P.Just $ default_RPCReq{rPCReq_request = rPCReq_request obj}
     ]
-from_RPCCall :: RPCCall -> T.ThriftVal
-from_RPCCall record = T.TStruct $ Map.fromList $ M.catMaybes
-  [ (\_v9 -> P.Just (1, ("key",T.TI32 _v9))) $ rPCCall_key record
-  , (\_v9 -> P.Just (2, ("request",T.TString $ E.encodeUtf8 _v9))) $ rPCCall_request record
-  , (\_v9 -> P.Just (3, ("response",T.TString $ E.encodeUtf8 _v9))) $ rPCCall_response record
+from_RPCReq :: RPCReq -> T.ThriftVal
+from_RPCReq record = T.TStruct $ Map.fromList $ M.catMaybes
+  [ (\_v9 -> P.Just (1, ("key",T.TI32 _v9))) $ rPCReq_key record
+  , (\_v9 -> P.Just (2, ("request",T.TString $ E.encodeUtf8 _v9))) $ rPCReq_request record
   ]
-write_RPCCall :: T.Protocol p => p -> RPCCall -> P.IO ()
-write_RPCCall oprot record = T.writeVal oprot $ from_RPCCall record
-encode_RPCCall :: T.StatelessProtocol p => p -> RPCCall -> LBS.ByteString
-encode_RPCCall oprot record = T.serializeVal oprot $ from_RPCCall record
-to_RPCCall :: T.ThriftVal -> RPCCall
-to_RPCCall (T.TStruct fields) = RPCCall{
-  rPCCall_key = P.maybe (rPCCall_key default_RPCCall) (\(_,_val11) -> (case _val11 of {T.TI32 _val12 -> _val12; _ -> P.error "wrong type"})) (Map.lookup (1) fields),
-  rPCCall_request = P.maybe (rPCCall_request default_RPCCall) (\(_,_val11) -> (case _val11 of {T.TString _val13 -> E.decodeUtf8 _val13; _ -> P.error "wrong type"})) (Map.lookup (2) fields),
-  rPCCall_response = P.maybe (rPCCall_response default_RPCCall) (\(_,_val11) -> (case _val11 of {T.TString _val14 -> E.decodeUtf8 _val14; _ -> P.error "wrong type"})) (Map.lookup (3) fields)
+write_RPCReq :: T.Protocol p => p -> RPCReq -> P.IO ()
+write_RPCReq oprot record = T.writeVal oprot $ from_RPCReq record
+encode_RPCReq :: T.StatelessProtocol p => p -> RPCReq -> LBS.ByteString
+encode_RPCReq oprot record = T.serializeVal oprot $ from_RPCReq record
+to_RPCReq :: T.ThriftVal -> RPCReq
+to_RPCReq (T.TStruct fields) = RPCReq{
+  rPCReq_key = P.maybe (rPCReq_key default_RPCReq) (\(_,_val11) -> (case _val11 of {T.TI32 _val12 -> _val12; _ -> P.error "wrong type"})) (Map.lookup (1) fields),
+  rPCReq_request = P.maybe (rPCReq_request default_RPCReq) (\(_,_val11) -> (case _val11 of {T.TString _val13 -> E.decodeUtf8 _val13; _ -> P.error "wrong type"})) (Map.lookup (2) fields)
   }
-to_RPCCall _ = P.error "not a struct"
-read_RPCCall :: T.Protocol p => p -> P.IO RPCCall
-read_RPCCall iprot = to_RPCCall <$> T.readVal iprot (T.T_STRUCT typemap_RPCCall)
-decode_RPCCall :: T.StatelessProtocol p => p -> LBS.ByteString -> RPCCall
-decode_RPCCall iprot bs = to_RPCCall $ T.deserializeVal iprot (T.T_STRUCT typemap_RPCCall) bs
-typemap_RPCCall :: T.TypeMap
-typemap_RPCCall = Map.fromList [(1,("key",T.T_I32)),(2,("request",T.T_STRING)),(3,("response",T.T_STRING))]
-default_RPCCall :: RPCCall
-default_RPCCall = RPCCall{
-  rPCCall_key = 0,
-  rPCCall_request = "",
-  rPCCall_response = ""}
+to_RPCReq _ = P.error "not a struct"
+read_RPCReq :: T.Protocol p => p -> P.IO RPCReq
+read_RPCReq iprot = to_RPCReq <$> T.readVal iprot (T.T_STRUCT typemap_RPCReq)
+decode_RPCReq :: T.StatelessProtocol p => p -> LBS.ByteString -> RPCReq
+decode_RPCReq iprot bs = to_RPCReq $ T.deserializeVal iprot (T.T_STRUCT typemap_RPCReq) bs
+typemap_RPCReq :: T.TypeMap
+typemap_RPCReq = Map.fromList [(1,("key",T.T_I32)),(2,("request",T.T_STRING))]
+default_RPCReq :: RPCReq
+default_RPCReq = RPCReq{
+  rPCReq_key = 0,
+  rPCReq_request = ""}
+data RPCResp = RPCResp  { rPCResp_key :: I.Int32
+  , rPCResp_response :: LT.Text
+  } deriving (P.Show,P.Eq,G.Generic,TY.Typeable)
+instance H.Hashable RPCResp where
+  hashWithSalt salt record = salt   `H.hashWithSalt` rPCResp_key record   `H.hashWithSalt` rPCResp_response record  
+instance QC.Arbitrary RPCResp where 
+  arbitrary = M.liftM RPCResp (QC.arbitrary)
+          `M.ap`(QC.arbitrary)
+  shrink obj | obj == default_RPCResp = []
+             | P.otherwise = M.catMaybes
+    [ if obj == default_RPCResp{rPCResp_key = rPCResp_key obj} then P.Nothing else P.Just $ default_RPCResp{rPCResp_key = rPCResp_key obj}
+    , if obj == default_RPCResp{rPCResp_response = rPCResp_response obj} then P.Nothing else P.Just $ default_RPCResp{rPCResp_response = rPCResp_response obj}
+    ]
+from_RPCResp :: RPCResp -> T.ThriftVal
+from_RPCResp record = T.TStruct $ Map.fromList $ M.catMaybes
+  [ (\_v16 -> P.Just (1, ("key",T.TI32 _v16))) $ rPCResp_key record
+  , (\_v16 -> P.Just (2, ("response",T.TString $ E.encodeUtf8 _v16))) $ rPCResp_response record
+  ]
+write_RPCResp :: T.Protocol p => p -> RPCResp -> P.IO ()
+write_RPCResp oprot record = T.writeVal oprot $ from_RPCResp record
+encode_RPCResp :: T.StatelessProtocol p => p -> RPCResp -> LBS.ByteString
+encode_RPCResp oprot record = T.serializeVal oprot $ from_RPCResp record
+to_RPCResp :: T.ThriftVal -> RPCResp
+to_RPCResp (T.TStruct fields) = RPCResp{
+  rPCResp_key = P.maybe (rPCResp_key default_RPCResp) (\(_,_val18) -> (case _val18 of {T.TI32 _val19 -> _val19; _ -> P.error "wrong type"})) (Map.lookup (1) fields),
+  rPCResp_response = P.maybe (rPCResp_response default_RPCResp) (\(_,_val18) -> (case _val18 of {T.TString _val20 -> E.decodeUtf8 _val20; _ -> P.error "wrong type"})) (Map.lookup (2) fields)
+  }
+to_RPCResp _ = P.error "not a struct"
+read_RPCResp :: T.Protocol p => p -> P.IO RPCResp
+read_RPCResp iprot = to_RPCResp <$> T.readVal iprot (T.T_STRUCT typemap_RPCResp)
+decode_RPCResp :: T.StatelessProtocol p => p -> LBS.ByteString -> RPCResp
+decode_RPCResp iprot bs = to_RPCResp $ T.deserializeVal iprot (T.T_STRUCT typemap_RPCResp) bs
+typemap_RPCResp :: T.TypeMap
+typemap_RPCResp = Map.fromList [(1,("key",T.T_I32)),(2,("response",T.T_STRING))]
+default_RPCResp :: RPCResp
+default_RPCResp = RPCResp{
+  rPCResp_key = 0,
+  rPCResp_response = ""}

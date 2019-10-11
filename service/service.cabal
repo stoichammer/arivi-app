@@ -66,13 +66,22 @@ library
                     , unordered-containers
                     , QuickCheck
                     , thrift
+                    , queue
+                    , network
 
   ghc-options:  -Wall -Werror  -Wredundant-constraints -fno-defer-type-errors -fno-defer-out-of-scope-variables
   default-extensions:  FlexibleContexts
   exposed-modules:
-                         Service.AriviSecureRPC
+                         AriviSecureRPC
                        , Service.Types
                        , Shared_Types
+
+  other-modules:
+                    AriviNetworkService
+                    , AriviNetworkServiceHandler
+                    , AriviNetworkService_Iface
+                    , Service_Types
+                    , SharedService_Iface
 
   default-language:    Haskell2010
 
@@ -112,6 +121,7 @@ executable AriviSecureRPC
                 , hashable
                 , bytestring
                 , QuickCheck
+                , queue
 
 
   if flag(network-uri)
@@ -128,5 +138,5 @@ executable AriviSecureRPC
          Shared_Types,
          SharedService_Iface,
          AriviNetworkServiceHandler,
-         Service.AriviSecureRPC
+         AriviSecureRPC
   default-language:    Haskell2010

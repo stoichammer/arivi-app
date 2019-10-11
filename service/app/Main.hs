@@ -11,7 +11,7 @@ module Main
     ( module Main
     ) where
 
-import           Service.AriviSecureRPC
+import           AriviSecureRPC
 
 import           Arivi.Crypto.Utils.PublicKey.Signature as ACUPS
 import           Arivi.Crypto.Utils.PublicKey.Utils
@@ -39,14 +39,14 @@ import qualified Data.HashMap.Strict                    as HM
 import           Data.Monoid                            ((<>))
 import           Data.String.Conv
 import           Data.Text
-import           Data.Map as M
+import           Data.Map.Strict as M
 import Data.Typeable
 
 import           System.Directory                       (doesPathExist)
 import           System.Environment                     (getArgs)
 --import           Control.Concurrent.Async.Lifted (async)
 import Control.Concurrent.MVar
-
+import           Control.Concurrent.STM
 --import ThriftServer
 import qualified AriviNetworkService
 import AriviNetworkServiceHandler
@@ -136,7 +136,7 @@ defaultConfig path = do
 
     Config.makeConfig config (path <> "/config.yaml")
 
-runNode :: Config.Config -> M.Map Int32 (MVar RPCCall) -> IO ()
+runNode :: Config.Config -> (TChan RPCCall) -> IO ()
 runNode config mp = do
     -- config <- Config.readConfig configPath
     env <- mkP2PEnv config
@@ -163,14 +163,14 @@ main = do
     unless b (defaultConfig path)
     config <- Config.readConfig (path <> "/config.yaml")
 
-    handler <- newAriviNetworkServiceHandler
+    tHandler <- newAriviNetworkServiceHandler
 
-    let mv = ariviThriftLog handler
-    let queue = rpcQueue handler
+    let mv = ariviThriftLog tHandler
+    let queue = rpcQueue tHandler
     print (typeOf mv)
     print (typeOf queue)
-    mp <- readMVar queue
-    print (size mp)
+    --mp <- readMVar queue
+    --print (size mp)
 
     -- st <-  SharedIface.getStruct handler 0
     -- print (typeOf  st)
@@ -183,8 +183,8 @@ main = do
     --M.insert (SharedStruct 1 "hello") xx
 
 
-    async ( runThriftServer handler (Config.thriftServerPort config))
-    runNode config mp
+    async ( runThriftServer tHandler (Config.thriftServerPort config))
+    runNode config queue
     return ()
 
 a :: Prelude.Int -> BSL.ByteString
