@@ -31,12 +31,12 @@ fillQuotas numPeers = forever $ do
         res <- runExceptT $ getKNodes numPeers -- Repetition of peers
         -- liftIO $ threadDelay (40 * 1000000)
         case res of
-            Left _ -> liftIO $ threadDelay (40 * 1000000)
+            Left _ -> liftIO $ threadDelay (30 * 1000000)
             Right peers -> do
                 peerNodeIds <- addPeerFromKademlia peers
                 sendOptionsMessage peerNodeIds Options
                 liftIO $ print "waiting"
-                liftIO $ threadDelay (40 * 1000000)
+                liftIO $ threadDelay (30 * 1000000)
 
             -- fillQuotas numPeers
 

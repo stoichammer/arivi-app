@@ -69,9 +69,9 @@ goGetResource rpcCall = do
      liftIO $ print (typeOf resource)
      liftIO $ print (theMessage resource)
      case resource of
-         Left _   -> liftIO $ print "Exception AriviP2PException"
+         Left _   -> liftIO $ print "Exception: No peers available to issue RPC"
          Right _rr -> do
-                    liftIO $ print resource
+                    liftIO $ print "ok.."
                     --respMsg <- msg rr
                     --liftIO $ print respMsg
                     --putMVar (response rpcCall) (RPCResp ind respMsg)
@@ -85,21 +85,9 @@ loopCall :: (HasP2PEnv env m ServiceResource ByteString String ByteString)
 loopCall queue = do
 
         item <- liftIO $ atomically $ (readTChan queue)
-        liftIO $ print (typeOf item)
-        let req =  (request item)
+        --liftIO $ print (typeOf item)
+        --let req =  (request item)
         _ <- async (goGetResource item)
-        liftIO $ print (req )
+        --liftIO $ print (req )
         loopCall queue
         return ()
-        -- case (lookupMax mp) of
-        --     Just c ->   do
-        --                     y <- liftIO (readMVar (snd c))
-        --
-        --                     liftIO $ print "looping..."
-        --                     --getAriviSecureRPC
-        --
-        --                     --resource <- fetchResource (RpcPayload AriviSecureRPC (show (rPCCall_request (y))))
-        --
-        --                     loopCall mp
-        --                     return()
-        --     Nothing ->  return()
