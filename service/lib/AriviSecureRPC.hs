@@ -18,6 +18,7 @@ import GHC.Generics
 import Codec.Serialise
 import Control.Monad.IO.Class
 import Data.ByteString.Lazy as Lazy
+import Data.Text.Lazy as TL
 import Data.Hashable
 -- import Control.Concurrent    (threadDelay)
 import  Shared_Types
@@ -28,7 +29,7 @@ import Data.Typeable
 import           Control.Concurrent.STM
 import           Control.Concurrent.Async.Lifted (async)
 import AriviNetworkServiceHandler
-
+import           Control.Concurrent.MVar
 --type ServiceMsg = Lazy.ByteString
 
 data ServiceResource = AriviSecureRPC deriving (Eq, Ord, Show, Generic)
@@ -54,29 +55,35 @@ handler = ResourceHandler (\(RpcPayload resource serviceMsg) -> RpcPayload resou
 --     liftIO $ print "here"
 --     liftIO $ print resource
 
-theMessage :: Either a (RpcPayload b String) -> Maybe String;
-theMessage (Right (RpcPayload _ str)) = Just str;
-theMessage _ = Nothing
+-- theMessage :: Either a (RpcPayload b String) -> Maybe String;
+-- theMessage (Right (RpcPayload _ str)) = Just str;
+-- theMessage _ = Nothing
 
 goGetResource :: (HasP2PEnv env m ServiceResource ByteString String ByteString)
         => RPCCall -> m ()
 goGetResource rpcCall = do
      let req = (request rpcCall)
-     --let ind = rPCReq_key req
+     let ind = rPCReq_key req
      let msg = show (rPCReq_request req)
      liftIO $ print (msg)
      resource <- fetchResource (RpcPayload AriviSecureRPC msg)
      liftIO $ print (typeOf resource)
-     liftIO $ print (theMessage resource)
+     --liftIO $ print (theMessage resource)
      case resource of
-         Left _   -> liftIO $ print "Exception: No peers available to issue RPC"
-         Right _rr -> do
-                    liftIO $ print "ok.."
-                    --respMsg <- msg rr
-                    --liftIO $ print respMsg
-                    --putMVar (response rpcCall) (RPCResp ind respMsg)
+         Left _   -> do
+                liftIO $ print "Exception: No peers available to issue RPC"
+                let errMsg = TL.pack "__EXCEPTION__NO_PEERS"
+                liftIO $ (putMVar (response rpcCall) (RPCResp ind errMsg))
+                return ()
+         Right (RpcError _) ->
+                liftIO $ print "Exception: RPC error"
+         Right (RpcPayload _ str) -> do
+                liftIO $ print (str)
+                let respMsg = TL.pack str
+                liftIO $ (putMVar (response rpcCall) (RPCResp ind respMsg))
+                return ()
 
-     return ()
+
 
 
 

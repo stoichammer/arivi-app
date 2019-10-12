@@ -94,19 +94,21 @@ instance AriviNetworkService_Iface AriviNetworkServiceHandler where
       -- rpcEntry <- newMVar (RPCCall logid  req "_")
       -- modifyMVar_ (rpcQueue self) $ return .(M.insert logid rpcEntry)
 
+      rpcResp <- (readMVar resp)
+      let val = rPCResp_response rpcResp
 
-      let val = case opcode msg of
-                  SET_NODE_CAPABILITY -> "dummy-resp SET_NODE_CAPABILITY"
-                  GET_BLOCK_HEADERS -> "dummy-resp GET_BLOCK_HEADERS"
-                  GET_ESTIMATE_FEE -> "dummy-resp GET_ESTIMATE_FEE"
-                  SUBSCRIBE_NEW_HEADERS -> "dummy-resp SUBSCRIBE_NEW_HEADERS"
-                  GET_UNCONFIRMED_TX -> "dummy-resp GET_UNCONFIRMED_TX"
-                  GET_UTXOS -> "dummy-resp"
-                  SUBSCRIBE_SCRIPT_HASH -> "dummy-resp"
-                  UNSUBSCRIBE_SCRIPT_HASH -> "dummy-resp"
-                  BROADCAST_TX -> "dummy-resp"
-                  GET_RAW_TX_FROM_HASH -> "dummy-resp"
-                  GET_TX_MERKLE_PATH -> "dummy-resp"
+      -- let val = case opcode msg of
+      --             SET_NODE_CAPABILITY |
+      --             GET_BLOCK_HEADERS -> "dummy-resp GET_BLOCK_HEADERS"
+      --             GET_ESTIMATE_FEE -> "dummy-resp GET_ESTIMATE_FEE"
+      --             SUBSCRIBE_NEW_HEADERS -> "dummy-resp SUBSCRIBE_NEW_HEADERS"
+      --             GET_UNCONFIRMED_TX -> "dummy-resp GET_UNCONFIRMED_TX"
+      --             GET_UTXOS -> "dummy-resp"
+      --             SUBSCRIBE_SCRIPT_HASH -> "dummy-resp"
+      --             UNSUBSCRIBE_SCRIPT_HASH -> "dummy-resp"
+      --             BROADCAST_TX -> "dummy-resp"
+      --             GET_RAW_TX_FROM_HASH -> "dummy-resp"
+      --             GET_TX_MERKLE_PATH -> "dummy-resp"
 
       let logEntry = SharedStruct logid (fromString $ show $ val)
       modifyMVar_ (ariviThriftLog self) $ return .(M.insert logid logEntry)
@@ -120,7 +122,7 @@ instance AriviNetworkService_Iface AriviNetworkServiceHandler where
        -- stupid dynamic languages f'ing it up
        --count = message_count
        --priority = message_priority
-       opcode = message_opcode
+       --opcode = message_opcode
        payload = message_payload
        logid = mlogid
        msg = mmsg
