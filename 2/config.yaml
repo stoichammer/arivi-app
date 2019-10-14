@@ -8,7 +8,8 @@
   "kademliaConcurrencyFactor": 3,
   "udpPort": 5684,
   "tcpPort": 5684,
-  "thriftServerPort": 9095,
+  "thriftListenPort": 9095,
+  "thriftRemotePort": 9096,
   "myNodeId": ! ";æÕ}ip\x12óQà\x81o°p`R'²E\nQ\x9E[ºáN\x92¯øï-õð\x1DZ\b~Ë\rg«¹ÜÓÜíkù\x02\x7F\fÎÝôÎ\x174W(¨\a:\x19&",
   "trustedPeers": [
     {

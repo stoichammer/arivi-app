@@ -31,16 +31,29 @@ import           Control.Concurrent.Async.Lifted (async)
 import AriviNetworkServiceHandler
 import           Control.Concurrent.MVar
 --type ServiceMsg = Lazy.ByteString
+--import Thrift
+import Thrift.Protocol.Binary
+import Thrift.Transport
+import Thrift.Server
+import GHC.IO.Handle
+import GHC.Stack
 
-data ServiceResource = AriviSecureRPC deriving (Eq, Ord, Show, Generic)
+data ServiceResource = AriviSecureRPC {
+                        --thriftHandle :: BinaryProtocol Handle
+                        } --deriving (Generic)
+                        deriving (Eq, Ord, Show, Generic)
 
 instance Serialise ServiceResource
 instance Hashable ServiceResource
 
+invokeThriftRPC :: ServiceResource -> String -> String
+invokeThriftRPC resource msg = "sss"
+                            --liftIO $ print (typeOf (thriftHandle resource))
 
 
-handler :: ResourceHandler ServiceResource String
-handler = ResourceHandler (\(RpcPayload resource serviceMsg) -> RpcPayload resource (serviceMsg ++ " < Resource_resp>"))
+
+handler :: (BinaryProtocol Handle) -> ResourceHandler ServiceResource String
+handler hh = ResourceHandler ( \ (RpcPayload resource serviceMsg) -> RpcPayload resource (invokeThriftRPC resource serviceMsg ))
 
 -- registerAriviSecureRPC :: (HasP2PEnv env m ServiceResource String String String) => m ()
 -- registerAriviSecureRPC =

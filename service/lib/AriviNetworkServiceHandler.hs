@@ -5,7 +5,7 @@ module AriviNetworkServiceHandler
     (
     AriviNetworkServiceHandler(..),
     newAriviNetworkServiceHandler,
-    runThriftServer,
+    setupThriftDuplex,
     RPCCall(..)
     )
     where
@@ -15,10 +15,12 @@ import Service_Types
 import SharedService_Iface
 import Shared_Types
 
--- import Thrift
--- import Thrift.Protocol.Binary
--- import Thrift.Transport
+import Thrift
+import Thrift.Protocol.Binary
+import Thrift.Transport
 import Thrift.Server
+--import Thrift.Transport
+import Thrift.Transport.Handle
 
 import Data.Int
 import Data.String
@@ -29,13 +31,22 @@ import Text.Printf
 import Control.Concurrent.MVar
 import qualified Data.Map.Strict as M
 import           Control.Concurrent.STM
+import Thrift.Transport.Empty
+import Control.Monad.IO.Class
+import GHC.IO.Handle
+
+
+
 --import Data.Map ((!))
 --import Data.Monoid
 import           Network.Socket
+import           Network
 --import Control.Monad.IO.Class
 
 --import           Service.AriviSecureRPC
 --import Data.Typeable
+import AriviNetworkService_Client as CL
+
 
 data RPCCall = RPCCall {
         request :: RPCReq ,
@@ -45,13 +56,17 @@ data RPCCall = RPCCall {
 data AriviNetworkServiceHandler = AriviNetworkServiceHandler {
                       ariviThriftLog :: MVar (M.Map Int32 SharedStruct)
                     , rpcQueue :: TChan RPCCall
+                    , binProto :: BinaryProtocol Handle
                 }
 
-newAriviNetworkServiceHandler :: IO AriviNetworkServiceHandler
-newAriviNetworkServiceHandler = do
+newAriviNetworkServiceHandler :: PortNumber -> IO AriviNetworkServiceHandler
+newAriviNetworkServiceHandler remotePort = do
   logg <- newMVar mempty
   rpcQ <- atomically $ newTChan
-  return $ AriviNetworkServiceHandler logg rpcQ
+  --let localhost = "localhost" :: HostName
+  transport  <- hOpen ( "localhost" :: HostName, PortNumber remotePort)
+  let binProto =  BinaryProtocol transport
+  return $ AriviNetworkServiceHandler logg rpcQ binProto
 
 instance SharedService_Iface AriviNetworkServiceHandler where
 
@@ -128,8 +143,13 @@ instance AriviNetworkService_Iface AriviNetworkServiceHandler where
        msg = mmsg
 
 
-runThriftServer :: AriviNetworkServiceHandler -> PortNumber -> IO (AriviNetworkServiceHandler)
-runThriftServer handler port =  do
+setupThriftDuplex :: AriviNetworkServiceHandler -> PortNumber -> IO (AriviNetworkServiceHandler)
+setupThriftDuplex handler listenPort =  do
   --handler <- newAriviNetworkServiceHandler
   printf "Starting thrift server..."
-  runBasicServer handler AriviNetworkService.process port
+  runBasicServer handler AriviNetworkService.process listenPort
+  --transport  <- hOpen ("localhost", remotePort)
+  --let bp = BinaryProtocol transport
+  --let client = (binProto, binProto)
+  --putMVar (binProto handler) bp
+  return ( handler)

@@ -133,6 +133,7 @@ defaultConfig path = do
                 5
                 3
                 9090
+                9091
 
     Config.makeConfig config (path <> "/config.yaml")
 
@@ -163,7 +164,7 @@ main = do
     unless b (defaultConfig path)
     config <- Config.readConfig (path <> "/config.yaml")
 
-    tHandler <- newAriviNetworkServiceHandler
+    tHandler <- newAriviNetworkServiceHandler (Config.thriftRemotePort config)
 
     let mv = ariviThriftLog tHandler
     let queue = rpcQueue tHandler
@@ -183,7 +184,7 @@ main = do
     --M.insert (SharedStruct 1 "hello") xx
 
 
-    async ( runThriftServer tHandler (Config.thriftServerPort config))
+    async ( setupThriftDuplex tHandler (Config.thriftListenPort config))
     runNode config queue
     return ()
 

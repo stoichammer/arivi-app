@@ -31,7 +31,8 @@ data Config = Config
     , sbound                       :: Int
     , pingThreshold                :: Int
     , kademliaConcurrencyFactor    :: Int
-    , thriftServerPort             :: PortNumber
+    , thriftListenPort             :: PortNumber
+    , thriftRemotePort             :: PortNumber
     } deriving (Show, Generic)
 
 instance FromJSON ByteString where
