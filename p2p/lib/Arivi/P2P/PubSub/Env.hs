@@ -35,10 +35,10 @@ data PubSubEnv t msg = PubSubEnv
     , pubSubNotifiers :: Notifiers t
     , pubSubInbox :: TVar (Inbox msg)
     , pubSubCache :: TVar (Cache msg)
-    , pubSubHandlers :: TopicHandlers t msg
+    --, pubSubHandlers :: TopicHandlers t msg
     }
 
-class (HasTopics env t, HasSubscribers env t, HasNotifiers env t, HasInbox env msg, HasCache env msg, HasTopicHandlers env t msg) => HasPubSubEnv env t msg where
+class (HasTopics env t, HasSubscribers env t, HasNotifiers env t, HasInbox env msg, HasCache env msg) => HasPubSubEnv env t msg where
         pubSubEnv :: env -> PubSubEnv t msg
 
 -- type HasPubSubEnv env t msg = (HasTopics env t, HasSubscribers env t, HasNotifiers env t, HasInbox env msg, HasCache env msg, HasTopicHandlers env t msg)
@@ -50,14 +50,16 @@ type HasPubSub env t msg
       )
 
 
-mkPubSub :: IO (PubSubEnv t msg)
-mkPubSub =
-    PubSubEnv <$> pure Set.empty
-              <*> pure (Subscribers HM.empty)
-              <*> pure (Notifiers HM.empty)
-              <*> newTVarIO (Inbox HM.empty)
-              <*> newTVarIO (Cache HM.empty)
-              <*> pure (TopicHandlers HM.empty)
+mkPubSub :: (Ord t, Hashable t) => [t] -> IO (PubSubEnv t msg)
+mkPubSub topicList = do
+  subTVars <- mapM (\_ -> newTVarIO Set.empty) topicList
+  notifTVars <- mapM (\_ -> newTVarIO Set.empty) topicList
+  PubSubEnv <$> pure (Set.fromList topicList)
+            <*> pure (Subscribers (HM.fromList (zip topicList subTVars)))
+            <*> pure (Notifiers (HM.fromList (zip topicList notifTVars)))
+            <*> newTVarIO (Inbox HM.empty)
+            <*> newTVarIO (Cache HM.empty)
+        --  <*> pure (TopicHandlers HM.empty)
 
 instance HasTopics (PubSubEnv t msg) t where
     topics = pubSubTopics
@@ -74,5 +76,5 @@ instance HasInbox (PubSubEnv t msg) msg where
 instance HasCache (PubSubEnv t msg) msg where
     cache = pubSubCache
 
-instance HasTopicHandlers (PubSubEnv t msg) t msg where
-    topicHandlers = pubSubHandlers
+-- instance HasTopicHandlers (PubSubEnv t msg) t msg where
+--     topicHandlers = pubSubHandlers

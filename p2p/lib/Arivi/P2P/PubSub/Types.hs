@@ -5,12 +5,10 @@
 
 module Arivi.P2P.PubSub.Types
     ( NodeTimer(..)
-    , TopicHandler(..)
     , Subscribers(..)
     , Notifiers(..)
     , Inbox(..)
     , Cache(..)
-    , TopicHandlers(..)
     , Status(..)
     , Timer
     , subscribersForTopic
@@ -35,8 +33,6 @@ import qualified Data.Set                              as Set
 import           Data.Time.Clock
 import           GHC.Generics                          (Generic)
 
-newtype TopicHandler msg =
-    TopicHandler (forall m . msg -> m msg)
 
 type Timer = Integer
 
@@ -51,15 +47,13 @@ newtype Notifiers t = Notifiers (HM.HashMap t (TVar (Set NodeId)))
 
 newtype Inbox msg = Inbox (HM.HashMap msg (TVar (Set NodeId)))
 
-newtype Cache msg = Cache (HM.HashMap msg (MVar msg))
-
-newtype TopicHandlers t msg = TopicHandlers (HM.HashMap t (TopicHandler msg))
+newtype Cache msg = Cache (HM.HashMap msg (MVar Status))
 
 data Status = Ok
             | Error
             deriving (Eq, Ord, Show, Generic, Serialise)
 
-subscribersForTopic :: 
+subscribersForTopic ::
     ( Eq t
     , Hashable t
     )
@@ -71,7 +65,7 @@ subscribersForTopic t (Subscribers subs) =
         Just x -> readTVarIO x
         Nothing -> return Set.empty
 
-notifiersForTopic :: 
+notifiersForTopic ::
     ( Eq t
     , Hashable t
     )
@@ -83,7 +77,7 @@ notifiersForTopic t (Notifiers notifs) =
         Just x -> readTVarIO x
         Nothing -> return Set.empty
 
-notifiersForMessage :: 
+notifiersForMessage ::
     ( Eq msg
     , Hashable msg
     , Eq t
@@ -102,7 +96,7 @@ notifiersForMessage (Inbox inbox) subs msg t =
         -- to ask who sent it. Returning all subscribers.
         Nothing -> subscribersForTopic t subs
 
-newSubscriber :: 
+newSubscriber ::
     (Ord t, Hashable t)
     => NodeId
     -> Subscribers t
@@ -121,10 +115,10 @@ newSubscriber nid (Subscribers subs) topics _ t =
                 -- 'initPubSub' should statically make empty
                 -- sets for all topics in the map. Returning False.
                 Nothing -> return False
-        else return False   
+        else return False
 
 
-newNotifier :: 
+newNotifier ::
     (Ord t, Hashable t)
     => NodeId
     -> Notifiers t
@@ -132,7 +126,8 @@ newNotifier ::
     -> IO ()
 newNotifier nid (Notifiers notifs) t =
     case notifs ^. at t of
-        Just x -> atomically $ modifyTVar x (Set.insert nid)
+        Just x ->
+            atomically $ modifyTVar x (Set.insert nid)
         -- |Invariant this branch is never reached.
         -- 'initPubSub' should statically make empty
         -- sets for all topics in the map.

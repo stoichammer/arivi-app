@@ -6,6 +6,9 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Main
     ( module Main
@@ -21,13 +24,16 @@ import           Arivi.Network
 import qualified Arivi.P2P.Config                       as Config
 import           Arivi.P2P.P2PEnv as PE
 import           Arivi.P2P.ServiceRegistry
-import           Arivi.P2P.Types
+-- import           Arivi.P2P.Types
+--
+-- -- import           Arivi.P2P.Handler  (newIncomingConnectionHandler)
+-- -- import           Arivi.P2P.Kademlia.LoadDefaultPeers
+-- import           Arivi.P2P.MessageHandler.HandlerTypes
+-- import           Arivi.P2P.PubSub.Env
+-- import           Arivi.P2P.PubSub.Class
 
--- import           Arivi.P2P.Handler  (newIncomingConnectionHandler)
--- import           Arivi.P2P.Kademlia.LoadDefaultPeers
-import           Arivi.P2P.MessageHandler.HandlerTypes
-import           Arivi.P2P.PubSub.Env
-import           Arivi.P2P.PubSub.Class
+import           Arivi.P2P.RPC.Types
+import           Arivi.P2P.PubSub.Types
 
 import           Control.Concurrent                     (threadDelay)
 import           Control.Concurrent.Async.Lifted        (async, wait)
@@ -55,67 +61,95 @@ import Service_Types
 import SharedService_Iface as SharedIface
 import Shared_Types
 import Data.Int
+import           Control.Monad.Base
+import           Control.Monad.Catch
+import           Control.Monad.Trans.Control
 
-type AppM = ReaderT (P2PEnv ServiceResource ByteString String ByteString) (LoggingT IO)
+
+newtype AppM a =
+    AppM (ReaderT (ServiceEnv AppM ServiceResource ServiceTopic String String) (LoggingT IO) a)
+    deriving ( Functor
+             , Applicative
+             , Monad
+             , MonadReader (ServiceEnv AppM ServiceResource ServiceTopic String String)
+             , MonadIO
+             , MonadThrow
+             , MonadCatch
+             , MonadLogger
+             )
+
+deriving instance MonadBase IO AppM
+deriving instance MonadBaseControl IO AppM
 
 instance HasNetworkEnv AppM where
-    getEnv = asks (ariviNetworkEnv . nodeEndpointEnv)
+    getEnv = asks (ariviNetworkEnv . nodeEndpointEnv . p2pEnv)
 
 instance HasSecretKey AppM
 
 instance HasKbucket AppM where
-    getKb = asks (kbucket . kademliaEnv)
+    getKb = asks (kbucket . kademliaEnv . p2pEnv)
 
 instance HasStatsdClient AppM where
-    getStatsdClient = asks statsdClient
+    getStatsdClient = asks (statsdClient . p2pEnv)
 
 instance HasNodeEndpoint AppM where
-    getEndpointEnv = asks nodeEndpointEnv
-    getNetworkConfig = asks (PE._networkConfig . nodeEndpointEnv)
-    getHandlers = asks (handlers . nodeEndpointEnv)
-    getNodeIdPeerMapTVarP2PEnv = asks (tvarNodeIdPeerMap . nodeEndpointEnv)
-
-instance HasNetworkConfig (P2PEnv r t rmsg pmsg) NetworkConfig where
-    networkConfig f p2p =
-        fmap
-            (\nc ->
-                 p2p
-                 { nodeEndpointEnv =
-                       (nodeEndpointEnv p2p) {PE._networkConfig = nc}
-                 })
-            (f ((PE._networkConfig . nodeEndpointEnv) p2p))
-
-instance HasArchivedResourcers AppM ServiceResource String where
-    archived = asks (tvarArchivedResourceToPeerMap . rpcEnv)
-
-instance HasTransientResourcers AppM ServiceResource String where
-    transient = asks (tvarDynamicResourceToPeerMap . rpcEnv)
-
+    getEndpointEnv = asks (nodeEndpointEnv . p2pEnv)
+    getNetworkConfig = asks (PE._networkConfig . nodeEndpointEnv . p2pEnv)
+    getHandlers = asks (handlers . nodeEndpointEnv . p2pEnv)
+    getNodeIdPeerMapTVarP2PEnv = asks (tvarNodeIdPeerMap . nodeEndpointEnv . p2pEnv)
 
 instance HasPRT AppM where
-    getPeerReputationHistoryTableTVar = asks (tvPeerReputationHashTable . prtEnv)
-    getServicesReputationHashMapTVar = asks (tvServicesReputationHashMap . prtEnv)
-    getP2PReputationHashMapTVar = asks (tvP2PReputationHashMap . prtEnv)
-    getReputedVsOtherTVar = asks (tvReputedVsOther . prtEnv)
-    getKClosestVsRandomTVar = asks (tvKClosestVsRandom . prtEnv)
+    getPeerReputationHistoryTableTVar = asks (tvPeerReputationHashTable . prtEnv . p2pEnv)
+    getServicesReputationHashMapTVar = asks (tvServicesReputationHashMap . prtEnv . p2pEnv)
+    getP2PReputationHashMapTVar = asks (tvP2PReputationHashMap . prtEnv . p2pEnv)
+    getReputedVsOtherTVar = asks (tvReputedVsOther . prtEnv . p2pEnv)
+    getKClosestVsRandomTVar = asks (tvKClosestVsRandom . prtEnv . p2pEnv)
 
-instance HasTopics (P2PEnv r t rmsg pmsg) t where
-    topics = pubSubTopics . psEnv
-instance HasSubscribers (P2PEnv r t rmsg pmsg) t where
-    subscribers = pubSubSubscribers . psEnv
-instance HasNotifiers (P2PEnv r t rmsg pmsg) t where
-    notifiers = pubSubNotifiers . psEnv
-instance HasInbox (P2PEnv r t rmsg pmsg) pmsg where
-    inbox = pubSubInbox . psEnv
-instance HasCache (P2PEnv r t rmsg pmsg) pmsg where
-    cache = pubSubCache . psEnv
-instance HasTopicHandlers (P2PEnv r t rmsg pmsg) t pmsg where
-    topicHandlers = pubSubHandlers . psEnv
-instance HasPubSubEnv (P2PEnv ServiceResource ByteString String ByteString) ByteString ByteString where
-    pubSubEnv = psEnv
+-- instance HasNetworkConfig (P2PEnv r t rmsg pmsg) NetworkConfig where
+--     networkConfig f p2p =
+--         fmap
+--             (\nc ->
+--                  p2p
+--                  { nodeEndpointEnv =
+--                        (nodeEndpointEnv p2p) {PE._networkConfig = nc}
+--                  })
+--             (f ((PE._networkConfig . nodeEndpointEnv) p2p))
 
-runAppM :: P2PEnv ServiceResource ByteString String ByteString-> AppM a -> LoggingT IO a
-runAppM = flip runReaderT
+-- instance HasArchivedResourcers AppM ServiceResource String where
+--     archived = asks (tvarArchivedResourceToPeerMap . rpcEnv)
+--
+-- instance HasTransientResourcers AppM ServiceResource String where
+--     transient = asks (tvarDynamicResourceToPeerMap . rpcEnv)
+--
+--
+-- instance HasPRT AppM where
+--     getPeerReputationHistoryTableTVar = asks (tvPeerReputationHashTable . prtEnv . p2pEnv)
+--     getServicesReputationHashMapTVar = asks (tvServicesReputationHashMap . prtEnv . p2pEnv)
+--     getP2PReputationHashMapTVar = asks (tvP2PReputationHashMap . prtEnv . p2pEnv)
+--     getReputedVsOtherTVar = asks (tvReputedVsOther . prtEnv . p2pEnv)
+--     getKClosestVsRandomTVar = asks (tvKClosestVsRandom . prtEnv . p2pEnv)
+
+-- instance HasTopics (P2PEnv r t rmsg pmsg) t where
+--     topics = pubSubTopics . psEnv
+-- instance HasSubscribers (P2PEnv r t rmsg pmsg) t where
+--     subscribers = pubSubSubscribers . psEnv
+-- instance HasNotifiers (P2PEnv r t rmsg pmsg) t where
+--     notifiers = pubSubNotifiers . psEnv
+-- instance HasInbox (P2PEnv r t rmsg pmsg) pmsg where
+--     inbox = pubSubInbox . psEnv
+-- instance HasCache (P2PEnv r t rmsg pmsg) pmsg where
+--     cache = pubSubCache . psEnv
+-- instance HasTopicHandlers (P2PEnv r t rmsg pmsg) t pmsg where
+--     topicHandlers = pubSubHandlers . psEnv
+-- instance HasPubSubEnv (P2PEnv ServiceResource ByteString String ByteString) ByteString ByteString where
+--     pubSubEnv = psEnv
+
+runAppM ::
+       ServiceEnv AppM ServiceResource ServiceTopic String String
+    -> AppM a
+    -> LoggingT IO a
+runAppM env (AppM app) = runReaderT app env
+
 
 defaultConfig :: FilePath -> IO ()
 defaultConfig path = do
@@ -140,21 +174,22 @@ defaultConfig path = do
 runNode :: Config.Config -> (TChan RPCCall) -> IO ()
 runNode config mp = do
     -- config <- Config.readConfig configPath
-    env <- mkP2PEnv config
+    env <- mkP2PEnv config globalHandlerRpc globalHandlerPubSub [AriviSecureRPC] [HelloWorldHeader]
+    let something = SomeEnv "Hello"
+    let serviceEnv = ServiceEnv something env
     runFileLoggingT (toS $ Config.logFile config) $
         runAppM
-            env
-            (do
-                let resourceHandlers = HM.insert AriviSecureRPC handler HM.empty
-                initP2P config resourceHandlers
+            serviceEnv
+            (do initP2P config
 
                 liftIO $ threadDelay 5000000
-
                 --getAriviSecureRPC mp
                 loopCall mp
+                -- stuffPublisher
 
                 --liftIO $ threadDelay 500000000
                 )
+    return()
 
 
 main :: IO ()
@@ -182,7 +217,6 @@ main = do
     --let flag = M.member (SharedStruct 1 "hello") xx
     --print (flag)
     --M.insert (SharedStruct 1 "hello") xx
-
 
     async ( setupThriftDuplex tHandler (Config.thriftListenPort config))
     runNode config queue

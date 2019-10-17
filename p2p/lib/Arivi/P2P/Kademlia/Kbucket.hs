@@ -70,8 +70,6 @@ getDefaultNodeId = do
         then throwError KademliaDefaultPeerDoesNotExists
         else return $ nodeID $ Prelude.head localPeer
 
-            --else return $ fst $ getPeer $ Prelude.head localPeer
-
 -- | Gives a peerList of which a peer is part of in kbucket hashtable for any
 --   given peer with respect to the default peer or local peer for which
 --   the kbucket is created. If peer doesn't exist it returns an empty list
@@ -96,10 +94,9 @@ getPeerListByKIndex kbi = do
 -- |Checks if a peer already exists
 ifPeerExist ::
        (HasKbucket m, MonadIO m) => NodeId -> ExceptT AriviP2PException m Bool
-ifPeerExist nID = do
-    mPeerList <- getPeerList nID
-    return $ nID `elem` fmap nodeID mPeerList
-    --return $ peer `elem` fmap (fst . getPeer) mPeerList
+ifPeerExist peer = do
+    mPeerList <- getPeerList peer
+    return $ peer `elem` fmap (nodeID) mPeerList
 
 -- |Adds a given peer to kbucket hash table by calculating the appropriate
 --  kbindex based on the XOR Distance.
@@ -139,7 +136,7 @@ removePeer peerR = do
     pl <- getPeerList peerR
     let kb = getKbucket kbb'
         kbDistance = getKbIndex localPeer peerR
-        pl2 = fmap nodeID pl
+        pl2 = fmap (nodeID) pl
     if peerR `elem` pl2
         then liftIO $
              atomically $

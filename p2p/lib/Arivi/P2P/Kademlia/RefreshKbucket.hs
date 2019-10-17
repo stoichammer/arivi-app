@@ -71,8 +71,8 @@ issuePing ::
     -> m Bool
 issuePing rpeer = do
     nc <- asks (^. networkConfig)
-    let rnid = nodeID rpeer -- fst $ getPeer rpeer
-        rnep = nodeEndPoint rpeer --snd $ getPeer rpeer
+    let rnid = nodeID rpeer
+        rnep = nodeEndPoint rpeer
         ruport = Arivi.P2P.Kademlia.Types.udpPort rnep
         rip = nodeIp rnep
         ping_msg = packPing nc
@@ -95,8 +95,8 @@ deleteIfExist :: Peer -> [Peer] -> [Peer]
 deleteIfExist peerR pl =
     if peerR `elem` pl
         then L.deleteBy
-                 --(\p1 p2 -> fst (getPeer p1) == fst (getPeer p2))
-                 (\p1 p2 -> nodeID p1 == nodeID p2)
+                 (\p1 p2 ->  (nodeID p1) ==  (nodeID p2))
+                 --(\p1 p2 -> nodeID p1 == nodeID p2)
                  peerR
                  pl
         else pl

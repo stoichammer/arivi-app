@@ -43,12 +43,12 @@ instance FromJSON ByteString where
 
 -- instance FromJSON Peer
 
-newtype PeerList = PeerList {peerList :: [Peer]}
+--newtype PeerList = PeerList {peerList :: [Peer]}
 
 
-instance FromJSON PeerList where
-    parseJSON (Object o) = PeerList <$> o .: "trustedPeers"
-    parseJSON _ = error "Can't parse PeerList"
+-- instance FromJSON PeerList where
+--     parseJSON (Object o) = PeerList <$> o .: "trustedPeers"
+--     parseJSON _ = error "Can't parse PeerList"
 
 
 instance FromJSON NodeEndPoint where

@@ -82,7 +82,7 @@ issueFindNode ::
     => Peer
     -> m ()
 issueFindNode rpeer = do
-    nc@NetworkConfig {..} <- asks (^. networkConfig)
+    nc@NetworkConfig {..} <- (^. networkConfig) <$> ask
     let rnid = nodeID rpeer
         rnep = nodeEndPoint rpeer
         ruport = Arivi.P2P.Kademlia.Types.udpPort rnep

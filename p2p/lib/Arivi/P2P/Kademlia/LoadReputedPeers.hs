@@ -69,6 +69,7 @@ findGivenNode tnid rpeer = do
     nc@NetworkConfig {..} <- asks (^. networkConfig)
     let rnid = nodeID rpeer
         rnep = nodeEndPoint rpeer
+
         ruport = Arivi.P2P.Kademlia.Types.udpPort rnep
         rip = nodeIp rnep
         rnc = NetworkConfig rnid rip ruport ruport
@@ -97,8 +98,7 @@ findGivenNode tnid rpeer = do
                             ("Received PeerList from " ++
                              show rip ++
                              ":" ++ show ruport ++ ": " ++ show peerl)
-                    let peerDetail =
-                            LL.find (\x -> nodeID x == tnid) peerl
+                    let peerDetail = LL.find (\x -> (nodeID) x == tnid) peerl
                     case peerDetail of
                         Just details -> do
                             action <- runExceptT $ addToKBucket details

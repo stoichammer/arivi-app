@@ -68,6 +68,8 @@ library
                     , thrift
                     , queue
                     , network
+                    , transformers-base
+
 
   ghc-options:  -Wall -Werror  -Wredundant-constraints -fno-defer-type-errors -fno-defer-out-of-scope-variables
   default-extensions:  FlexibleContexts
@@ -77,7 +79,8 @@ library
                        , Shared_Types
 
   other-modules:
-                    AriviNetworkService
+                      AriviNetworkService
+                    , AriviNetworkService_Client
                     , AriviNetworkServiceHandler
                     , AriviNetworkService_Iface
                     , Service_Types
@@ -107,6 +110,7 @@ executable AriviSecureRPC
                 , string-conv
                 , directory
                 , mtl
+                , monad-control
                 , monad-logger
                 , async
                 , arivi-utils
@@ -122,6 +126,8 @@ executable AriviSecureRPC
                 , bytestring
                 , QuickCheck
                 , queue
+                , transformers-base
+                , exceptions
 
 
   if flag(network-uri)

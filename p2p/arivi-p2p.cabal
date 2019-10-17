@@ -71,6 +71,7 @@ library
                     , thrift
                     , vector
                     , QuickCheck
+                    , transformers-base
   ghc-options:  -Wall -Werror  -Wredundant-constraints -fno-defer-type-errors -fno-defer-out-of-scope-variables
   default-extensions:  FlexibleContexts
   exposed-modules:
@@ -88,8 +89,11 @@ library
                        Arivi.P2P.ServiceRegistry
                        Arivi.P2P.Types
                        Arivi.P2P.LevelDB
-                       Arivi.P2P.RPC.Functions
+                       -- Arivi.P2P.RPC.Functions
+                       Arivi.P2P.RPC.Env
                        Arivi.P2P.RPC.Types
+                       Arivi.P2P.RPC.Fetch
+
   other-modules:
                        Arivi.P2P.Connection
                        Arivi.P2P.PeerMaintainer

@@ -20,8 +20,8 @@ class HasSubscribers env t  | env -> t where
 class HasNotifiers env t | env -> t where
     notifiers :: env -> Notifiers t
 
-class HasTopicHandlers env t msg | env -> t msg where
-    topicHandlers :: env -> TopicHandlers t msg
+-- class HasTopicHandlers env t msg | env -> t msg where
+--     topicHandlers :: env -> TopicHandlers t msg
 
 class HasInbox env msg | env -> msg where
     inbox :: env -> TVar (Inbox msg)
