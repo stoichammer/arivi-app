@@ -11,23 +11,24 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Main
-    ( module Main
-    ) where
+  ( module Main
+  )
+where
 
 import           AriviSecureRPC
 
-import           Arivi.Crypto.Utils.PublicKey.Signature as ACUPS
+import           Arivi.Crypto.Utils.PublicKey.Signature
+                                               as ACUPS
 import           Arivi.Crypto.Utils.PublicKey.Utils
 import           Arivi.Env
 import           Arivi.P2P
 import           Arivi.Network
-import qualified Arivi.P2P.Config                       as Config
-import           Arivi.P2P.P2PEnv as PE
+import qualified Arivi.P2P.Config              as Config
+import           Arivi.P2P.P2PEnv              as PE
 import           Arivi.P2P.ServiceRegistry
 -- import           Arivi.P2P.Types
---
--- -- import           Arivi.P2P.Handler  (newIncomingConnectionHandler)
--- -- import           Arivi.P2P.Kademlia.LoadDefaultPeers
+-- import           Arivi.P2P.Handler  (newIncomingConnectionHandler)
+-- import           Arivi.P2P.Kademlia.LoadDefaultPeers
 -- import           Arivi.P2P.MessageHandler.HandlerTypes
 -- import           Arivi.P2P.PubSub.Env
 -- import           Arivi.P2P.PubSub.Class
@@ -35,32 +36,37 @@ import           Arivi.P2P.ServiceRegistry
 import           Arivi.P2P.RPC.Types
 import           Arivi.P2P.PubSub.Types
 
-import           Control.Concurrent                     (threadDelay)
-import           Control.Concurrent.Async.Lifted        (async, wait)
+import           Control.Concurrent             ( threadDelay )
+import           Control.Concurrent.Async.Lifted
+                                                ( async
+                                                , wait
+                                                )
 import           Control.Monad.Logger
 import           Control.Monad.Reader
-import           Data.ByteString.Lazy                   as BSL (ByteString)
-import           Data.ByteString.Lazy.Char8             as BSLC (pack)
-import qualified Data.HashMap.Strict                    as HM
-import           Data.Monoid                            ((<>))
+import           Data.ByteString.Lazy          as BSL
+                                                ( ByteString )
+import           Data.ByteString.Lazy.Char8    as BSLC
+                                                ( pack )
+import qualified Data.HashMap.Strict           as HM
+import           Data.Monoid                    ( (<>) )
 import           Data.String.Conv
 import           Data.Text
-import           Data.Map.Strict as M
-import Data.Typeable
+import           Data.Map.Strict               as M
+import           Data.Typeable
 
-import           System.Directory                       (doesPathExist)
-import           System.Environment                     (getArgs)
+import           System.Directory               ( doesPathExist )
+import           System.Environment             ( getArgs )
 --import           Control.Concurrent.Async.Lifted (async)
-import Control.Concurrent.MVar
+import           Control.Concurrent.MVar
 import           Control.Concurrent.STM
 --import ThriftServer
 import qualified AriviNetworkService
-import AriviNetworkServiceHandler
-import AriviNetworkService_Iface
-import Service_Types
-import SharedService_Iface as SharedIface
-import Shared_Types
-import Data.Int
+import           AriviNetworkServiceHandler
+import           AriviNetworkService_Iface
+import           Service_Types
+import           SharedService_Iface           as SharedIface
+import           Shared_Types
+import           Data.Int
 import           Control.Monad.Base
 import           Control.Monad.Catch
 import           Control.Monad.Trans.Control
@@ -144,83 +150,86 @@ instance HasPRT AppM where
 -- instance HasPubSubEnv (P2PEnv ServiceResource ByteString String ByteString) ByteString ByteString where
 --     pubSubEnv = psEnv
 
-runAppM ::
-       ServiceEnv AppM ServiceResource ServiceTopic String String
-    -> AppM a
-    -> LoggingT IO a
+runAppM
+  :: ServiceEnv AppM ServiceResource ServiceTopic String String
+  -> AppM a
+  -> LoggingT IO a
 runAppM env (AppM app) = runReaderT app env
 
 
 defaultConfig :: FilePath -> IO ()
 defaultConfig path = do
-    (sk, _) <- ACUPS.generateKeyPair
-    let config =
-            Config.Config
-                5678
-                5678
-                sk
-                []
-                (generateNodeId sk)
-                "127.0.0.1"
-                (Data.Text.pack (path <> "/node.log"))
-                20
-                5
-                3
-                9090
-                9091
+  (sk, _) <- ACUPS.generateKeyPair
+  let config = Config.Config 5678
+                             5678
+                             sk
+                             []
+                             (generateNodeId sk)
+                             "127.0.0.1"
+                             (Data.Text.pack (path <> "/node.log"))
+                             20
+                             5
+                             3
+                             9090
+                             9091
 
-    Config.makeConfig config (path <> "/config.yaml")
+  Config.makeConfig config (path <> "/config.yaml")
 
-runNode :: Config.Config -> (TChan RPCCall) -> IO ()
-runNode config mp = do
+runNode :: Config.Config -> AriviNetworkServiceHandler -> IO ()
+runNode config ariviHandler = do
     -- config <- Config.readConfig configPath
-    env <- mkP2PEnv config globalHandlerRpc globalHandlerPubSub [AriviSecureRPC] [HelloWorldHeader]
-    let something = SomeEnv "Hello"
-    let serviceEnv = ServiceEnv something env
-    runFileLoggingT (toS $ Config.logFile config) $
-        runAppM
-            serviceEnv
-            (do initP2P config
+  let queue = rpcQueue ariviHandler
 
-                liftIO $ threadDelay 5000000
-                --getAriviSecureRPC mp
-                loopCall mp
-                -- stuffPublisher
-
-                --liftIO $ threadDelay 500000000
-                )
-    return()
+  env <- mkP2PEnv config
+                  globalHandlerRpc
+                  globalHandlerPubSub
+                  [AriviSecureRPC]
+                  [HelloWorldHeader]
+  let something  = ThriftEnv (binProto ariviHandler)
+  let serviceEnv = ServiceEnv something env
+  runFileLoggingT (toS $ Config.logFile config) $ runAppM
+    serviceEnv
+    (do
+      initP2P config
+      liftIO $ threadDelay 5000000
+      loopCall queue
+      -- stuffPublisher
+      --liftIO $ threadDelay 500000000
+    )
+  return ()
 
 
 main :: IO ()
 main = do
-    (path:_) <- getArgs
-    b <- doesPathExist (path <> "/config.yaml")
-    unless b (defaultConfig path)
-    config <- Config.readConfig (path <> "/config.yaml")
+  (path : _) <- getArgs
+  b          <- doesPathExist (path <> "/config.yaml")
+  unless b (defaultConfig path)
+  config       <- Config.readConfig (path <> "/config.yaml")
 
-    tHandler <- newAriviNetworkServiceHandler (Config.thriftRemotePort config)
+  -- ariviHandler <- newAriviNetworkServiceHandler (Config.thriftRemotePort config)
+  ariviHandler <- setupThriftDuplex (Config.thriftListenPort config)
+                                    (Config.thriftRemotePort config)
 
-    let mv = ariviThriftLog tHandler
-    let queue = rpcQueue tHandler
-    print (typeOf mv)
-    print (typeOf queue)
-    --mp <- readMVar queue
-    --print (size mp)
+  --let mv    = ariviThriftLog ariviHandler
+  --let queue = rpcQueue ariviHandler
+  --print (typeOf mv)
+  --print (typeOf queue)
+  --mp <- readMVar queue
+  --print (size mp)
 
-    -- st <-  SharedIface.getStruct handler 0
-    -- print (typeOf  st)
-    -- print (sharedStruct_key st)
-    -- print (sharedStruct_value st)
-    --
+  -- st <-  SharedIface.getStruct handler 0
+  -- print (typeOf  st)
+  -- print (sharedStruct_key st)
+  -- print (sharedStruct_value st)
+  --
 
-    --let flag = M.member (SharedStruct 1 "hello") xx
-    --print (flag)
-    --M.insert (SharedStruct 1 "hello") xx
+  --let flag = M.member (SharedStruct 1 "hello") xx
+  --print (flag)
+  --M.insert (SharedStruct 1 "hello") xx
 
-    async ( setupThriftDuplex tHandler (Config.thriftListenPort config))
-    runNode config queue
-    return ()
+  --async (setupThriftDuplex ariviHandler (Config.thriftListenPort config))
+  runNode config ariviHandler
+  return ()
 
 a :: Prelude.Int -> BSL.ByteString
 a n = BSLC.pack (Prelude.replicate n 'a')

@@ -45,8 +45,8 @@ import qualified SharedService_Iface as Iface
 data GetStruct_args = GetStruct_args  { getStruct_args_key :: I.Int32
   } deriving (P.Show,P.Eq,G.Generic,TY.Typeable)
 instance H.Hashable GetStruct_args where
-  hashWithSalt salt record = salt   `H.hashWithSalt` getStruct_args_key record  
-instance QC.Arbitrary GetStruct_args where 
+  hashWithSalt salt record = salt   `H.hashWithSalt` getStruct_args_key record
+instance QC.Arbitrary GetStruct_args where
   arbitrary = M.liftM GetStruct_args (QC.arbitrary)
   shrink obj | obj == default_GetStruct_args = []
              | P.otherwise = M.catMaybes
@@ -77,8 +77,8 @@ default_GetStruct_args = GetStruct_args{
 data GetStruct_result = GetStruct_result  { getStruct_result_success :: SharedStruct
   } deriving (P.Show,P.Eq,G.Generic,TY.Typeable)
 instance H.Hashable GetStruct_result where
-  hashWithSalt salt record = salt   `H.hashWithSalt` getStruct_result_success record  
-instance QC.Arbitrary GetStruct_result where 
+  hashWithSalt salt record = salt   `H.hashWithSalt` getStruct_result_success record
+instance QC.Arbitrary GetStruct_result where
   arbitrary = M.liftM GetStruct_result (QC.arbitrary)
   shrink obj | obj == default_GetStruct_result = []
              | P.otherwise = M.catMaybes
@@ -109,8 +109,8 @@ default_GetStruct_result = GetStruct_result{
 data GetRPCReq_args = GetRPCReq_args  { getRPCReq_args_key :: I.Int32
   } deriving (P.Show,P.Eq,G.Generic,TY.Typeable)
 instance H.Hashable GetRPCReq_args where
-  hashWithSalt salt record = salt   `H.hashWithSalt` getRPCReq_args_key record  
-instance QC.Arbitrary GetRPCReq_args where 
+  hashWithSalt salt record = salt   `H.hashWithSalt` getRPCReq_args_key record
+instance QC.Arbitrary GetRPCReq_args where
   arbitrary = M.liftM GetRPCReq_args (QC.arbitrary)
   shrink obj | obj == default_GetRPCReq_args = []
              | P.otherwise = M.catMaybes
@@ -141,8 +141,8 @@ default_GetRPCReq_args = GetRPCReq_args{
 data GetRPCReq_result = GetRPCReq_result  { getRPCReq_result_success :: RPCReq
   } deriving (P.Show,P.Eq,G.Generic,TY.Typeable)
 instance H.Hashable GetRPCReq_result where
-  hashWithSalt salt record = salt   `H.hashWithSalt` getRPCReq_result_success record  
-instance QC.Arbitrary GetRPCReq_result where 
+  hashWithSalt salt record = salt   `H.hashWithSalt` getRPCReq_result_success record
+instance QC.Arbitrary GetRPCReq_result where
   arbitrary = M.liftM GetRPCReq_result (QC.arbitrary)
   shrink obj | obj == default_GetRPCReq_result = []
              | P.otherwise = M.catMaybes
@@ -173,8 +173,8 @@ default_GetRPCReq_result = GetRPCReq_result{
 data GetRPCResp_args = GetRPCResp_args  { getRPCResp_args_key :: I.Int32
   } deriving (P.Show,P.Eq,G.Generic,TY.Typeable)
 instance H.Hashable GetRPCResp_args where
-  hashWithSalt salt record = salt   `H.hashWithSalt` getRPCResp_args_key record  
-instance QC.Arbitrary GetRPCResp_args where 
+  hashWithSalt salt record = salt   `H.hashWithSalt` getRPCResp_args_key record
+instance QC.Arbitrary GetRPCResp_args where
   arbitrary = M.liftM GetRPCResp_args (QC.arbitrary)
   shrink obj | obj == default_GetRPCResp_args = []
              | P.otherwise = M.catMaybes
@@ -205,8 +205,8 @@ default_GetRPCResp_args = GetRPCResp_args{
 data GetRPCResp_result = GetRPCResp_result  { getRPCResp_result_success :: RPCResp
   } deriving (P.Show,P.Eq,G.Generic,TY.Typeable)
 instance H.Hashable GetRPCResp_result where
-  hashWithSalt salt record = salt   `H.hashWithSalt` getRPCResp_result_success record  
-instance QC.Arbitrary GetRPCResp_result where 
+  hashWithSalt salt record = salt   `H.hashWithSalt` getRPCResp_result_success record
+instance QC.Arbitrary GetRPCResp_result where
   arbitrary = M.liftM GetRPCResp_result (QC.arbitrary)
   shrink obj | obj == default_GetRPCResp_result = []
              | P.otherwise = M.catMaybes
