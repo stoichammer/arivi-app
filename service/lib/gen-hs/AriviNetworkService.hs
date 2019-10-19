@@ -80,7 +80,7 @@ instance QC.Arbitrary Ping_result where
     ]
 from_Ping_result :: Ping_result -> T.ThriftVal
 from_Ping_result record = T.TStruct $ Map.fromList $ M.catMaybes
-  [ (\_v23 -> P.Just (0, ("success",T.TBool _v23))) $ ping_result_success record
+  [ (\_v14 -> P.Just (0, ("success",T.TBool _v14))) $ ping_result_success record
   ]
 write_Ping_result :: T.Protocol p => p -> Ping_result -> P.IO ()
 write_Ping_result oprot record = T.writeVal oprot $ from_Ping_result record
@@ -88,7 +88,7 @@ encode_Ping_result :: T.StatelessProtocol p => p -> Ping_result -> LBS.ByteStrin
 encode_Ping_result oprot record = T.serializeVal oprot $ from_Ping_result record
 to_Ping_result :: T.ThriftVal -> Ping_result
 to_Ping_result (T.TStruct fields) = Ping_result{
-  ping_result_success = P.maybe (ping_result_success default_Ping_result) (\(_,_val25) -> (case _val25 of {T.TBool _val26 -> _val26; _ -> P.error "wrong type"})) (Map.lookup (0) fields)
+  ping_result_success = P.maybe (ping_result_success default_Ping_result) (\(_,_val16) -> (case _val16 of {T.TBool _val17 -> _val17; _ -> P.error "wrong type"})) (Map.lookup (0) fields)
   }
 to_Ping_result _ = P.error "not a struct"
 read_Ping_result :: T.Protocol p => p -> P.IO Ping_result
@@ -101,22 +101,22 @@ default_Ping_result :: Ping_result
 default_Ping_result = Ping_result{
   ping_result_success = P.False}
 data SendRequest_args = SendRequest_args  { sendRequest_args_logid :: I.Int32
-  , sendRequest_args_msg :: Message
+  , sendRequest_args_jsonReq :: LT.Text
   } deriving (P.Show,P.Eq,G.Generic,TY.Typeable)
 instance H.Hashable SendRequest_args where
-  hashWithSalt salt record = salt   `H.hashWithSalt` sendRequest_args_logid record   `H.hashWithSalt` sendRequest_args_msg record  
+  hashWithSalt salt record = salt   `H.hashWithSalt` sendRequest_args_logid record   `H.hashWithSalt` sendRequest_args_jsonReq record  
 instance QC.Arbitrary SendRequest_args where 
   arbitrary = M.liftM SendRequest_args (QC.arbitrary)
           `M.ap`(QC.arbitrary)
   shrink obj | obj == default_SendRequest_args = []
              | P.otherwise = M.catMaybes
     [ if obj == default_SendRequest_args{sendRequest_args_logid = sendRequest_args_logid obj} then P.Nothing else P.Just $ default_SendRequest_args{sendRequest_args_logid = sendRequest_args_logid obj}
-    , if obj == default_SendRequest_args{sendRequest_args_msg = sendRequest_args_msg obj} then P.Nothing else P.Just $ default_SendRequest_args{sendRequest_args_msg = sendRequest_args_msg obj}
+    , if obj == default_SendRequest_args{sendRequest_args_jsonReq = sendRequest_args_jsonReq obj} then P.Nothing else P.Just $ default_SendRequest_args{sendRequest_args_jsonReq = sendRequest_args_jsonReq obj}
     ]
 from_SendRequest_args :: SendRequest_args -> T.ThriftVal
 from_SendRequest_args record = T.TStruct $ Map.fromList $ M.catMaybes
-  [ (\_v29 -> P.Just (1, ("logid",T.TI32 _v29))) $ sendRequest_args_logid record
-  , (\_v29 -> P.Just (2, ("msg",from_Message _v29))) $ sendRequest_args_msg record
+  [ (\_v20 -> P.Just (1, ("logid",T.TI32 _v20))) $ sendRequest_args_logid record
+  , (\_v20 -> P.Just (2, ("jsonReq",T.TString $ E.encodeUtf8 _v20))) $ sendRequest_args_jsonReq record
   ]
 write_SendRequest_args :: T.Protocol p => p -> SendRequest_args -> P.IO ()
 write_SendRequest_args oprot record = T.writeVal oprot $ from_SendRequest_args record
@@ -124,8 +124,8 @@ encode_SendRequest_args :: T.StatelessProtocol p => p -> SendRequest_args -> LBS
 encode_SendRequest_args oprot record = T.serializeVal oprot $ from_SendRequest_args record
 to_SendRequest_args :: T.ThriftVal -> SendRequest_args
 to_SendRequest_args (T.TStruct fields) = SendRequest_args{
-  sendRequest_args_logid = P.maybe (sendRequest_args_logid default_SendRequest_args) (\(_,_val31) -> (case _val31 of {T.TI32 _val32 -> _val32; _ -> P.error "wrong type"})) (Map.lookup (1) fields),
-  sendRequest_args_msg = P.maybe (sendRequest_args_msg default_SendRequest_args) (\(_,_val31) -> (case _val31 of {T.TStruct _val33 -> (to_Message (T.TStruct _val33)); _ -> P.error "wrong type"})) (Map.lookup (2) fields)
+  sendRequest_args_logid = P.maybe (sendRequest_args_logid default_SendRequest_args) (\(_,_val22) -> (case _val22 of {T.TI32 _val23 -> _val23; _ -> P.error "wrong type"})) (Map.lookup (1) fields),
+  sendRequest_args_jsonReq = P.maybe (sendRequest_args_jsonReq default_SendRequest_args) (\(_,_val22) -> (case _val22 of {T.TString _val24 -> E.decodeUtf8 _val24; _ -> P.error "wrong type"})) (Map.lookup (2) fields)
   }
 to_SendRequest_args _ = P.error "not a struct"
 read_SendRequest_args :: T.Protocol p => p -> P.IO SendRequest_args
@@ -133,30 +133,30 @@ read_SendRequest_args iprot = to_SendRequest_args <$> T.readVal iprot (T.T_STRUC
 decode_SendRequest_args :: T.StatelessProtocol p => p -> LBS.ByteString -> SendRequest_args
 decode_SendRequest_args iprot bs = to_SendRequest_args $ T.deserializeVal iprot (T.T_STRUCT typemap_SendRequest_args) bs
 typemap_SendRequest_args :: T.TypeMap
-typemap_SendRequest_args = Map.fromList [(1,("logid",T.T_I32)),(2,("msg",(T.T_STRUCT typemap_Message)))]
+typemap_SendRequest_args = Map.fromList [(1,("logid",T.T_I32)),(2,("jsonReq",T.T_STRING))]
 default_SendRequest_args :: SendRequest_args
 default_SendRequest_args = SendRequest_args{
   sendRequest_args_logid = 0,
-  sendRequest_args_msg = default_Message}
+  sendRequest_args_jsonReq = ""}
 data SendRequest_result = SendRequest_result  { sendRequest_result_success :: LT.Text
-  , sendRequest_result_ouch :: P.Maybe InvalidOperation
+  , sendRequest_result_fail :: P.Maybe Failure
   } deriving (P.Show,P.Eq,G.Generic,TY.Typeable)
 instance H.Hashable SendRequest_result where
-  hashWithSalt salt record = salt   `H.hashWithSalt` sendRequest_result_success record   `H.hashWithSalt` sendRequest_result_ouch record  
+  hashWithSalt salt record = salt   `H.hashWithSalt` sendRequest_result_success record   `H.hashWithSalt` sendRequest_result_fail record  
 instance QC.Arbitrary SendRequest_result where 
   arbitrary = M.liftM SendRequest_result (QC.arbitrary)
           `M.ap`(M.liftM P.Just QC.arbitrary)
   shrink obj | obj == default_SendRequest_result = []
              | P.otherwise = M.catMaybes
     [ if obj == default_SendRequest_result{sendRequest_result_success = sendRequest_result_success obj} then P.Nothing else P.Just $ default_SendRequest_result{sendRequest_result_success = sendRequest_result_success obj}
-    , if obj == default_SendRequest_result{sendRequest_result_ouch = sendRequest_result_ouch obj} then P.Nothing else P.Just $ default_SendRequest_result{sendRequest_result_ouch = sendRequest_result_ouch obj}
+    , if obj == default_SendRequest_result{sendRequest_result_fail = sendRequest_result_fail obj} then P.Nothing else P.Just $ default_SendRequest_result{sendRequest_result_fail = sendRequest_result_fail obj}
     ]
 from_SendRequest_result :: SendRequest_result -> T.ThriftVal
 from_SendRequest_result record = T.TStruct $ Map.fromList 
-  (let exns = M.catMaybes [ (\_v36 -> (1, ("ouch",from_InvalidOperation _v36))) <$> sendRequest_result_ouch record]
+  (let exns = M.catMaybes [ (\_v27 -> (1, ("fail",from_Failure _v27))) <$> sendRequest_result_fail record]
   in if P.not (P.null exns) then exns else M.catMaybes
-    [ (\_v36 -> P.Just (0, ("success",T.TString $ E.encodeUtf8 _v36))) $ sendRequest_result_success record
-    , (\_v36 -> (1, ("ouch",from_InvalidOperation _v36))) <$> sendRequest_result_ouch record
+    [ (\_v27 -> P.Just (0, ("success",T.TString $ E.encodeUtf8 _v27))) $ sendRequest_result_success record
+    , (\_v27 -> (1, ("fail",from_Failure _v27))) <$> sendRequest_result_fail record
     ]
     )
 write_SendRequest_result :: T.Protocol p => p -> SendRequest_result -> P.IO ()
@@ -165,8 +165,8 @@ encode_SendRequest_result :: T.StatelessProtocol p => p -> SendRequest_result ->
 encode_SendRequest_result oprot record = T.serializeVal oprot $ from_SendRequest_result record
 to_SendRequest_result :: T.ThriftVal -> SendRequest_result
 to_SendRequest_result (T.TStruct fields) = SendRequest_result{
-  sendRequest_result_success = P.maybe (sendRequest_result_success default_SendRequest_result) (\(_,_val38) -> (case _val38 of {T.TString _val39 -> E.decodeUtf8 _val39; _ -> P.error "wrong type"})) (Map.lookup (0) fields),
-  sendRequest_result_ouch = P.maybe (P.Nothing) (\(_,_val38) -> P.Just (case _val38 of {T.TStruct _val40 -> (to_InvalidOperation (T.TStruct _val40)); _ -> P.error "wrong type"})) (Map.lookup (1) fields)
+  sendRequest_result_success = P.maybe (sendRequest_result_success default_SendRequest_result) (\(_,_val29) -> (case _val29 of {T.TString _val30 -> E.decodeUtf8 _val30; _ -> P.error "wrong type"})) (Map.lookup (0) fields),
+  sendRequest_result_fail = P.maybe (P.Nothing) (\(_,_val29) -> P.Just (case _val29 of {T.TStruct _val31 -> (to_Failure (T.TStruct _val31)); _ -> P.error "wrong type"})) (Map.lookup (1) fields)
   }
 to_SendRequest_result _ = P.error "not a struct"
 read_SendRequest_result :: T.Protocol p => p -> P.IO SendRequest_result
@@ -174,11 +174,11 @@ read_SendRequest_result iprot = to_SendRequest_result <$> T.readVal iprot (T.T_S
 decode_SendRequest_result :: T.StatelessProtocol p => p -> LBS.ByteString -> SendRequest_result
 decode_SendRequest_result iprot bs = to_SendRequest_result $ T.deserializeVal iprot (T.T_STRUCT typemap_SendRequest_result) bs
 typemap_SendRequest_result :: T.TypeMap
-typemap_SendRequest_result = Map.fromList [(0,("success",T.T_STRING)),(1,("ouch",(T.T_STRUCT typemap_InvalidOperation)))]
+typemap_SendRequest_result = Map.fromList [(0,("success",T.T_STRING)),(1,("fail",(T.T_STRUCT typemap_Failure)))]
 default_SendRequest_result :: SendRequest_result
 default_SendRequest_result = SendRequest_result{
   sendRequest_result_success = "",
-  sendRequest_result_ouch = P.Nothing}
+  sendRequest_result_fail = P.Nothing}
 process_ping (seqid, iprot, oprot, handler) = do
   args <- read_Ping_args iprot
   (X.catch
@@ -195,12 +195,12 @@ process_sendRequest (seqid, iprot, oprot, handler) = do
   (X.catch
     (X.catch
       (do
-        val <- Iface.sendRequest handler (sendRequest_args_logid args) (sendRequest_args_msg args)
+        val <- Iface.sendRequest handler (sendRequest_args_logid args) (sendRequest_args_jsonReq args)
         let res = default_SendRequest_result{sendRequest_result_success = val}
         T.writeMessage oprot ("sendRequest", T.M_REPLY, seqid) $
           write_SendRequest_result oprot res)
       (\e  -> do
-        let res = default_SendRequest_result{sendRequest_result_ouch = P.Just e}
+        let res = default_SendRequest_result{sendRequest_result_fail = P.Just e}
         T.writeMessage oprot ("sendRequest", T.M_REPLY, seqid) $
           write_SendRequest_result oprot res))
     ((\_ -> do

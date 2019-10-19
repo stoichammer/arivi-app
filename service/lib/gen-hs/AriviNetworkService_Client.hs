@@ -55,17 +55,17 @@ recv_ping ip = do
     M.when (mtype == T.M_EXCEPTION) $ do { exn <- T.readAppExn ip ; X.throw exn }
     res <- read_Ping_result ip
     P.return $ ping_result_success res
-sendRequest (ip,op) arg_logid arg_msg = do
-  send_sendRequest op arg_logid arg_msg
+sendRequest (ip,op) arg_logid arg_jsonReq = do
+  send_sendRequest op arg_logid arg_jsonReq
   recv_sendRequest ip
-send_sendRequest op arg_logid arg_msg = do
+send_sendRequest op arg_logid arg_jsonReq = do
   seq <- seqid
   seqn <- R.readIORef seq
   T.writeMessage op ("sendRequest", T.M_CALL, seqn) $
-    write_SendRequest_args op (SendRequest_args{sendRequest_args_logid=arg_logid,sendRequest_args_msg=arg_msg})
+    write_SendRequest_args op (SendRequest_args{sendRequest_args_logid=arg_logid,sendRequest_args_jsonReq=arg_jsonReq})
 recv_sendRequest ip = do
   T.readMessage ip $ \(fname, mtype, rseqid) -> do
     M.when (mtype == T.M_EXCEPTION) $ do { exn <- T.readAppExn ip ; X.throw exn }
     res <- read_SendRequest_result ip
-    P.maybe (P.return ()) X.throw (sendRequest_result_ouch res)
+    P.maybe (P.return ()) X.throw (sendRequest_result_fail res)
     P.return $ sendRequest_result_success res

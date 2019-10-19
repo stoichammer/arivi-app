@@ -38,22 +38,3 @@ struct SharedStruct {
   1: i32 key
   2: string value
 }
-
-struct RPCReq {
-  1: i32 key
-  2: string request
-  }
-
-struct RPCResp {
-    1: i32 key
-    2: string response
-}
-service SharedService {
-
-  SharedStruct getStruct(1: i32 key)
-
-  RPCReq getRPCReq(1: i32 key)
-
-  RPCResp getRPCResp(1: i32 key)
-
-}

@@ -42,4 +42,4 @@ import Service_Types
 
 class AriviNetworkService_Iface a where
   ping :: a -> P.IO P.Bool
-  sendRequest :: a -> I.Int32 -> Message -> P.IO LT.Text
+  sendRequest :: a -> I.Int32 -> LT.Text -> P.IO LT.Text

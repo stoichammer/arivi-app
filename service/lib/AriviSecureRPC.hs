@@ -37,7 +37,10 @@ import           GHC.Generics
 import           Data.Hashable
 import           Data.Text.Lazy                as TL
 -- import Control.Concurrent    (threadDelay)
-import           Shared_Types
+-- import           Shared_Types                   ( rPCReq_key
+--                                                 , rPCReq_request
+--                                                 , RPCResp
+--                                                 )
 --import Control.Concurrent.MVar
 -- import           Data.Int
 --import           Data.Map.Strict as M
@@ -57,7 +60,7 @@ import           Thrift.Server                  ( )
 import           Thrift.Transport               ( )
 import           Thrift.Protocol.Binary
 import           AriviNetworkService_Client    as Client
-import           Service_Types
+import           Service_Types                  ( )
 
 -- import GHC.Stack
 
@@ -132,10 +135,7 @@ globalHandlerRpc msg = do
   env <- asks getThriftConn
   let conn = thriftConn env
 
-  resp <- liftIO $ Client.sendRequest
-    (conn, conn)
-    0
-    (Message 0 HIGH SET_NODE_CAPABILITY (pack msg))
+  resp <- liftIO $ Client.sendRequest (conn, conn) 0 (pack msg)
 
   liftIO $ print (msg ++ (show resp))
   return (Just (msg ++ (show resp)))

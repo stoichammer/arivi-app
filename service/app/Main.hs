@@ -64,7 +64,7 @@ import qualified AriviNetworkService
 import           AriviNetworkServiceHandler
 import           AriviNetworkService_Iface
 import           Service_Types
-import           SharedService_Iface           as SharedIface
+--import           SharedService_Iface           as SharedIface
 import           Shared_Types
 import           Data.Int
 import           Control.Monad.Base

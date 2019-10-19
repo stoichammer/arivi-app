@@ -84,7 +84,7 @@ library
                     , AriviNetworkServiceHandler
                     , AriviNetworkService_Iface
                     , Service_Types
-                    , SharedService_Iface
+                --    , SharedService_Iface
 
   default-language:    Haskell2010
 
@@ -142,7 +142,7 @@ executable AriviSecureRPC
          Service_Consts,
          Service_Types,
          Shared_Types,
-         SharedService_Iface,
+    --     SharedService_Iface,
          AriviNetworkServiceHandler,
          AriviSecureRPC
   default-language:    Haskell2010
