@@ -6,15 +6,23 @@
 {-# LANGUAGE DataKinds, FunctionalDependencies #-}
 
 module Arivi.P2P.P2PEnv
-    ( module Arivi.P2P.P2PEnv
-    , HasStatsdClient(..)
-    , T.HasKbucket(..)
-    ) where
+  ( module Arivi.P2P.P2PEnv
+  , HasStatsdClient(..)
+  , T.HasKbucket(..)
+  )
+where
+
+import           Codec.Serialise
 
 import           Arivi.Env
-import           Arivi.P2P.Types (NetworkConfig(..), RpcPayload(..), Request(..), Response(..), PubSub(..))
-import           Arivi.P2P.Kademlia.Types              (HasKbucket)
-import qualified Arivi.P2P.Kademlia.Types              as T
+import           Arivi.P2P.Types                ( NetworkConfig(..)
+                                                , RpcPayload(..)
+                                                , Request(..)
+                                                , Response(..)
+                                                , PubSub(..)
+                                                )
+import           Arivi.P2P.Kademlia.Types       ( HasKbucket )
+import qualified Arivi.P2P.Kademlia.Types      as T
 import           Arivi.P2P.MessageHandler.HandlerTypes
 import           Arivi.P2P.PubSub.Env
 import           Arivi.P2P.PubSub.Class
@@ -27,10 +35,14 @@ import           Arivi.Utils.Statsd
 
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
-import           Control.Concurrent.STM                (TVar, newTVarIO)
-import           Data.ByteString.Lazy                  (ByteString)
-import           Data.HashMap.Strict                   as HM
-import           Data.Ratio                            (Rational, (%))
+import           Control.Concurrent.STM         ( TVar
+                                                , newTVarIO
+                                                )
+import           Data.ByteString.Lazy           ( ByteString )
+import           Data.HashMap.Strict           as HM
+import           Data.Ratio                     ( Rational
+                                                , (%)
+                                                )
 
 -- |Upon writing services, we might discover that topic (t) and resource (r)
 -- can be the same type, and the same with rpc message (rmsg) and
@@ -39,7 +51,7 @@ import           Data.Ratio                            (Rational, (%))
 type HasP2PEnv env m r t rmsg pmsg
      = ( HasNodeEndpoint m
        , HasLogging m
-       , HasPubSub env t pmsg
+       , HasPubSub env t
        , HasRpc env r rmsg
        , HasKbucket m
        , HasStatsdClient m
@@ -59,28 +71,28 @@ data NodeEndpointEnv = NodeEndpointEnv {
 
 mkNodeEndpoint :: NetworkConfig -> Handlers -> AriviEnv -> IO NodeEndpointEnv
 mkNodeEndpoint nc handlers ne = do
-    peerMap <- newTVarIO HM.empty
-    return $ NodeEndpointEnv nc peerMap handlers ne
+  peerMap <- newTVarIO HM.empty
+  return $ NodeEndpointEnv nc peerMap handlers ne
 
 data KademliaEnv = KademliaEnv {
     kbucket :: T.Kbucket Int [T.Peer]
 }
 
 mkKademlia :: NetworkConfig -> Int -> Int -> Int -> IO KademliaEnv
-mkKademlia NetworkConfig{..} sbound pingThreshold kademliaConcurrencyFactor = -- hopBound =
-    KademliaEnv <$>
-        T.createKbucket
-            (T.Peer _nodeId (T.NodeEndPoint _ip _tcpPort _udpPort))
-            sbound
-            pingThreshold
-            kademliaConcurrencyFactor
+mkKademlia NetworkConfig {..} sbound pingThreshold kademliaConcurrencyFactor = -- hopBound =
+  KademliaEnv
+    <$> T.createKbucket
+          (T.Peer _nodeId (T.NodeEndPoint _ip _tcpPort _udpPort))
+          sbound
+          pingThreshold
+          kademliaConcurrencyFactor
             -- hopBound
 
 
 data P2PEnv m r t rmsg pmsg = P2PEnv {
       nodeEndpointEnv :: NodeEndpointEnv
     , rEnv :: RpcEnv r rmsg
-    , psEnv :: PubSubEnv t pmsg
+    , psEnv :: PubSubEnv t
     , kademliaEnv :: KademliaEnv
     , statsdClient :: StatsdClient
     , prtEnv       :: PRTEnv
@@ -124,18 +136,24 @@ class HasPRT m where
 
 mkPRTEnv :: IO PRTEnv
 mkPRTEnv = do
-    peerReputationHashTable <- newTVarIO HM.empty
-    servicesReputationHashMapTVar <- newTVarIO HM.empty
-    p2pReputationHashMapTVar <- newTVarIO HM.empty
-    reputedVsOtherTVar <- newTVarIO (1 % 1 :: Rational)
-    kClosestVsRandomTVar <- newTVarIO (1 % 1 :: Rational)
-    return (PRTEnv peerReputationHashTable servicesReputationHashMapTVar p2pReputationHashMapTVar reputedVsOtherTVar kClosestVsRandomTVar)
+  peerReputationHashTable       <- newTVarIO HM.empty
+  servicesReputationHashMapTVar <- newTVarIO HM.empty
+  p2pReputationHashMapTVar      <- newTVarIO HM.empty
+  reputedVsOtherTVar            <- newTVarIO (1 % 1 :: Rational)
+  kClosestVsRandomTVar          <- newTVarIO (1 % 1 :: Rational)
+  return
+    (PRTEnv peerReputationHashTable
+            servicesReputationHashMapTVar
+            p2pReputationHashMapTVar
+            reputedVsOtherTVar
+            kClosestVsRandomTVar
+    )
 
 data Handlers = Handlers {
       rpc :: forall env m r t rmsg pmsg . (HasP2PEnv env m r t rmsg pmsg, MonadIO m) => Request 'Rpc (RpcPayload r rmsg) -> m (Response 'Rpc (RpcPayload r rmsg))
-    , kademlia :: forall env m r t rmsg pmsg. (HasP2PEnv env m r t rmsg pmsg) => Request 'Kademlia T.PayLoad -> m (Response 'Kademlia T.PayLoad)
+    , kademlia :: forall env m r t rmsg pmsg. (Serialise pmsg) =>(HasP2PEnv env m r t rmsg pmsg) => Request 'Kademlia T.PayLoad -> m (Response 'Kademlia T.PayLoad)
     , option :: forall env m r msg. (MonadReader env m, HasNodeEndpoint m, HasRpc env r msg, MonadIO m) => m (Response 'Option (Supported [r]))
-    , pubsub :: forall env m r t rmsg pmsg. (HasP2PEnv env m r t rmsg pmsg, MonadIO m) => NodeId -> PubSub -> ByteString -> m ByteString
+    , pubsub :: forall env m r t rmsg pmsg. (Serialise pmsg) => (HasP2PEnv env m r t rmsg pmsg, MonadIO m) => NodeId -> PubSub -> ByteString -> m ByteString
 }
 
 instance HasNetworkConfig (P2PEnv m r t rmsg pmsg) NetworkConfig where
@@ -154,12 +172,12 @@ instance HasSubscribers (P2PEnv m r t rmsg pmsg) t where
     subscribers = pubSubSubscribers . psEnv
 instance HasNotifiers (P2PEnv m r t rmsg pmsg) t where
     notifiers = pubSubNotifiers . psEnv
-instance HasInbox (P2PEnv m r t rmsg pmsg) pmsg where
-    inbox = pubSubInbox . psEnv
-instance HasCache (P2PEnv m r t rmsg pmsg) pmsg where
-    cache = pubSubCache . psEnv
+-- instance HasInbox (P2PEnv m r t rmsg pmsg) pmsg where
+--     inbox = pubSubInbox . psEnv
+-- instance HasCache (P2PEnv m r t rmsg pmsg) pmsg where
+--     cache = pubSubCache . psEnv
 
-instance HasPubSubEnv (P2PEnv m r t rmsg pmsg) t pmsg where
+instance HasPubSubEnv (P2PEnv m r t rmsg pmsg) t  where
     pubSubEnv = psEnv
 
 instance HasRpcEnv (P2PEnv m r t rmsg pmsg) r rmsg where

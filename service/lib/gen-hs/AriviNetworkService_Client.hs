@@ -13,7 +13,7 @@
 -- DO NOT EDIT UNLESS YOU ARE SURE YOU KNOW WHAT YOU ARE DOING --
 -----------------------------------------------------------------
 
-module AriviNetworkService_Client(ping,sendRequest) where
+module AriviNetworkService_Client(ping,sendRequest,subscribe,publish,notify) where
 import qualified Data.IORef as R
 import Prelude (($), (.), (>>=), (==), (++))
 import qualified Prelude as P
@@ -69,3 +69,45 @@ recv_sendRequest ip = do
     res <- read_SendRequest_result ip
     P.maybe (P.return ()) X.throw (sendRequest_result_fail res)
     P.return $ sendRequest_result_success res
+subscribe (ip,op) arg_topic = do
+  send_subscribe op arg_topic
+  recv_subscribe ip
+send_subscribe op arg_topic = do
+  seq <- seqid
+  seqn <- R.readIORef seq
+  T.writeMessage op ("subscribe", T.M_CALL, seqn) $
+    write_Subscribe_args op (Subscribe_args{subscribe_args_topic=arg_topic})
+recv_subscribe ip = do
+  T.readMessage ip $ \(fname, mtype, rseqid) -> do
+    M.when (mtype == T.M_EXCEPTION) $ do { exn <- T.readAppExn ip ; X.throw exn }
+    res <- read_Subscribe_result ip
+    P.maybe (P.return ()) X.throw (subscribe_result_fail res)
+    P.return ()
+publish (ip,op) arg_topic arg_message = do
+  send_publish op arg_topic arg_message
+  recv_publish ip
+send_publish op arg_topic arg_message = do
+  seq <- seqid
+  seqn <- R.readIORef seq
+  T.writeMessage op ("publish", T.M_CALL, seqn) $
+    write_Publish_args op (Publish_args{publish_args_topic=arg_topic,publish_args_message=arg_message})
+recv_publish ip = do
+  T.readMessage ip $ \(fname, mtype, rseqid) -> do
+    M.when (mtype == T.M_EXCEPTION) $ do { exn <- T.readAppExn ip ; X.throw exn }
+    res <- read_Publish_result ip
+    P.maybe (P.return ()) X.throw (publish_result_fail res)
+    P.return ()
+notify (ip,op) arg_topic arg_message = do
+  send_notify op arg_topic arg_message
+  recv_notify ip
+send_notify op arg_topic arg_message = do
+  seq <- seqid
+  seqn <- R.readIORef seq
+  T.writeMessage op ("notify", T.M_CALL, seqn) $
+    write_Notify_args op (Notify_args{notify_args_topic=arg_topic,notify_args_message=arg_message})
+recv_notify ip = do
+  T.readMessage ip $ \(fname, mtype, rseqid) -> do
+    M.when (mtype == T.M_EXCEPTION) $ do { exn <- T.readAppExn ip ; X.throw exn }
+    res <- read_Notify_result ip
+    P.maybe (P.return ()) X.throw (notify_result_fail res)
+    P.return ()

@@ -16,4 +16,12 @@ service AriviNetworkService
     bool ping(),
 
     string sendRequest(1: int logid, 2:string jsonReq) throws (1:Failure fail),
+
+    void subscribe(1: string topic) throws (1:Failure fail),
+
+    void publish(1: string topic, 2:string message) throws (1:Failure fail),
+
+    void notify(1: string topic, 2:string message) throws (1:Failure fail),
+
+
 }

@@ -7,6 +7,10 @@ module AriviNetworkServiceHandler
   , RPCCall(..)
   , RPCReq(..)
   , RPCResp(..)
+  , PubSub(..)
+  -- , Subscribe1(..)
+  -- , Notify1(..)
+  -- , Publish(..)
   )
 where
 
@@ -69,10 +73,18 @@ data RPCCall =
     , response :: MVar RPCResp
     }
 
+
+data PubSub = Subscribe1 {topic :: String}
+            | Publish1 { topic :: String
+                    , message :: String}
+            | Notify1 { topic :: String
+                    , message :: String}
+
 data AriviNetworkServiceHandler =
   AriviNetworkServiceHandler
     { ariviThriftLog :: MVar (M.Map Int32 SharedStruct)
     , rpcQueue :: TChan RPCCall
+    , pubSubQueue :: TChan PubSub
     , binProto :: BinaryProtocol Handle
     }
 
@@ -80,9 +92,10 @@ newAriviNetworkServiceHandler :: PortNumber -> IO AriviNetworkServiceHandler
 newAriviNetworkServiceHandler remotePort = do
   logg      <- newMVar mempty
   rpcQ      <- atomically $ newTChan
+  psQ       <- atomically $ newTChan
   --let localhost = "localhost" :: HostName
   transport <- hOpen ("localhost" :: HostName, PortNumber remotePort)
-  return $ AriviNetworkServiceHandler logg rpcQ (BinaryProtocol transport)
+  return $ AriviNetworkServiceHandler logg rpcQ psQ (BinaryProtocol transport)
 
 -- instance SharedService_Iface AriviNetworkServiceHandler where
 --   getStruct self k = do
@@ -109,7 +122,6 @@ instance AriviNetworkService_Iface AriviNetworkServiceHandler where
     -- args logid  & msg are passed from the remote side (thrift)
   sendRequest self mlogid jsonrequest = do
     printf "sendRequest(%d, %s)\n" logid (show req)
-      --printf "%s" show message_count ::Int32
     --let req = payload msg
       --print (typeOf req)
     resp <- newEmptyMVar
@@ -117,29 +129,33 @@ instance AriviNetworkService_Iface AriviNetworkServiceHandler where
     atomically $ writeTChan (rpcQueue self) rpcCall
     rpcResp <- (readMVar resp)
     let val = rPCResp_response rpcResp
-      -- let val = case opcode msg of
-      --             SET_NODE_CAPABILITY |
-      --             GET_BLOCK_HEADERS -> "dummy-resp GET_BLOCK_HEADERS"
-      --             GET_ESTIMATE_FEE -> "dummy-resp GET_ESTIMATE_FEE"
-      --             SUBSCRIBE_NEW_HEADERS -> "dummy-resp SUBSCRIBE_NEW_HEADERS"
-      --             GET_UNCONFIRMED_TX -> "dummy-resp GET_UNCONFIRMED_TX"
-      --             GET_UTXOS -> "dummy-resp"
-      --             SUBSCRIBE_SCRIPT_HASH -> "dummy-resp"
-      --             UNSUBSCRIBE_SCRIPT_HASH -> "dummy-resp"
-      --             BROADCAST_TX -> "dummy-resp"
-      --             GET_RAW_TX_FROM_HASH -> "dummy-resp"
-      --             GET_TX_MERKLE_PATH -> "dummy-resp"
+
     let logEntry = SharedStruct logid (fromString $ show $ val)
     modifyMVar_ (ariviThriftLog self) $ return . (M.insert logid logEntry)
     return $! val
        -- stupid dynamic languages f'ing it up
-       --count = message_count
-       --priority = message_priority
-       --opcode = message_opcode
     where
       req = jsonrequest
       logid = mlogid
 
+
+  subscribe self top = do
+    printf "subscribe(%s)\n" top
+
+    let sub = Subscribe1 (show top)
+    atomically $ writeTChan (pubSubQueue self) sub
+
+  publish self top msg = do
+    printf "publish(%s, %s)\n" top msg
+
+    let pub = Publish1 (show top) (show msg)
+    atomically $ writeTChan (pubSubQueue self) pub
+
+  notify self top msg = do
+    printf "notify(%s, %s)\n" top msg
+
+    let ntf = Notify1 (show top) (show msg)
+    atomically $ writeTChan (pubSubQueue self) ntf
 
 setupThriftDuplex :: PortNumber -> PortNumber -> IO (AriviNetworkServiceHandler)
 setupThriftDuplex listenPort remotePort = do

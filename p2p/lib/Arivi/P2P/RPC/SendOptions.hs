@@ -4,7 +4,7 @@ module Arivi.P2P.RPC.SendOptions
   ( sendOptionsMessage
   )
 where
-
+import           Codec.Serialise
 import           Arivi.P2P.Exception
 import           Arivi.P2P.MessageHandler.NodeEndpoint
 import           Arivi.P2P.MessageHandler.HandlerTypes
@@ -27,14 +27,16 @@ import qualified Data.Set                      as Set
 
 --This function will send the options message to all the peers in [NodeId] on separate threads
 sendOptionsMessage
-  :: (HasP2PEnv env m r t rmsg pmsg) => [NodeId] -> Options r -> m ()
+  :: (Serialise pmsg)
+  => (HasP2PEnv env m r t rmsg pmsg) => [NodeId] -> Options r -> m ()
 sendOptionsMessage peers optionsMessage =
   LAsync.mapConcurrently_ (`sendOptionsToPeer` optionsMessage) peers
 
 -- | Sends the Options message to a single peer and updates the Resourcers table based on the Supported message
 sendOptionsToPeer
   :: forall env m r t rmsg pmsg
-   . (HasP2PEnv env m r t rmsg pmsg)
+   . (Serialise pmsg)
+  => (HasP2PEnv env m r t rmsg pmsg)
   => NodeId
   -> Options r
   -> m (Either AriviP2PException ())

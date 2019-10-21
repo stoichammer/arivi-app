@@ -3,16 +3,17 @@
 {-# LANGUAGE MultiParamTypeClasses  #-}
 
 module Arivi.P2P.PubSub.Class
-    ( module Arivi.P2P.PubSub.Class
-    ) where
+  ( module Arivi.P2P.PubSub.Class
+  )
+where
 
-import Arivi.P2P.PubSub.Types
+import           Arivi.P2P.PubSub.Types
 
-import Control.Concurrent.STM.TVar (TVar)
-import Data.Set (Set)
+import           Control.Concurrent.STM.TVar    ( TVar )
+import           Data.Set                       ( Set )
 
 class HasTopics env t | env -> t where
-    topics :: env -> Set t
+    topics :: env -> TVar (Set t)
 
 class HasSubscribers env t  | env -> t where
     subscribers :: env ->  Subscribers t
@@ -23,11 +24,11 @@ class HasNotifiers env t | env -> t where
 -- class HasTopicHandlers env t msg | env -> t msg where
 --     topicHandlers :: env -> TopicHandlers t msg
 
-class HasInbox env msg | env -> msg where
-    inbox :: env -> TVar (Inbox msg)
-
-class HasCache env msg | env -> msg where
-    cache :: env -> TVar (Cache msg)
+-- class HasInbox env msg | env -> msg where
+--     inbox :: env -> TVar (Inbox msg)
+--
+-- class HasCache env msg | env -> msg where
+--     cache :: env -> TVar (Cache msg)
 
 
 -- class HasSubscribers m t msg | m -> t msg where

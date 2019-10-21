@@ -184,7 +184,7 @@ runNode config ariviHandler = do
                   globalHandlerRpc
                   globalHandlerPubSub
                   [AriviSecureRPC]
-                  [HelloWorldHeader]
+                  []
   let something  = ThriftEnv (binProto ariviHandler)
   let serviceEnv = ServiceEnv something env
   runFileLoggingT (toS $ Config.logFile config) $ runAppM

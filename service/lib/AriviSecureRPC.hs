@@ -24,7 +24,7 @@ import           Arivi.P2P.Types
 import           Arivi.P2P.MessageHandler.HandlerTypes
 import           Arivi.P2P.PubSub.Class
 import           Arivi.P2P.PubSub.Env
-import           Arivi.P2P.PubSub.Publish
+import           Arivi.P2P.PubSub.Publish      as Pub
 import           Arivi.P2P.PubSub.Types
 import           Arivi.P2P.RPC.Env
 import           Arivi.P2P.RPC.Fetch
@@ -61,7 +61,7 @@ import           Thrift.Transport               ( )
 import           Thrift.Protocol.Binary
 import           AriviNetworkService_Client    as Client
 import           Service_Types                  ( )
-
+import           Data.Set                      as Set
 -- import GHC.Stack
 
 data ServiceResource = AriviSecureRPC {
@@ -69,13 +69,17 @@ data ServiceResource = AriviSecureRPC {
                         } --deriving (Generic)
                         deriving (Eq, Ord, Show, Generic)
 
-data ServiceTopic = HelloWorldHeader deriving (Eq, Ord, Show, Generic)
+type ServiceTopic = String
+
+-- data ServiceTopic = HelloWorldHeader
+--                    | Dummy_TOPIC
+--                    deriving (Eq, Ord, Show, Generic)
 
 instance Serialise ServiceResource
 instance Hashable ServiceResource
 
-instance Serialise ServiceTopic
-instance Hashable ServiceTopic
+--instance Serialise ServiceTopic
+--instance Hashable ServiceTopic
 
 -- invokeThriftRPC :: ServiceResource -> String -> String
 -- invokeThriftRPC resource msg = "sss"
@@ -88,24 +92,28 @@ instance Hashable ServiceTopic
 
 globalHandlerPubSub :: (HasService env m) => String -> m Status
 globalHandlerPubSub msg = do
-  -- val <- asks getThriftConn
-  -- liftIO $ print val
-  if msg == "PUB_SUB_HEADER"
+  val <- asks getThriftConn
+  let conn = thriftConn val
+  liftIO $ print (msg)
+  _x <- liftIO $ Client.notify (conn, conn) (pack msg) (pack msg)
+  --liftIO $ print val
+
+  if msg /= "!@#!@#PUB_SUB_HEADER"
     then do
       liftIO (Prelude.putStrLn "Ok")
-      _ <- async (getHelloWorld msg)
+      -- _ <- async (getHelloWorld msg)
       return Ok
     else liftIO (Prelude.putStrLn "Error") >> return Error
 
-getHelloWorld
-  :: (HasP2PEnv env m ServiceResource ServiceTopic String String)
-  => String
-  -> m ()
-getHelloWorld msg = do
-  resource <- fetchResourceForMessage msg
-                                      (RpcPayload AriviSecureRPC "HelloWorld")
-  liftIO $ print "got resource from notify/publish"
-  liftIO $ print resource
+-- getHelloWorld
+--   :: (HasP2PEnv env m ServiceResource ServiceTopic String String)
+--   => String
+--   -> m ()
+-- getHelloWorld msg = do
+--   resource <- fetchResourceForMessage msg
+--                                       (RpcPayload AriviSecureRPC "HelloWorld")
+--   liftIO $ print "got resource from notify/publish"
+--   liftIO $ print resource
 
 
 data ThriftEnv = ThriftEnv {
@@ -162,7 +170,8 @@ globalHandlerRpc msg = do
 -- theMessage _ = Nothing
 stuffPublisher
   :: (HasP2PEnv env m ServiceResource ServiceTopic String String) => m ()
-stuffPublisher = publish (PubSubPayload (HelloWorldHeader, "HelloworldHeader"))
+stuffPublisher =
+  Pub.publish (PubSubPayload ("HelloWorldTopic", "HelloworldMessage"))
 
 
 goGetResource
@@ -200,10 +209,20 @@ loopCall
   -> m ()
 loopCall queue = do
 
-  item <- liftIO $ atomically $ (readTChan queue)
-  --liftIO $ print (typeOf item)
+  item     <- liftIO $ atomically $ (readTChan queue)
+  -- let x = Set.empty
+  -- [Dummy_TOPIC, HelloWorldHeader]
+  topicVar <- asks topics
+  -- topxx    <- liftIO $ atomically $ readTVar topicVar
+
+  liftIO $ atomically $ modifyTVar' topicVar (Set.insert "Dummy_TOPIC")
+  --  atomically $ modifyTVar x (Set.insert nid)
+
+
+  --Set.insert  x
+  --liftIO $ print (typeOf x)
   --let req =  (request item)
-  _    <- async (goGetResource item)
+  _ <- async (goGetResource item)
   --liftIO $ print (req )
   loopCall queue
   return ()
@@ -228,11 +247,11 @@ instance HasSubscribers (ServiceEnv m r t rmsg pmsg) t where
     subscribers = pubSubSubscribers . psEnv. p2pEnv
 instance HasNotifiers (ServiceEnv m r t rmsg pmsg) t where
     notifiers = pubSubNotifiers . psEnv . p2pEnv
-instance HasInbox (ServiceEnv m r t rmsg pmsg) pmsg where
-    inbox = pubSubInbox . psEnv . p2pEnv
-instance HasCache (ServiceEnv m r t rmsg pmsg) pmsg where
-    cache = pubSubCache . psEnv . p2pEnv
-instance HasPubSubEnv (ServiceEnv m r t rmsg pmsg) t pmsg where
+-- instance HasInbox (ServiceEnv m r t rmsg pmsg) pmsg where
+--     inbox = pubSubInbox . psEnv . p2pEnv
+-- instance HasCache (ServiceEnv m r t rmsg pmsg) pmsg where
+--     cache = pubSubCache . psEnv . p2pEnv
+instance HasPubSubEnv (ServiceEnv m r t rmsg pmsg) t  where
     pubSubEnv = psEnv . p2pEnv
 instance HasRpcEnv (ServiceEnv m r t rmsg pmsg) r rmsg where
     rpcEnv = rEnv . p2pEnv

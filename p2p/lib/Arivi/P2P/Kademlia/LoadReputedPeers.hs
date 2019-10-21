@@ -30,14 +30,14 @@ import           Control.Monad.Except
 import           Control.Monad.Logger
 import           Control.Monad.Reader
 import qualified Data.List                             as LL
-
+import Codec.Serialise
 -- import           Arivi.P2P.Exception
 
 -- import           Data.Maybe                            (fromJust)
 import qualified Data.Text                             as T
 
 loadReputedPeers ::
-       forall env m r t rmsg pmsg.
+       forall env m r t rmsg pmsg.  (Serialise pmsg) =>
        ( MonadReader env m
        , HasP2PEnv env m r t rmsg pmsg
        )
@@ -58,7 +58,7 @@ getKClosestPeersByNodeid' nid k = do
 
 
 findGivenNode ::
-       forall env m r t rmsg pmsg.
+       forall env m r t rmsg pmsg.  (Serialise pmsg) =>
        ( MonadReader env m
        , HasP2PEnv env m r t rmsg pmsg
        )

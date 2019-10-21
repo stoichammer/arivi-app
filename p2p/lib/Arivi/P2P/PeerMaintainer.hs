@@ -4,7 +4,7 @@ module Arivi.P2P.PeerMaintainer
   ( fillQuotas
   )
 where
-
+import           Codec.Serialise
 import           Arivi.P2P.P2PEnv
 import           Arivi.P2P.Types
 import           Arivi.P2P.MessageHandler.HandlerTypes
@@ -29,24 +29,29 @@ import           Data.Set                      as Set
 
 -- | Sends subscribe messages for each topic to every passed peer.
 -- | TODO: Batched subscribes for multiple topics.
-sendSubscribes :: (HasP2PEnv env m r t rmsg pmsg) => [NodeId] -> m ()
+sendSubscribes
+  :: (Serialise pmsg) => (HasP2PEnv env m r t rmsg pmsg) => [NodeId] -> m ()
 sendSubscribes nodeList = do
-  topicList <- asks topics
+  topicVar  <- asks topics
+  topicList <- liftIO $ atomically $ readTVar topicVar
+  liftIO $ print (length topicList)
   mapM_ (subscribeForTopic nodeList) (Set.toList topicList)
 
-subscribeForTopic :: (HasP2PEnv env m r t rmsg msg) => [NodeId] -> t -> m ()
+subscribeForTopic
+  :: (Serialise msg) => (HasP2PEnv env m r t rmsg msg) => [NodeId] -> t -> m ()
 subscribeForTopic nodeList t =
   mapConcurrently_ (subscribe (PubSubPayload (t, 100000))) nodeList -- Hardcoding timer value for now. No logic for handling it currently. Subscriptions are for the duration of a network connection as of now
 
 -- | fills up the peer list for resource. Since Options message is not for a specific resource, check after each invocation of sendOptions if the number of peers if less than required quota for any resource. Recursively keep calling till all the quotas have been satisfied.
 -- | TODO: Logging
-fillQuotas :: (HasP2PEnv env m r t rmsg pmsg) => Integer -> m ()
+fillQuotas
+  :: (Serialise pmsg) => (HasP2PEnv env m r t rmsg pmsg) => Integer -> m ()
 fillQuotas numPeers = forever $ do
   rpcRecord <- asks rpcEnv
   let Resourcers resourcers = rpcResourcers rpcRecord
-  filledResources <- liftIO $ isFilled resourcers numPeers
-  Notifiers notif <- asks notifiers
-  _               <- liftIO $ isFilled notif numPeers
+  filledResources  <- liftIO $ isFilled resourcers numPeers
+  Notifiers _notif <- asks notifiers
+  -- _               <- liftIO $ isFilled notif numPeers
   unless filledResources $ do
     res <- runExceptT $ getKNodes numPeers -- Repetition of peers
     case res of
