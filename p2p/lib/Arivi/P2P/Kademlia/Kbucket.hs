@@ -103,7 +103,7 @@ ifPeerExist peer = do
 -- |Adds a given peer to kbucket hash table by calculating the appropriate
 --  kbindex based on the XOR Distance.
 addToKBucket
-  :: (Serialise pmsg)
+  :: (Serialise pmsg, Show t)
   => (HasP2PEnv env m r t rmsg pmsg)
   => Peer
   -> ExceptT AriviP2PException m ()

@@ -62,7 +62,8 @@ addToNewList bl pl
 -- | Issues a ping command and waits for the response and if the response is
 --   is valid returns True else False
 issuePing
-  :: (Serialise pmsg) => (HasP2PEnv env m r t rmsg pmsg) => Peer -> m Bool
+  :: (Serialise pmsg, Show t)
+  => (HasP2PEnv env m r t rmsg pmsg) => Peer -> m Bool
 issuePing rpeer = do
   nc <- asks (^. networkConfig)
   let rnid     = nodeID rpeer
@@ -93,7 +94,7 @@ deleteIfExist peerR pl = if peerR `elem` pl
 
 -- | creates a new list from an existing one by issuing a ping command
 refreshKbucket
-  :: (Serialise pmsg)
+  :: (Serialise pmsg, Show t)
   => (HasP2PEnv env m r t rmsg pmsg) => Peer -> [Peer] -> m [Peer]
 refreshKbucket peerR pl = do
   sb <- getKb

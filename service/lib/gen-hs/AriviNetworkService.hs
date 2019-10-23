@@ -211,21 +211,25 @@ typemap_Subscribe_args = Map.fromList [(1,("topic",T.T_STRING))]
 default_Subscribe_args :: Subscribe_args
 default_Subscribe_args = Subscribe_args{
   subscribe_args_topic = ""}
-data Subscribe_result = Subscribe_result  { subscribe_result_fail :: P.Maybe Failure
+data Subscribe_result = Subscribe_result  { subscribe_result_success :: LT.Text
+  , subscribe_result_fail :: P.Maybe Failure
   } deriving (P.Show,P.Eq,G.Generic,TY.Typeable)
 instance H.Hashable Subscribe_result where
-  hashWithSalt salt record = salt   `H.hashWithSalt` subscribe_result_fail record  
+  hashWithSalt salt record = salt   `H.hashWithSalt` subscribe_result_success record   `H.hashWithSalt` subscribe_result_fail record  
 instance QC.Arbitrary Subscribe_result where 
-  arbitrary = M.liftM Subscribe_result (M.liftM P.Just QC.arbitrary)
+  arbitrary = M.liftM Subscribe_result (QC.arbitrary)
+          `M.ap`(M.liftM P.Just QC.arbitrary)
   shrink obj | obj == default_Subscribe_result = []
              | P.otherwise = M.catMaybes
-    [ if obj == default_Subscribe_result{subscribe_result_fail = subscribe_result_fail obj} then P.Nothing else P.Just $ default_Subscribe_result{subscribe_result_fail = subscribe_result_fail obj}
+    [ if obj == default_Subscribe_result{subscribe_result_success = subscribe_result_success obj} then P.Nothing else P.Just $ default_Subscribe_result{subscribe_result_success = subscribe_result_success obj}
+    , if obj == default_Subscribe_result{subscribe_result_fail = subscribe_result_fail obj} then P.Nothing else P.Just $ default_Subscribe_result{subscribe_result_fail = subscribe_result_fail obj}
     ]
 from_Subscribe_result :: Subscribe_result -> T.ThriftVal
 from_Subscribe_result record = T.TStruct $ Map.fromList 
   (let exns = M.catMaybes [ (\_v40 -> (1, ("fail",from_Failure _v40))) <$> subscribe_result_fail record]
   in if P.not (P.null exns) then exns else M.catMaybes
-    [ (\_v40 -> (1, ("fail",from_Failure _v40))) <$> subscribe_result_fail record
+    [ (\_v40 -> P.Just (0, ("success",T.TString $ E.encodeUtf8 _v40))) $ subscribe_result_success record
+    , (\_v40 -> (1, ("fail",from_Failure _v40))) <$> subscribe_result_fail record
     ]
     )
 write_Subscribe_result :: T.Protocol p => p -> Subscribe_result -> P.IO ()
@@ -234,7 +238,8 @@ encode_Subscribe_result :: T.StatelessProtocol p => p -> Subscribe_result -> LBS
 encode_Subscribe_result oprot record = T.serializeVal oprot $ from_Subscribe_result record
 to_Subscribe_result :: T.ThriftVal -> Subscribe_result
 to_Subscribe_result (T.TStruct fields) = Subscribe_result{
-  subscribe_result_fail = P.maybe (P.Nothing) (\(_,_val42) -> P.Just (case _val42 of {T.TStruct _val43 -> (to_Failure (T.TStruct _val43)); _ -> P.error "wrong type"})) (Map.lookup (1) fields)
+  subscribe_result_success = P.maybe (subscribe_result_success default_Subscribe_result) (\(_,_val42) -> (case _val42 of {T.TString _val43 -> E.decodeUtf8 _val43; _ -> P.error "wrong type"})) (Map.lookup (0) fields),
+  subscribe_result_fail = P.maybe (P.Nothing) (\(_,_val42) -> P.Just (case _val42 of {T.TStruct _val44 -> (to_Failure (T.TStruct _val44)); _ -> P.error "wrong type"})) (Map.lookup (1) fields)
   }
 to_Subscribe_result _ = P.error "not a struct"
 read_Subscribe_result :: T.Protocol p => p -> P.IO Subscribe_result
@@ -242,9 +247,10 @@ read_Subscribe_result iprot = to_Subscribe_result <$> T.readVal iprot (T.T_STRUC
 decode_Subscribe_result :: T.StatelessProtocol p => p -> LBS.ByteString -> Subscribe_result
 decode_Subscribe_result iprot bs = to_Subscribe_result $ T.deserializeVal iprot (T.T_STRUCT typemap_Subscribe_result) bs
 typemap_Subscribe_result :: T.TypeMap
-typemap_Subscribe_result = Map.fromList [(1,("fail",(T.T_STRUCT typemap_Failure)))]
+typemap_Subscribe_result = Map.fromList [(0,("success",T.T_STRING)),(1,("fail",(T.T_STRUCT typemap_Failure)))]
 default_Subscribe_result :: Subscribe_result
 default_Subscribe_result = Subscribe_result{
+  subscribe_result_success = "",
   subscribe_result_fail = P.Nothing}
 data Publish_args = Publish_args  { publish_args_topic :: LT.Text
   , publish_args_message :: LT.Text
@@ -261,8 +267,8 @@ instance QC.Arbitrary Publish_args where
     ]
 from_Publish_args :: Publish_args -> T.ThriftVal
 from_Publish_args record = T.TStruct $ Map.fromList $ M.catMaybes
-  [ (\_v46 -> P.Just (1, ("topic",T.TString $ E.encodeUtf8 _v46))) $ publish_args_topic record
-  , (\_v46 -> P.Just (2, ("message",T.TString $ E.encodeUtf8 _v46))) $ publish_args_message record
+  [ (\_v47 -> P.Just (1, ("topic",T.TString $ E.encodeUtf8 _v47))) $ publish_args_topic record
+  , (\_v47 -> P.Just (2, ("message",T.TString $ E.encodeUtf8 _v47))) $ publish_args_message record
   ]
 write_Publish_args :: T.Protocol p => p -> Publish_args -> P.IO ()
 write_Publish_args oprot record = T.writeVal oprot $ from_Publish_args record
@@ -270,8 +276,8 @@ encode_Publish_args :: T.StatelessProtocol p => p -> Publish_args -> LBS.ByteStr
 encode_Publish_args oprot record = T.serializeVal oprot $ from_Publish_args record
 to_Publish_args :: T.ThriftVal -> Publish_args
 to_Publish_args (T.TStruct fields) = Publish_args{
-  publish_args_topic = P.maybe (publish_args_topic default_Publish_args) (\(_,_val48) -> (case _val48 of {T.TString _val49 -> E.decodeUtf8 _val49; _ -> P.error "wrong type"})) (Map.lookup (1) fields),
-  publish_args_message = P.maybe (publish_args_message default_Publish_args) (\(_,_val48) -> (case _val48 of {T.TString _val50 -> E.decodeUtf8 _val50; _ -> P.error "wrong type"})) (Map.lookup (2) fields)
+  publish_args_topic = P.maybe (publish_args_topic default_Publish_args) (\(_,_val49) -> (case _val49 of {T.TString _val50 -> E.decodeUtf8 _val50; _ -> P.error "wrong type"})) (Map.lookup (1) fields),
+  publish_args_message = P.maybe (publish_args_message default_Publish_args) (\(_,_val49) -> (case _val49 of {T.TString _val51 -> E.decodeUtf8 _val51; _ -> P.error "wrong type"})) (Map.lookup (2) fields)
   }
 to_Publish_args _ = P.error "not a struct"
 read_Publish_args :: T.Protocol p => p -> P.IO Publish_args
@@ -284,21 +290,25 @@ default_Publish_args :: Publish_args
 default_Publish_args = Publish_args{
   publish_args_topic = "",
   publish_args_message = ""}
-data Publish_result = Publish_result  { publish_result_fail :: P.Maybe Failure
+data Publish_result = Publish_result  { publish_result_success :: LT.Text
+  , publish_result_fail :: P.Maybe Failure
   } deriving (P.Show,P.Eq,G.Generic,TY.Typeable)
 instance H.Hashable Publish_result where
-  hashWithSalt salt record = salt   `H.hashWithSalt` publish_result_fail record  
+  hashWithSalt salt record = salt   `H.hashWithSalt` publish_result_success record   `H.hashWithSalt` publish_result_fail record  
 instance QC.Arbitrary Publish_result where 
-  arbitrary = M.liftM Publish_result (M.liftM P.Just QC.arbitrary)
+  arbitrary = M.liftM Publish_result (QC.arbitrary)
+          `M.ap`(M.liftM P.Just QC.arbitrary)
   shrink obj | obj == default_Publish_result = []
              | P.otherwise = M.catMaybes
-    [ if obj == default_Publish_result{publish_result_fail = publish_result_fail obj} then P.Nothing else P.Just $ default_Publish_result{publish_result_fail = publish_result_fail obj}
+    [ if obj == default_Publish_result{publish_result_success = publish_result_success obj} then P.Nothing else P.Just $ default_Publish_result{publish_result_success = publish_result_success obj}
+    , if obj == default_Publish_result{publish_result_fail = publish_result_fail obj} then P.Nothing else P.Just $ default_Publish_result{publish_result_fail = publish_result_fail obj}
     ]
 from_Publish_result :: Publish_result -> T.ThriftVal
 from_Publish_result record = T.TStruct $ Map.fromList 
-  (let exns = M.catMaybes [ (\_v53 -> (1, ("fail",from_Failure _v53))) <$> publish_result_fail record]
+  (let exns = M.catMaybes [ (\_v54 -> (1, ("fail",from_Failure _v54))) <$> publish_result_fail record]
   in if P.not (P.null exns) then exns else M.catMaybes
-    [ (\_v53 -> (1, ("fail",from_Failure _v53))) <$> publish_result_fail record
+    [ (\_v54 -> P.Just (0, ("success",T.TString $ E.encodeUtf8 _v54))) $ publish_result_success record
+    , (\_v54 -> (1, ("fail",from_Failure _v54))) <$> publish_result_fail record
     ]
     )
 write_Publish_result :: T.Protocol p => p -> Publish_result -> P.IO ()
@@ -307,7 +317,8 @@ encode_Publish_result :: T.StatelessProtocol p => p -> Publish_result -> LBS.Byt
 encode_Publish_result oprot record = T.serializeVal oprot $ from_Publish_result record
 to_Publish_result :: T.ThriftVal -> Publish_result
 to_Publish_result (T.TStruct fields) = Publish_result{
-  publish_result_fail = P.maybe (P.Nothing) (\(_,_val55) -> P.Just (case _val55 of {T.TStruct _val56 -> (to_Failure (T.TStruct _val56)); _ -> P.error "wrong type"})) (Map.lookup (1) fields)
+  publish_result_success = P.maybe (publish_result_success default_Publish_result) (\(_,_val56) -> (case _val56 of {T.TString _val57 -> E.decodeUtf8 _val57; _ -> P.error "wrong type"})) (Map.lookup (0) fields),
+  publish_result_fail = P.maybe (P.Nothing) (\(_,_val56) -> P.Just (case _val56 of {T.TStruct _val58 -> (to_Failure (T.TStruct _val58)); _ -> P.error "wrong type"})) (Map.lookup (1) fields)
   }
 to_Publish_result _ = P.error "not a struct"
 read_Publish_result :: T.Protocol p => p -> P.IO Publish_result
@@ -315,9 +326,10 @@ read_Publish_result iprot = to_Publish_result <$> T.readVal iprot (T.T_STRUCT ty
 decode_Publish_result :: T.StatelessProtocol p => p -> LBS.ByteString -> Publish_result
 decode_Publish_result iprot bs = to_Publish_result $ T.deserializeVal iprot (T.T_STRUCT typemap_Publish_result) bs
 typemap_Publish_result :: T.TypeMap
-typemap_Publish_result = Map.fromList [(1,("fail",(T.T_STRUCT typemap_Failure)))]
+typemap_Publish_result = Map.fromList [(0,("success",T.T_STRING)),(1,("fail",(T.T_STRUCT typemap_Failure)))]
 default_Publish_result :: Publish_result
 default_Publish_result = Publish_result{
+  publish_result_success = "",
   publish_result_fail = P.Nothing}
 data Notify_args = Notify_args  { notify_args_topic :: LT.Text
   , notify_args_message :: LT.Text
@@ -334,8 +346,8 @@ instance QC.Arbitrary Notify_args where
     ]
 from_Notify_args :: Notify_args -> T.ThriftVal
 from_Notify_args record = T.TStruct $ Map.fromList $ M.catMaybes
-  [ (\_v59 -> P.Just (1, ("topic",T.TString $ E.encodeUtf8 _v59))) $ notify_args_topic record
-  , (\_v59 -> P.Just (2, ("message",T.TString $ E.encodeUtf8 _v59))) $ notify_args_message record
+  [ (\_v61 -> P.Just (1, ("topic",T.TString $ E.encodeUtf8 _v61))) $ notify_args_topic record
+  , (\_v61 -> P.Just (2, ("message",T.TString $ E.encodeUtf8 _v61))) $ notify_args_message record
   ]
 write_Notify_args :: T.Protocol p => p -> Notify_args -> P.IO ()
 write_Notify_args oprot record = T.writeVal oprot $ from_Notify_args record
@@ -343,8 +355,8 @@ encode_Notify_args :: T.StatelessProtocol p => p -> Notify_args -> LBS.ByteStrin
 encode_Notify_args oprot record = T.serializeVal oprot $ from_Notify_args record
 to_Notify_args :: T.ThriftVal -> Notify_args
 to_Notify_args (T.TStruct fields) = Notify_args{
-  notify_args_topic = P.maybe (notify_args_topic default_Notify_args) (\(_,_val61) -> (case _val61 of {T.TString _val62 -> E.decodeUtf8 _val62; _ -> P.error "wrong type"})) (Map.lookup (1) fields),
-  notify_args_message = P.maybe (notify_args_message default_Notify_args) (\(_,_val61) -> (case _val61 of {T.TString _val63 -> E.decodeUtf8 _val63; _ -> P.error "wrong type"})) (Map.lookup (2) fields)
+  notify_args_topic = P.maybe (notify_args_topic default_Notify_args) (\(_,_val63) -> (case _val63 of {T.TString _val64 -> E.decodeUtf8 _val64; _ -> P.error "wrong type"})) (Map.lookup (1) fields),
+  notify_args_message = P.maybe (notify_args_message default_Notify_args) (\(_,_val63) -> (case _val63 of {T.TString _val65 -> E.decodeUtf8 _val65; _ -> P.error "wrong type"})) (Map.lookup (2) fields)
   }
 to_Notify_args _ = P.error "not a struct"
 read_Notify_args :: T.Protocol p => p -> P.IO Notify_args
@@ -357,21 +369,25 @@ default_Notify_args :: Notify_args
 default_Notify_args = Notify_args{
   notify_args_topic = "",
   notify_args_message = ""}
-data Notify_result = Notify_result  { notify_result_fail :: P.Maybe Failure
+data Notify_result = Notify_result  { notify_result_success :: LT.Text
+  , notify_result_fail :: P.Maybe Failure
   } deriving (P.Show,P.Eq,G.Generic,TY.Typeable)
 instance H.Hashable Notify_result where
-  hashWithSalt salt record = salt   `H.hashWithSalt` notify_result_fail record  
+  hashWithSalt salt record = salt   `H.hashWithSalt` notify_result_success record   `H.hashWithSalt` notify_result_fail record  
 instance QC.Arbitrary Notify_result where 
-  arbitrary = M.liftM Notify_result (M.liftM P.Just QC.arbitrary)
+  arbitrary = M.liftM Notify_result (QC.arbitrary)
+          `M.ap`(M.liftM P.Just QC.arbitrary)
   shrink obj | obj == default_Notify_result = []
              | P.otherwise = M.catMaybes
-    [ if obj == default_Notify_result{notify_result_fail = notify_result_fail obj} then P.Nothing else P.Just $ default_Notify_result{notify_result_fail = notify_result_fail obj}
+    [ if obj == default_Notify_result{notify_result_success = notify_result_success obj} then P.Nothing else P.Just $ default_Notify_result{notify_result_success = notify_result_success obj}
+    , if obj == default_Notify_result{notify_result_fail = notify_result_fail obj} then P.Nothing else P.Just $ default_Notify_result{notify_result_fail = notify_result_fail obj}
     ]
 from_Notify_result :: Notify_result -> T.ThriftVal
 from_Notify_result record = T.TStruct $ Map.fromList 
-  (let exns = M.catMaybes [ (\_v66 -> (1, ("fail",from_Failure _v66))) <$> notify_result_fail record]
+  (let exns = M.catMaybes [ (\_v68 -> (1, ("fail",from_Failure _v68))) <$> notify_result_fail record]
   in if P.not (P.null exns) then exns else M.catMaybes
-    [ (\_v66 -> (1, ("fail",from_Failure _v66))) <$> notify_result_fail record
+    [ (\_v68 -> P.Just (0, ("success",T.TString $ E.encodeUtf8 _v68))) $ notify_result_success record
+    , (\_v68 -> (1, ("fail",from_Failure _v68))) <$> notify_result_fail record
     ]
     )
 write_Notify_result :: T.Protocol p => p -> Notify_result -> P.IO ()
@@ -380,7 +396,8 @@ encode_Notify_result :: T.StatelessProtocol p => p -> Notify_result -> LBS.ByteS
 encode_Notify_result oprot record = T.serializeVal oprot $ from_Notify_result record
 to_Notify_result :: T.ThriftVal -> Notify_result
 to_Notify_result (T.TStruct fields) = Notify_result{
-  notify_result_fail = P.maybe (P.Nothing) (\(_,_val68) -> P.Just (case _val68 of {T.TStruct _val69 -> (to_Failure (T.TStruct _val69)); _ -> P.error "wrong type"})) (Map.lookup (1) fields)
+  notify_result_success = P.maybe (notify_result_success default_Notify_result) (\(_,_val70) -> (case _val70 of {T.TString _val71 -> E.decodeUtf8 _val71; _ -> P.error "wrong type"})) (Map.lookup (0) fields),
+  notify_result_fail = P.maybe (P.Nothing) (\(_,_val70) -> P.Just (case _val70 of {T.TStruct _val72 -> (to_Failure (T.TStruct _val72)); _ -> P.error "wrong type"})) (Map.lookup (1) fields)
   }
 to_Notify_result _ = P.error "not a struct"
 read_Notify_result :: T.Protocol p => p -> P.IO Notify_result
@@ -388,9 +405,10 @@ read_Notify_result iprot = to_Notify_result <$> T.readVal iprot (T.T_STRUCT type
 decode_Notify_result :: T.StatelessProtocol p => p -> LBS.ByteString -> Notify_result
 decode_Notify_result iprot bs = to_Notify_result $ T.deserializeVal iprot (T.T_STRUCT typemap_Notify_result) bs
 typemap_Notify_result :: T.TypeMap
-typemap_Notify_result = Map.fromList [(1,("fail",(T.T_STRUCT typemap_Failure)))]
+typemap_Notify_result = Map.fromList [(0,("success",T.T_STRING)),(1,("fail",(T.T_STRUCT typemap_Failure)))]
 default_Notify_result :: Notify_result
 default_Notify_result = Notify_result{
+  notify_result_success = "",
   notify_result_fail = P.Nothing}
 process_ping (seqid, iprot, oprot, handler) = do
   args <- read_Ping_args iprot
@@ -424,8 +442,8 @@ process_subscribe (seqid, iprot, oprot, handler) = do
   (X.catch
     (X.catch
       (do
-        Iface.subscribe handler (subscribe_args_topic args)
-        let res = default_Subscribe_result
+        val <- Iface.subscribe handler (subscribe_args_topic args)
+        let res = default_Subscribe_result{subscribe_result_success = val}
         T.writeMessage oprot ("subscribe", T.M_REPLY, seqid) $
           write_Subscribe_result oprot res)
       (\e  -> do
@@ -440,8 +458,8 @@ process_publish (seqid, iprot, oprot, handler) = do
   (X.catch
     (X.catch
       (do
-        Iface.publish handler (publish_args_topic args) (publish_args_message args)
-        let res = default_Publish_result
+        val <- Iface.publish handler (publish_args_topic args) (publish_args_message args)
+        let res = default_Publish_result{publish_result_success = val}
         T.writeMessage oprot ("publish", T.M_REPLY, seqid) $
           write_Publish_result oprot res)
       (\e  -> do
@@ -456,8 +474,8 @@ process_notify (seqid, iprot, oprot, handler) = do
   (X.catch
     (X.catch
       (do
-        Iface.notify handler (notify_args_topic args) (notify_args_message args)
-        let res = default_Notify_result
+        val <- Iface.notify handler (notify_args_topic args) (notify_args_message args)
+        let res = default_Notify_result{notify_result_success = val}
         T.writeMessage oprot ("notify", T.M_REPLY, seqid) $
           write_Notify_result oprot res)
       (\e  -> do

@@ -160,7 +160,7 @@ filterPeer nid rnid peerL = result
   rXor = getXorDistance (C.unpack $ BS.encode rnid) (C.unpack $ BS.encode nid)
 
 initVerification
-  :: (Serialise pmsg)
+  :: (Serialise pmsg, Show t)
   => (HasP2PEnv env m r t rmsg pmsg)
   => [Peer]
   -> ExceptT AriviP2PException m Bool
@@ -175,7 +175,7 @@ initVerification peerL = do
   return $ (>=) liveNodes minPeerResponded
 
 isVNRESPValid
-  :: (Serialise pmsg)
+  :: (Serialise pmsg, Show t)
   => (HasP2PEnv env m r t rmsg pmsg)
   => [Peer]
   -> Peer
@@ -192,7 +192,7 @@ isVNRESPValid peerL peerR = do
   if firstCheck then initVerification peerL else return False
 
 issueVerifyNode
-  :: (Serialise pmsg)
+  :: (Serialise pmsg, Show t)
   => (HasP2PEnv env m r t rmsg pmsg) => Peer -> Peer -> Peer -> m [Peer]
 issueVerifyNode peerV peerT peerR = do
   nc@NetworkConfig {..} <- (^. networkConfig) <$> ask
@@ -243,7 +243,7 @@ getRandomVerifiedPeer = do
   getPeerByNodeId rp
 
 responseHandler
-  :: (Serialise pmsg)
+  :: (Serialise pmsg, Show t)
   => (HasP2PEnv env m r t rmsg pmsg)
   => Either SomeException [Peer]
   -> Peer
@@ -267,7 +267,7 @@ responseHandler resp peerR peerT = case resp of
   Left (e :: Exception.SomeException) -> $(logDebug) (T.pack (show e))
 
 sendVNMsg
-  :: (Serialise pmsg)
+  :: (Serialise pmsg, Show t)
   => (HasP2PEnv env m r t rmsg pmsg)
   => Peer
   -> Peer
@@ -279,7 +279,7 @@ sendVNMsg peerT peerV peerR = do
   wait t
 
 verifyPeer
-  :: (Serialise pmsg)
+  :: (Serialise pmsg, Show t)
   => (HasP2PEnv env m r t rmsg pmsg)
   => Peer
   -> ExceptT AriviP2PException m ()

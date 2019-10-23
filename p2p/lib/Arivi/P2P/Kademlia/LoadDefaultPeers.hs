@@ -44,7 +44,8 @@ import qualified Data.Text                     as T
 --   local node information which are passed to P2P environment during
 --   P2P instance initialization.
 loadDefaultPeers
-  :: (Serialise pmsg) => (HasP2PEnv env m r t rmsg pmsg) => [Peer] -> m ()
+  :: (Serialise pmsg, Show t)
+  => (HasP2PEnv env m r t rmsg pmsg) => [Peer] -> m ()
 loadDefaultPeers = runKademliaActionConcurrently_ issueFindNode
 
 -- | Helper function to retrieve Peer list from PayLoad
@@ -74,7 +75,7 @@ deleteIfPeerExist (x : xs) = do
 -- | Issues a FIND_NODE request by calling the network apis from P2P Layer
 --  TODO : See if need to be converted to ExceptT
 issueFindNode
-  :: (Serialise pmsg) => (HasP2PEnv env m r t rmsg pmsg) => Peer -> m ()
+  :: (Serialise pmsg, Show t) => (HasP2PEnv env m r t rmsg pmsg) => Peer -> m ()
 issueFindNode rpeer = do
   nc@NetworkConfig {..} <- (^. networkConfig) <$> ask
   let rnid   = nodeID rpeer

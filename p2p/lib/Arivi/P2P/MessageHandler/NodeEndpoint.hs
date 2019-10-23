@@ -89,7 +89,7 @@ sendAndReceive peerDetailsTVar messageType connHandle msg = do
 -- | Useful for pubsub notifies and publish. To be called by the rpc/pubsub and kademlia handlers on getting a new request
 issueSend
   :: forall env m r topic rmsg pmsg t i
-   . (Serialise pmsg)
+   . (Serialise pmsg, Show topic)
   => (HasP2PEnv env m r topic rmsg pmsg, Msg t, Serialise (Request t i))
   => NodeId
   -> Maybe P2PUUID
@@ -110,7 +110,7 @@ issueSend peerNodeId uuid req = do
 -- | Sends a request and gets a response. Should be catching all the exceptions thrown and handle them correctly
 issueRequest
   :: forall env m r topic rmsg pmsg i o t
-   . (Serialise pmsg)
+   . (Serialise pmsg, Show topic)
   => ( HasP2PEnv env m r topic rmsg pmsg
      , Msg t
      , Serialise (Request t i)
@@ -137,7 +137,7 @@ issueRequest peerNodeId req = do
 
 -- | Called by kademlia. Adds a default PeerDetails record into hashmap before calling generic issueRequest
 issueKademliaRequest
-  :: (Serialise pmsg)
+  :: (Serialise pmsg, Show t)
   => (HasP2PEnv env m r t rmsg pmsg, Serialise msg)
   => NetworkConfig
   -> Request 'Kademlia msg

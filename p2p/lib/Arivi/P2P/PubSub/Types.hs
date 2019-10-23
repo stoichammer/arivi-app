@@ -1,7 +1,7 @@
-{-# LANGUAGE DeriveAnyClass        #-}
-{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Arivi.P2P.PubSub.Types
   ( NodeTimer(..)
@@ -16,57 +16,67 @@ module Arivi.P2P.PubSub.Types
   --, notifiersForMessage
   , newSubscriber
   , newNotifier
-  )
-where
+  ) where
 
-import           Arivi.P2P.MessageHandler.HandlerTypes
+import Arivi.P2P.MessageHandler.HandlerTypes
 
-import           Codec.Serialise                ( Serialise )
-import           Control.Applicative            ( )
+import Codec.Serialise (Serialise)
+import Control.Applicative ()
+
 --import           Control.Concurrent.MVar
-import           Control.Concurrent.STM
-import           Control.Concurrent.STM.TVar    ( TVar )
-import           Control.Lens                   ( )
-import           Data.Hashable
+import Control.Concurrent.STM
+
+--import Control.Concurrent.STM.TVar (TVar)
+import Control.Lens ()
+import Data.Hashable
+
+import Control.Monad.Trans
+
 --import           Data.HashMap.Strict           as HM
-import           Data.Set                       ( Set )
-import qualified Data.Set                      as Set
-import           Data.Time.Clock
-import           GHC.Generics                   ( Generic )
-import qualified STMContainers.Map             as H
-import           Control.Monad.Trans
+import Data.Set (Set)
+import qualified Data.Set as Set
+import Data.Time.Clock
+import GHC.Generics (Generic)
+import qualified STMContainers.Map as H
+
 type Timer = Integer
 
-data NodeTimer = NodeTimer
+data NodeTimer =
+  NodeTimer
     { timerNodeId :: NodeId
     , timer :: UTCTime -- time here is current time added with the nominaldifftime in the message
-    } deriving (Eq, Ord, Show, Generic, Serialise)
+    }
+  deriving (Eq, Ord, Show, Generic, Serialise)
 
-newtype Subscribers t = Subscribers (H.Map t (TVar (Set NodeId)))
+newtype Subscribers t =
+  Subscribers (H.Map t (Set NodeId))
 
-newtype Notifiers t = Notifiers (H.Map t (TVar (Set NodeId)))
+newtype Notifiers t =
+  Notifiers (H.Map t (Set NodeId))
 
 -- newtype Inbox msg = Inbox (H.Map msg (TVar (Set NodeId)))
 --
 -- newtype Cache msg = Cache (H.Map msg (MVar Status))
+data Status
+  = Ok
+  | Error
+  deriving (Eq, Ord, Show, Generic, Serialise)
 
-data Status = Ok
-            | Error
-            deriving (Eq, Ord, Show, Generic, Serialise)
-
-subscribersForTopic
-  :: (Eq t, Hashable t) => t -> Subscribers t -> IO (Set NodeId)
+subscribersForTopic ::
+     (Eq t, Hashable t) => t -> Subscribers t -> IO (Set NodeId)
 subscribersForTopic t (Subscribers subs) = do
-  yy <- liftIO $ atomically $ (H.lookup t subs)
+  yy <- atomically $ (H.lookup t subs)
   case yy of
-    Just x  -> readTVarIO x
+    Just x -> do
+      atomically $ H.insert x t subs
+      return x
     Nothing -> return Set.empty
 
 notifiersForTopic :: (Eq t, Hashable t) => t -> Notifiers t -> IO (Set NodeId)
 notifiersForTopic t (Notifiers notifs) = do
   yy <- liftIO $ atomically $ (H.lookup t notifs)
   case yy of
-    Just x  -> readTVarIO x
+    Just x -> return x
     Nothing -> return Set.empty
 
 -- notifiersForMessage
@@ -82,9 +92,8 @@ notifiersForTopic t (Notifiers notifs) = do
 --   -- If no one sent a msg, you can't have a message
 --   -- to ask who sent it. Returning all subscribers.
 --   Nothing -> subscribersForTopic t subs
-
-newSubscriber
-  :: (Ord t, Hashable t)
+newSubscriber ::
+     (Ord t, Hashable t)
   => NodeId
   -> Subscribers t
   -> Set t
@@ -94,15 +103,21 @@ newSubscriber
 newSubscriber nid (Subscribers subs) _topics _ t = do
   yy <- liftIO $ atomically $ (H.lookup t subs)
   case yy of
-    Just x -> do
-      atomically $ modifyTVar x (Set.insert nid)
+    Just x
+      --atomically $ modifyTVar x (Set.insert nid)
+     -> do
+      let nx = Set.insert nid x
+      atomically $ H.insert nx t subs
+      liftIO $ print ("modifying")
       return (True)
-    Nothing -> do
-      z <- liftIO $ atomically $ newTVar (Set.singleton nid)
-      liftIO $ atomically $ H.insert z t subs
+    Nothing
+      --z <- liftIO $ atomically $ newTVar (Set.singleton nid)
+      --liftIO $ atomically $ H.insert z t subs
+     -> do
+      let z = Set.singleton nid
+      atomically $ H.insert z t subs
+      liftIO $ print ("insert-new")
       return True
-
-
   -- newSubscriber nid (Subscribers subs) topics _ t = if Set.member t topics
   --   then case subs ^. at t of
   --     Just x -> do
@@ -118,7 +133,10 @@ newNotifier :: (Ord t, Hashable t) => NodeId -> Notifiers t -> t -> IO ()
 newNotifier nid (Notifiers notifs) t = do
   yy <- liftIO $ atomically $ (H.lookup t notifs)
   case yy of
-    Just x  -> atomically $ modifyTVar x (Set.insert nid)
+    Just x --atomically $ modifyTVar x (Set.insert nid)
+     -> do
+      let nx = Set.insert nid x
+      atomically $ H.insert nx t notifs
     -- |Invariant this branch is never reached.
     -- 'initPubSub' should statically make empty
     -- sets for all topics in the map.

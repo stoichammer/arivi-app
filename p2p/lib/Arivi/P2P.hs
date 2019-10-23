@@ -21,7 +21,7 @@ import           Codec.Serialise
 
 -- | Called by the service in Xoken core
 initP2P
-  :: (Serialise pmsg)
+  :: (Serialise pmsg, Show t)
   => (HasP2PEnv env m r t rmsg pmsg) => Config.Config -> m ()
 initP2P config = do
   _ <- async

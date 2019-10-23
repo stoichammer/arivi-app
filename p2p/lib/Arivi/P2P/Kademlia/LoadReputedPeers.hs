@@ -37,7 +37,7 @@ import Codec.Serialise
 import qualified Data.Text                             as T
 
 loadReputedPeers ::
-       forall env m r t rmsg pmsg.  (Serialise pmsg) =>
+       forall env m r t rmsg pmsg.  (Serialise pmsg, Show t) =>
        ( MonadReader env m
        , HasP2PEnv env m r t rmsg pmsg
        )
@@ -58,7 +58,7 @@ getKClosestPeersByNodeid' nid k = do
 
 
 findGivenNode ::
-       forall env m r t rmsg pmsg.  (Serialise pmsg) =>
+       forall env m r t rmsg pmsg.  (Serialise pmsg, Show t) =>
        ( MonadReader env m
        , HasP2PEnv env m r t rmsg pmsg
        )

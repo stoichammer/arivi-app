@@ -33,7 +33,7 @@ import           Control.Lens
 import           Codec.Serialise
 -- | Processes a new request from peer
 processRequest
-  :: (Serialise pmsg)
+  :: (Serialise pmsg, Show t)
   => (HasP2PEnv env m r t rmsg pmsg)
   => ConnectionHandle
   -> P2PMessage
@@ -59,7 +59,7 @@ processRequest connHandle p2pMessage peerNodeId = do
 
 -- | Takes an incoming message from the network layer and procesess it in 2 ways. If the mes0sage was an expected reply, it is put into the waiting mvar or else the appropriate handler for the message type is called and the generated response is sent back
 processIncomingMessage
-  :: (Serialise pmsg)
+  :: (Serialise pmsg, Show t)
   => (HasP2PEnv env m r t rmsg pmsg)
   => ConnectionHandle
   -> TVar PeerDetails
@@ -81,7 +81,7 @@ processIncomingMessage connHandle peerDetailsTVar msg = do
 
 -- | Recv from connection handle and process incoming message
 readIncomingMessage
-  :: (Serialise pmsg)
+  :: (Serialise pmsg, Show t)
   => (HasP2PEnv env m r t rmsg pmsg)
   => ConnectionHandle
   -> TVar PeerDetails
@@ -98,7 +98,7 @@ readIncomingMessage connHandle peerDetailsTVar = do
       readIncomingMessage connHandle peerDetailsTVar
 
 newIncomingConnectionHandler
-  :: (Serialise pmsg)
+  :: (Serialise pmsg, Show t)
   => (HasP2PEnv env m r t rmsg pmsg)
   => NetworkConfig
   -> TransportType

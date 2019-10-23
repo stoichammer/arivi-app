@@ -151,9 +151,9 @@ mkPRTEnv = do
 
 data Handlers = Handlers {
       rpc :: forall env m r t rmsg pmsg . (HasP2PEnv env m r t rmsg pmsg, MonadIO m) => Request 'Rpc (RpcPayload r rmsg) -> m (Response 'Rpc (RpcPayload r rmsg))
-    , kademlia :: forall env m r t rmsg pmsg. (Serialise pmsg) =>(HasP2PEnv env m r t rmsg pmsg) => Request 'Kademlia T.PayLoad -> m (Response 'Kademlia T.PayLoad)
+    , kademlia :: forall env m r t rmsg pmsg. (Serialise pmsg, Show t) =>(HasP2PEnv env m r t rmsg pmsg) => Request 'Kademlia T.PayLoad -> m (Response 'Kademlia T.PayLoad)
     , option :: forall env m r msg. (MonadReader env m, HasNodeEndpoint m, HasRpc env r msg, MonadIO m) => m (Response 'Option (Supported [r]))
-    , pubsub :: forall env m r t rmsg pmsg. (Serialise pmsg) => (HasP2PEnv env m r t rmsg pmsg, MonadIO m) => NodeId -> PubSub -> ByteString -> m ByteString
+    , pubsub :: forall env m r t rmsg pmsg. (Serialise pmsg, Show t) => (HasP2PEnv env m r t rmsg pmsg, MonadIO m) => NodeId -> PubSub -> ByteString -> m ByteString
 }
 
 instance HasNetworkConfig (P2PEnv m r t rmsg pmsg) NetworkConfig where

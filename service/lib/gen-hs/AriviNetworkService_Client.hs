@@ -82,7 +82,7 @@ recv_subscribe ip = do
     M.when (mtype == T.M_EXCEPTION) $ do { exn <- T.readAppExn ip ; X.throw exn }
     res <- read_Subscribe_result ip
     P.maybe (P.return ()) X.throw (subscribe_result_fail res)
-    P.return ()
+    P.return $ subscribe_result_success res
 publish (ip,op) arg_topic arg_message = do
   send_publish op arg_topic arg_message
   recv_publish ip
@@ -96,7 +96,7 @@ recv_publish ip = do
     M.when (mtype == T.M_EXCEPTION) $ do { exn <- T.readAppExn ip ; X.throw exn }
     res <- read_Publish_result ip
     P.maybe (P.return ()) X.throw (publish_result_fail res)
-    P.return ()
+    P.return $ publish_result_success res
 notify (ip,op) arg_topic arg_message = do
   send_notify op arg_topic arg_message
   recv_notify ip
@@ -110,4 +110,4 @@ recv_notify ip = do
     M.when (mtype == T.M_EXCEPTION) $ do { exn <- T.readAppExn ip ; X.throw exn }
     res <- read_Notify_result ip
     P.maybe (P.return ()) X.throw (notify_result_fail res)
-    P.return ()
+    P.return $ notify_result_success res

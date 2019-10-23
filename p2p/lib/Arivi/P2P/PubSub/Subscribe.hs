@@ -22,7 +22,7 @@ import           Control.Monad.Logger           ( logDebug )
 import qualified Data.Text                     as T
 
 subscribe
-  :: (Serialise msg)
+  :: (Serialise msg, Show t)
   => (HasP2PEnv env m r t rmsg msg)
   => PubSubPayload t Timer
   -> NodeId

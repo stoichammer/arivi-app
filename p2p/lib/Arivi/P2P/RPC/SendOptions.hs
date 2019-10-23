@@ -27,7 +27,7 @@ import qualified Data.Set                      as Set
 
 --This function will send the options message to all the peers in [NodeId] on separate threads
 sendOptionsMessage
-  :: (Serialise pmsg)
+  :: (Serialise pmsg, Show t)
   => (HasP2PEnv env m r t rmsg pmsg) => [NodeId] -> Options r -> m ()
 sendOptionsMessage peers optionsMessage =
   LAsync.mapConcurrently_ (`sendOptionsToPeer` optionsMessage) peers
@@ -35,7 +35,7 @@ sendOptionsMessage peers optionsMessage =
 -- | Sends the Options message to a single peer and updates the Resourcers table based on the Supported message
 sendOptionsToPeer
   :: forall env m r t rmsg pmsg
-   . (Serialise pmsg)
+   . (Serialise pmsg, Show t)
   => (HasP2PEnv env m r t rmsg pmsg)
   => NodeId
   -> Options r

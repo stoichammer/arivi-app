@@ -24,7 +24,7 @@ import           Control.Concurrent.STM
 import           Control.Concurrent.STM.TVar    ( )
 import           Control.Lens                   ( )
 import           Control.Monad.Reader
-import           Data.Hashable
+--import           Data.Hashable
 import           Data.ByteString.Lazy
 --import qualified Data.Set                      as Set
 import           Control.Monad.Logger           ( logDebug )
@@ -33,7 +33,7 @@ import           Control.Monad.Logger           ( logDebug )
 -- in a separate thread.
 
 pubSubHandler
-  :: (Serialise pmsg)
+  :: (Serialise pmsg, Show t)
   => (HasP2PEnv env m r t rmsg pmsg)
   => NodeId
   -> PubSub
@@ -47,7 +47,7 @@ pubSubHandler nid Notify req =
   serialise <$> notifyHandler nid (deserialise req)
 
 notifyHandler
-  :: (Serialise pmsg)
+  :: (Serialise pmsg, Show t)
   => (HasP2PEnv env m r t rmsg pmsg)
   => NodeId
   -> Request ( 'PubSub 'Notify) (PubSubPayload t pmsg)
@@ -66,7 +66,7 @@ notifyHandler nid (PubSubRequest payload@(PubSubPayload (_, msg))) = do
   return (PubSubResponse resp)
 
 publishHandler
-  :: (Serialise pmsg)
+  :: (Serialise pmsg, Show t)
   => (HasP2PEnv env m r t rmsg pmsg)
   => NodeId
   -> Request ( 'PubSub 'Publish) (PubSubPayload t pmsg)
@@ -84,21 +84,17 @@ publishHandler nid (PubSubRequest payload@(PubSubPayload (_, msg))) = do
   return (PubSubResponse resp)
 
 subscribeHandler
-  :: ( MonadReader env m
-     , HasSubscribers env t
-     , HasTopics env t
-     , MonadIO m
-     , Hashable t
-     , Ord t
-     )
+  :: (Show t)
+  => (HasP2PEnv env m r t rmsg pmsg)
   => NodeId
   -> Request ( 'PubSub 'Subscribe) (PubSubPayload t Timer)
   -> m (Response ( 'PubSub 'Subscribe) Status)
 subscribeHandler nid (PubSubRequest (PubSubPayload (t, subTimer))) = do
-  subs    <- asks subscribers
-  tops    <- asks topics
-  topxx   <- liftIO $ atomically $ readTVar tops
-  --liftIO $ print (Set.size topxx)
+  subs  <- asks subscribers
+  tops  <- asks topics
+  topxx <- liftIO $ atomically $ readTVar tops
+  liftIO $ print (t)
+  $(logDebug) "Subscribe received handler invoked"
 
 
   success <- liftIO $ newSubscriber nid subs topxx subTimer t

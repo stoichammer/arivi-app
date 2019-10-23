@@ -24,7 +24,7 @@ import           Codec.Serialise
 -- | Obtains the connectionLock on entry and then checks if connection has been made. If yes, then simply returns the connectionHandle; else it tries to openConnection
 -- | Returns the connectionHandle or an exception
 createConnection
-  :: (Serialise pmsg)
+  :: (Serialise pmsg, Show t)
   => (HasP2PEnv env m r t rmsg pmsg)
   => TVar PeerDetails
   -> TVar NodeIdPeerMap
@@ -50,7 +50,7 @@ createConnection peerDetailsTVar _ transportType = do
 
 -- | Gets the connection handle for the particular message type. If not present, it will create and return else will throw an exception
 getConnectionHandle
-  :: (Serialise pmsg)
+  :: (Serialise pmsg, Show t)
   => (HasP2PEnv env m r t rmsg pmsg)
   => NodeId
   -> TVar NodeIdPeerMap

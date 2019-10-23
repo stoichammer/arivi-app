@@ -29,7 +29,7 @@ import qualified Data.Set                      as Set
 
 -- | Try fetching resource from a list of nodes. Return first successful response or return an error if didn't get a successfull response from any peer
 sendResourceRequest
-  :: (Serialise pmsg)
+  :: (Serialise pmsg, Show t)
   => (HasP2PEnv env m r t msg pmsg)
   => [NodeId]
   -> RpcPayload r msg
@@ -45,7 +45,7 @@ sendResourceRequest (currPeer : rest) msg = do
 
 -- | Called by the service to fetch a resource. P2P decides best peer to ask for the resource.
 fetchResource
-  :: (Serialise pmsg)
+  :: (Serialise pmsg, Show t)
   => (HasP2PEnv env m r t msg pmsg)
   => RpcPayload r msg
   -> m (Either AriviP2PException (RpcPayload r msg))

@@ -24,7 +24,7 @@ import           Control.Monad.Reader
 import           Control.Monad.Logger           ( logDebug )
 
 notify
-  :: (Serialise msg)
+  :: (Serialise msg, Show t)
   => (HasP2PEnv env m r t rmsg msg) => PubSubPayload t msg -> m ()
 notify req@(PubSubPayload (t, _msg)) = do
   $(logDebug) "notify called"

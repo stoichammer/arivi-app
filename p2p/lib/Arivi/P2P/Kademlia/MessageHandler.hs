@@ -52,7 +52,7 @@ import qualified Data.Text                     as T
 --   bytestring.
 
 kademliaMessageHandler
-  :: (Serialise pmsg)
+  :: (Serialise pmsg, Show t)
   => (HasP2PEnv env m r t rmsg pmsg)
   => Request 'Kademlia PayLoad
   -> m (Response 'Kademlia PayLoad)
