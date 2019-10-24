@@ -29,25 +29,27 @@ import Arivi.P2P.PubSub.Types
 import Arivi.P2P.RPC.Env
 import Arivi.P2P.RPC.Fetch
 import Arivi.P2P.Types ()
+import Data.Aeson as A
 
 import Codec.Serialise
 import Control.Monad.IO.Class
 import GHC.Generics
 
--- import Data.ByteString.Lazy as Lazy
+import Data.ByteString as BS
 import Data.Hashable
 import Data.Text.Lazy as TL
 
 import Control.Monad.Reader
-import Network.Simple.TCP
+import Network.Simple.TCP as T
 
 import AriviNetworkServiceHandler
 import Control.Concurrent.Async.Lifted (async)
 import Control.Concurrent.MVar
 import Control.Concurrent.STM
-
+import Data.Map.Strict as M
 import Data.Set as Set
 
+--import STMContainers.Map as HM
 import Service_Types ()
 import Thrift.Protocol.Binary ()
 
@@ -72,7 +74,7 @@ instance Hashable ServiceResource
 
 globalHandlerPubSub :: (HasService env m) => String -> m Status
 globalHandlerPubSub msg = do
-  val <- asks getTCPConn
+  val <- asks getTCPEnv
   let _conn = tcpConn val
   liftIO $ print (msg)
   --_x <- liftIO $ Client.notify (conn, conn) (pack msg) (pack msg)
@@ -82,18 +84,24 @@ globalHandlerPubSub msg = do
       liftIO (Prelude.putStrLn "Ok")
       -- _ <- async (getHelloWorld msg)
       return Ok
-    else liftIO (Prelude.putStrLn "Error") >> return Error
+    else liftIO (Prelude.putStrLn "Error") >>
+         return Arivi.P2P.PubSub.Types.Error
+
+newtype MsgIdMapper =
+  MsgIdMapper (M.Map Int (MVar BS.ByteString))
 
 data TCPEnv =
   TCPEnv
     { tcpConn :: (Socket, SockAddr)
+    , reqQueue :: TChan (IPCRequest, (MVar BS.ByteString))
+    , msgMatch :: TVar (M.Map Int (MVar BS.ByteString))
     } --deriving(Eq, Ord, Show)
 
 class HasTCPEnv env where
-  getTCPConn :: env -> TCPEnv
+  getTCPEnv :: env -> TCPEnv
 
 instance HasTCPEnv (ServiceEnv m r t rmsg pmsg) where
-  getTCPConn = tcpEnv
+  getTCPEnv = tcpEnv
 
 data ServiceEnv m r t rmsg pmsg =
   ServiceEnv
@@ -108,14 +116,48 @@ type HasService env m
 
 globalHandlerRpc :: (HasService env m) => String -> m (Maybe String)
 globalHandlerRpc msg = do
-  env <- asks getTCPConn
-  let _conn = tcpConn env
-  --resp <- liftIO $ Client.sendRequest (conn, conn) 0 (pack msg)
-  --liftIO $ print (msg ++ (show resp))
-  return (Just (msg))
-  -- if msg == "RPC_HEADER"
-  --   then return (Just (msg ++ " DUMMY_RESPONSE"))
-  --   else return Nothing
+  liftIO $ print ("globalHandlerRpc called..")
+  tcpE <- asks getTCPEnv
+  let que = reqQueue tcpE
+  mid <- randomRIO (1, 268435456)
+  let req = IPCRequest mid "RPC" (M.singleton "encReq" msg)
+  mv <- liftIO $ newEmptyMVar
+  liftIO $ atomically $ writeTChan que (req, mv)
+  resp1 <- liftIO $ takeMVar mv
+  liftIO $ print (show resp1)
+  return (Just (show resp1))
+
+processIPCRequests :: (HasService env m) => m ()
+processIPCRequests =
+  forever $ do
+    tcpE <- asks getTCPEnv
+    let connSock = tcpConn tcpE
+    let que = reqQueue tcpE
+    let mm = msgMatch tcpE
+    req <- liftIO $ atomically $ readTChan que
+    mp <- liftIO $ readTVarIO mm
+    let nmp = M.insert (msgid (fst req)) (snd req) mp
+    liftIO $ atomically $ writeTVar mm nmp
+    T.sendLazy (fst connSock) (A.encode (fst req))
+    return ()
+
+processIPCResponses :: (HasService env m) => m ()
+processIPCResponses =
+  forever $ do
+    tcpE <- asks getTCPEnv
+    let connSock = tcpConn tcpE
+    let mm = msgMatch tcpE
+    mp <- liftIO $ readTVarIO mm
+    bytes <- liftIO $ T.recv (fst connSock) 1024
+    case bytes of
+      Just x -> do
+        liftIO $ print (show x)
+        let mv = M.lookup 123 mp
+        case mv of
+          Just a -> liftIO $ putMVar a x
+          Nothing -> liftIO $ print ("HM lookup failed.")
+      Nothing -> liftIO $ print ("Nothing.")
+    return ()
 
 -- registerAriviSecureRPC :: (HasP2PEnv env m ServiceResource String String String) => m ()
 -- registerAriviSecureRPC =
@@ -135,7 +177,7 @@ goGetResource rpcCall = do
   let req = (request rpcCall)
   let ind = rPCReq_key req
   let msg = show (rPCReq_request req)
-  liftIO $ print (msg)
+  liftIO $ print ("fetchResource")
   resource <- fetchResource (RpcPayload AriviSecureRPC msg)
   --liftIO $ print (typeOf resource)
   --liftIO $ print (theMessage resource)

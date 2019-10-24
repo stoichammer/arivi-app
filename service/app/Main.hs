@@ -34,14 +34,19 @@ import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async.Lifted (async, wait)
 import Control.Monad.Logger
 import Control.Monad.Reader
+
+--import STMContainers.Map as HM
+import Data.ByteString as BS
 import Data.ByteString.Lazy as BSL (ByteString)
 import Data.ByteString.Lazy.Char8 as BSLC (pack)
-import qualified Data.HashMap.Strict as HM
+
+--import qualified Data.HashMap.Strict as HM
 import Data.Map.Strict as M
 import Data.Monoid ((<>))
 import Data.String.Conv
 import Data.Text
 import Data.Typeable
+import STMContainers.Map as H
 
 import System.Directory (doesPathExist)
 import System.Environment (getArgs)
@@ -49,6 +54,7 @@ import System.Environment (getArgs)
 import Control.Concurrent.Async.Lifted (async)
 import Control.Concurrent.MVar
 import Control.Concurrent.STM
+import Control.Concurrent.STM.TChan
 
 --import ThriftServer
 import qualified AriviNetworkService
@@ -136,13 +142,15 @@ runNode :: Config.Config -> AriviNetworkServiceHandler -> IO ()
 runNode config ariviHandler
     -- config <- Config.readConfig configPath
  = do
-  env <-
+  p2pEnv <-
     mkP2PEnv config globalHandlerRpc globalHandlerPubSub [AriviSecureRPC] []
   let rPort = Config.thriftRemotePort config
   sockTuple <- connectSock "127.0.0.1" (show rPort)
-  putStrLn $ "Connection established to " ++ show rPort
-  let something = TCPEnv sockTuple
-  let serviceEnv = ServiceEnv something env
+  Prelude.putStrLn $ "Connection established to " ++ show rPort
+  que <- atomically $ newTChan
+  mmap <- newTVarIO $ M.empty
+  let tcpEnv = TCPEnv sockTuple que mmap
+  let serviceEnv = ServiceEnv tcpEnv p2pEnv
   runFileLoggingT (toS $ Config.logFile config) $
     runAppM
       serviceEnv
@@ -150,6 +158,8 @@ runNode config ariviHandler
           liftIO $ threadDelay 5000000
           t1 <- async (loopRPC (rpcQueue ariviHandler))
           t2 <- async (loopPubSub (pubSubQueue ariviHandler))
+          async (processIPCRequests)
+          async (processIPCResponses)
           wait t1
           wait t2)
   return ()
