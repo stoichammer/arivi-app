@@ -21,3 +21,4 @@ extra-deps:
 - raaz-0.2.1
 - queue-0.1.2
 - monad-control
+- network-simple

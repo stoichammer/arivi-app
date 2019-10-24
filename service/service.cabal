@@ -69,6 +69,9 @@ library
                     , queue
                     , network
                     , transformers-base
+                    , network-simple
+                    , aeson >= 1.4.0.0
+                    , cereal
 
 
   ghc-options:  -Wall -Werror  -Wredundant-constraints -fno-defer-type-errors -fno-defer-out-of-scope-variables
@@ -128,7 +131,9 @@ executable AriviSecureRPC
                 , queue
                 , transformers-base
                 , exceptions
-
+                , network-simple
+                , aeson >= 1.4.0.0
+                , cereal
 
   if flag(network-uri)
      build-depends: network-uri >= 2.6, network >= 2.6

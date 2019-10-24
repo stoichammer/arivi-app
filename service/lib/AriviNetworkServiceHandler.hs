@@ -1,9 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module AriviNetworkServiceHandler
   ( AriviNetworkServiceHandler(..)
   , newAriviNetworkServiceHandler
-  , setupThriftDuplex
+  , setupIPCServer
   , RPCCall(..)
   , RPCReq(..)
   , RPCResp(..)
@@ -13,27 +14,20 @@ module AriviNetworkServiceHandler
   -- , Publish(..)
   ) where
 
-import qualified AriviNetworkService
+--import qualified AriviNetworkService
 import AriviNetworkService_Iface
-import Control.Concurrent.Async.Lifted (async)
 
---import           Service_Types                  ( )
---import           SharedService_Iface
 import Shared_Types
 
---import Thrift
-import Thrift.Protocol.Binary
-
---import Thrift.Transport
-import Thrift.Server
-
---import Thrift.Transport
-import Thrift.Transport.Handle
-
+--import Codec.Serialise as S
 import Data.Int
 import Data.Queue as Q
 import Data.String
 import Data.Text.Lazy
+import GHC.Generics
+import Network.Simple.TCP
+
+import Data.Serialize
 
 --import Data.Maybe
 import Text.Printf
@@ -41,23 +35,11 @@ import Text.Printf
 --import Control.Exception (throw)
 import Control.Concurrent.MVar
 import Control.Concurrent.STM
+import Data.Aeson as A
+import qualified Data.ByteString.Char8 as Char8
+import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Map.Strict as M
 
---import Thrift.Transport.Empty
---import Control.Monad.IO.Class
-import GHC.IO.Handle
-
---import Data.Text as T
---import Control.Monad.Logger (logDebug)
---import Data.Map ((!))
---import Data.Monoid
-import Network
-
---import           Network.Socket
---import Control.Monad.IO.Class
---import           Service.AriviSecureRPC
---import Data.Typeable
---import AriviNetworkService_Client as CL
 data RPCReq =
   RPCReq
     { rPCReq_key :: Int32
@@ -96,37 +78,30 @@ data AriviNetworkServiceHandler =
     { ariviThriftLog :: MVar (M.Map Int32 SharedStruct)
     , rpcQueue :: TChan RPCCall
     , pubSubQueue :: TChan PubSubMsg
-    , binProto :: BinaryProtocol Handle
     }
 
-newAriviNetworkServiceHandler :: PortNumber -> IO AriviNetworkServiceHandler
-newAriviNetworkServiceHandler remotePort = do
+data IPCRequest =
+  IPCRequest
+    { msgid :: Int
+    , mtype :: String
+    , params :: M.Map String String
+    }
+  deriving (Show, Generic)
+
+instance ToJSON IPCRequest
+
+instance FromJSON IPCRequest
+
+--instance Serialise IPCRequest
+newAriviNetworkServiceHandler :: IO AriviNetworkServiceHandler
+newAriviNetworkServiceHandler = do
   logg <- newMVar mempty
   rpcQ <- atomically $ newTChan
   psQ <- atomically $ newTChan
   --let localhost = "localhost" :: HostName
-  transport <- hOpen ("localhost" :: HostName, PortNumber remotePort)
-  return $ AriviNetworkServiceHandler logg rpcQ psQ (BinaryProtocol transport)
-  -- getRPCCallItem self k = do
-  --   queue <- readMVar (rpcQueue self)
-  --   let key = (queue M.! k)
-  --   val <- readMVar (key)
-  --   return $ val
+  --transport <- hOpen ("localhost" :: HostName, PortNumber remotePort)
+  return $ AriviNetworkServiceHandler logg rpcQ psQ
 
--- instance SharedService_Iface AriviNetworkServiceHandler where
---   getStruct self k = do
---     myLog <- readMVar (ariviThriftLog self)
---     return $ (myLog M.! k)
---   getRPCReq self k = do
---     x <- atomically $ peekTChan (rpcQueue self)
---     let y = request x
---     print (k)
---     return y
---   getRPCResp self k = do
---     x <- atomically $ peekTChan (rpcQueue self)
---     y <- readMVar (response x)
---     print (k)
---     return y
 instance AriviNetworkService_Iface AriviNetworkServiceHandler where
   ping _ = return (True)
     -- args logid  & msg are passed from the remote side (thrift)
@@ -162,13 +137,39 @@ instance AriviNetworkService_Iface AriviNetworkServiceHandler where
     atomically $ writeTChan (pubSubQueue self) ntf
     return (top)
 
-setupThriftDuplex :: PortNumber -> PortNumber -> IO (AriviNetworkServiceHandler)
-setupThriftDuplex listenPort remotePort = do
-  handler <- newAriviNetworkServiceHandler remotePort
-  printf "Starting thrift server..."
-  _ <- async (runBasicServer handler AriviNetworkService.process listenPort)
-  --transport  <- hOpen ("localhost", remotePort)
-  --let bp = BinaryProtocol transport
-  --let client = (binProto, binProto)
-  --putMVar (binProto handler) bp
-  return (handler)
+setupIPCServer :: AriviNetworkServiceHandler -> IO ()
+setupIPCServer _handler = do
+  printf "Starting TCP (IPC) server..."
+  -- _ <- async (runBasicServer handler AriviNetworkService.process listenPort)
+  _ <-
+    serve (Host "127.0.0.1") "9090" $ \(connectionSocket, remoteAddr) -> do
+      putStrLn $ "TCP connection established from " ++ show remoteAddr
+      lenBytes <- recv connectionSocket 2
+      case lenBytes of
+        Just l -> do
+          let lenPrefix = runGet getWord16be l -- Char8.readInt l
+          case lenPrefix of
+            Right a -> do
+              payload <- recv connectionSocket (fromIntegral (toInteger a))
+              case payload of
+                Just y -> do
+                  printf "received: %s\n" (Char8.unpack $ y)
+                  let lz = (LBS.fromStrict y)
+                  printf "lazy version: %s\n" (show lz)
+                  let ipcReq = A.decode lz :: Maybe IPCRequest
+                  case ipcReq of
+                    Just x -> do
+                      printf "Decoded (%s)\n" (show x)
+                      printf
+                        "params (%s)\n"
+                        (show (M.lookup "encReq" (params x)))
+                              --send connectionSocket (Char8.pack $ "Ok")
+                    Nothing ->
+                      printf "Decode 'IPCRequest' failed.\n" (show ipcReq)
+                Nothing -> printf "Payload read error\n"
+            Left _b -> printf "Length prefix corrupted."
+        Nothing -> printf "Connection closed."
+      return ()
+  -- Now you may use connectionSocket as you please within this scope,
+  -- possibly using recv and send to interact with the remote end.
+  return ()

@@ -27,13 +27,8 @@ import Arivi.P2P.ServiceRegistry
 
 import Arivi.P2P.PubSub.Types
 
--- import           Arivi.P2P.Types
--- import           Arivi.P2P.Handler  (newIncomingConnectionHandler)
--- import           Arivi.P2P.Kademlia.LoadDefaultPeers
--- import           Arivi.P2P.MessageHandler.HandlerTypes
--- import           Arivi.P2P.PubSub.Env
--- import           Arivi.P2P.PubSub.Class
 import Arivi.P2P.RPC.Types
+import Network.Simple.TCP
 
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async.Lifted (async, wait)
@@ -51,7 +46,7 @@ import Data.Typeable
 import System.Directory (doesPathExist)
 import System.Environment (getArgs)
 
---import           Control.Concurrent.Async.Lifted (async)
+import Control.Concurrent.Async.Lifted (async)
 import Control.Concurrent.MVar
 import Control.Concurrent.STM
 
@@ -66,7 +61,6 @@ import Control.Monad.Catch
 import Control.Monad.Trans.Control
 import Data.Int
 
---import           SharedService_Iface           as SharedIface
 import Shared_Types
 
 newtype AppM a =
@@ -113,42 +107,6 @@ instance HasPRT AppM where
   getReputedVsOtherTVar = asks (tvReputedVsOther . prtEnv . p2pEnv)
   getKClosestVsRandomTVar = asks (tvKClosestVsRandom . prtEnv . p2pEnv)
 
--- instance HasNetworkConfig (P2PEnv r t rmsg pmsg) NetworkConfig where
---     networkConfig f p2p =
---         fmap
---             (\nc ->
---                  p2p
---                  { nodeEndpointEnv =
---                        (nodeEndpointEnv p2p) {PE._networkConfig = nc}
---                  })
---             (f ((PE._networkConfig . nodeEndpointEnv) p2p))
--- instance HasArchivedResourcers AppM ServiceResource String where
---     archived = asks (tvarArchivedResourceToPeerMap . rpcEnv)
---
--- instance HasTransientResourcers AppM ServiceResource String where
---     transient = asks (tvarDynamicResourceToPeerMap . rpcEnv)
---
---
--- instance HasPRT AppM where
---     getPeerReputationHistoryTableTVar = asks (tvPeerReputationHashTable . prtEnv . p2pEnv)
---     getServicesReputationHashMapTVar = asks (tvServicesReputationHashMap . prtEnv . p2pEnv)
---     getP2PReputationHashMapTVar = asks (tvP2PReputationHashMap . prtEnv . p2pEnv)
---     getReputedVsOtherTVar = asks (tvReputedVsOther . prtEnv . p2pEnv)
---     getKClosestVsRandomTVar = asks (tvKClosestVsRandom . prtEnv . p2pEnv)
--- instance HasTopics (P2PEnv r t rmsg pmsg) t where
---     topics = pubSubTopics . psEnv
--- instance HasSubscribers (P2PEnv r t rmsg pmsg) t where
---     subscribers = pubSubSubscribers . psEnv
--- instance HasNotifiers (P2PEnv r t rmsg pmsg) t where
---     notifiers = pubSubNotifiers . psEnv
--- instance HasInbox (P2PEnv r t rmsg pmsg) pmsg where
---     inbox = pubSubInbox . psEnv
--- instance HasCache (P2PEnv r t rmsg pmsg) pmsg where
---     cache = pubSubCache . psEnv
--- instance HasTopicHandlers (P2PEnv r t rmsg pmsg) t pmsg where
---     topicHandlers = pubSubHandlers . psEnv
--- instance HasPubSubEnv (P2PEnv ServiceResource ByteString String ByteString) ByteString ByteString where
---     pubSubEnv = psEnv
 runAppM ::
      ServiceEnv AppM ServiceResource ServiceTopic String String
   -> AppM a
@@ -180,21 +138,20 @@ runNode config ariviHandler
  = do
   env <-
     mkP2PEnv config globalHandlerRpc globalHandlerPubSub [AriviSecureRPC] []
-  let something = ThriftEnv (binProto ariviHandler)
+  let rPort = Config.thriftRemotePort config
+  sockTuple <- connectSock "127.0.0.1" (show rPort)
+  putStrLn $ "Connection established to " ++ show rPort
+  let something = TCPEnv sockTuple
   let serviceEnv = ServiceEnv something env
   runFileLoggingT (toS $ Config.logFile config) $
     runAppM
       serviceEnv
       (do initP2P config
           liftIO $ threadDelay 5000000
-      --t1 <- async (loopRPC (rpcQueue ariviHandler))
-      --t2 <- async (loopPubSub (pubSubQueue ariviHandler))
-      --wait t1
-      --wait t2
-          loopPubSub (pubSubQueue ariviHandler)
-      -- stuffPublisher
-      --liftIO $ threadDelay 500000000
-       )
+          t1 <- async (loopRPC (rpcQueue ariviHandler))
+          t2 <- async (loopPubSub (pubSubQueue ariviHandler))
+          wait t1
+          wait t2)
   return ()
 
 main :: IO ()
@@ -203,11 +160,10 @@ main = do
   b <- doesPathExist (path <> "/config.yaml")
   unless b (defaultConfig path)
   config <- Config.readConfig (path <> "/config.yaml")
-  -- ariviHandler <- newAriviNetworkServiceHandler (Config.thriftRemotePort config)
-  ariviHandler <-
-    setupThriftDuplex
-      (Config.thriftListenPort config)
-      (Config.thriftRemotePort config)
+  ariviHandler <- newAriviNetworkServiceHandler
+  _ <- async (setupIPCServer ariviHandler)
+      -- (Config.thriftListenPort config)
+      -- (Config.thriftRemotePort config)
   --let mv    = ariviThriftLog ariviHandler
   --let queue = rpcQueue ariviHandler
   --print (typeOf mv)
@@ -219,15 +175,10 @@ main = do
   -- print (sharedStruct_key st)
   -- print (sharedStruct_value st)
   --
-  --let flag = M.member (SharedStruct 1 "hello") xx
-  --print (flag)
-  --M.insert (SharedStruct 1 "hello") xx
-  --async (setupThriftDuplex ariviHandler (Config.thriftListenPort config))
   runNode config ariviHandler
   return ()
 
 a :: Prelude.Int -> BSL.ByteString
 a n = BSLC.pack (Prelude.replicate n 'a')
-
-myAmazingHandler :: (HasLogging m) => ConnectionHandle -> m ()
-myAmazingHandler h = forever $ recv h >>= send h
+-- myAmazingHandler :: (HasLogging m) => ConnectionHandle -> m ()
+-- myAmazingHandler h = forever $ recv h >>= send h

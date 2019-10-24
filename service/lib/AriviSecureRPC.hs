@@ -39,28 +39,25 @@ import Data.Hashable
 import Data.Text.Lazy as TL
 
 import Control.Monad.Reader
+import Network.Simple.TCP
 
 import AriviNetworkServiceHandler
 import Control.Concurrent.Async.Lifted (async)
 import Control.Concurrent.MVar
 import Control.Concurrent.STM
 
-import AriviNetworkService_Client as Client
 import Data.Set as Set
 
-import GHC.IO.Handle as GH
 import Service_Types ()
 import Thrift.Protocol.Binary ()
-import Thrift.Protocol.Binary
+
 import Thrift.Server ()
 import Thrift.Transport ()
 
--- import GHC.Stack
 data ServiceResource =
   AriviSecureRPC
-                        --thriftHandle :: BinaryProtocol Handle
     {
-    } --deriving (Generic)
+    }
   deriving (Eq, Ord, Show, Generic)
 
 type ServiceTopic = String
@@ -73,18 +70,12 @@ instance Serialise ServiceResource
 instance Hashable ServiceResource
                             --liftIO $ print (typeOf (thriftHandle resource))
 
---instance Serialise ServiceTopic
---instance Hashable ServiceTopic
--- invokeThriftRPC :: ServiceResource -> String -> String
--- invokeThriftRPC resource msg = "sss"
--- handler :: (BinaryProtocol Handle) -> ResourceHandler ServiceResource String
--- handler hh = ResourceHandler ( \ (RpcPayload resource serviceMsg) -> RpcPayload resource (invokeThriftRPC resource serviceMsg ))
 globalHandlerPubSub :: (HasService env m) => String -> m Status
 globalHandlerPubSub msg = do
-  val <- asks getThriftConn
-  let conn = thriftConn val
+  val <- asks getTCPConn
+  let _conn = tcpConn val
   liftIO $ print (msg)
-  _x <- liftIO $ Client.notify (conn, conn) (pack msg) (pack msg)
+  --_x <- liftIO $ Client.notify (conn, conn) (pack msg) (pack msg)
   --liftIO $ print val
   if msg /= "!@#!@#PUB_SUB_HEADER"
     then do
@@ -93,44 +84,35 @@ globalHandlerPubSub msg = do
       return Ok
     else liftIO (Prelude.putStrLn "Error") >> return Error
 
--- getHelloWorld
---   :: (HasP2PEnv env m ServiceResource ServiceTopic String String)
---   => String
---   -> m ()
--- getHelloWorld msg = do
---   resource <- fetchResourceForMessage msg
---                                       (RpcPayload AriviSecureRPC "HelloWorld")
---   liftIO $ print "got resource from notify/publish"
---   liftIO $ print resource
-data ThriftEnv =
-  ThriftEnv
-    { thriftConn :: BinaryProtocol GH.Handle
+data TCPEnv =
+  TCPEnv
+    { tcpConn :: (Socket, SockAddr)
     } --deriving(Eq, Ord, Show)
 
-class HasThriftEnv env where
-  getThriftConn :: env -> ThriftEnv
+class HasTCPEnv env where
+  getTCPConn :: env -> TCPEnv
 
-instance HasThriftEnv (ServiceEnv m r t rmsg pmsg) where
-  getThriftConn = thriftEnv
+instance HasTCPEnv (ServiceEnv m r t rmsg pmsg) where
+  getTCPConn = tcpEnv
 
 data ServiceEnv m r t rmsg pmsg =
   ServiceEnv
-    { thriftEnv :: ThriftEnv
+    { tcpEnv :: TCPEnv
     , p2pEnv :: P2PEnv m r t rmsg pmsg
     }
 
 type HasService env m
    = ( HasP2PEnv env m ServiceResource ServiceTopic String String
-     , HasThriftEnv env
+     , HasTCPEnv env
      , MonadReader env m)
 
 globalHandlerRpc :: (HasService env m) => String -> m (Maybe String)
 globalHandlerRpc msg = do
-  env <- asks getThriftConn
-  let conn = thriftConn env
-  resp <- liftIO $ Client.sendRequest (conn, conn) 0 (pack msg)
-  liftIO $ print (msg ++ (show resp))
-  return (Just (msg ++ (show resp)))
+  env <- asks getTCPConn
+  let _conn = tcpConn env
+  --resp <- liftIO $ Client.sendRequest (conn, conn) 0 (pack msg)
+  --liftIO $ print (msg ++ (show resp))
+  return (Just (msg))
   -- if msg == "RPC_HEADER"
   --   then return (Just (msg ++ " DUMMY_RESPONSE"))
   --   else return Nothing
@@ -140,15 +122,6 @@ globalHandlerRpc msg = do
 --     registerResource AriviSecureRPC handler Archived >>
 --     liftIO (threadDelay 5000000) >>
 --     updatePeerInResourceMap AriviSecureRPC
--- getAriviSecureRPC :: (HasP2PEnv env m ServiceResource ByteString String ByteString) => (M.Map Int32 (MVar RPCCall)) -> m ()
--- getAriviSecureRPC mp = do
---     resource <- fetchResource (RpcPayload AriviSecureRPC "<GET_Resource>")
---
---     liftIO $ print "here"
---     liftIO $ print resource
--- theMessage :: Either a (RpcPayload b String) -> Maybe String;
--- theMessage (Right (RpcPayload _ str)) = Just str;
--- theMessage _ = Nothing
 stuffPublisher ::
      (HasP2PEnv env m ServiceResource ServiceTopic String String) => m ()
 stuffPublisher =
@@ -237,10 +210,6 @@ instance HasSubscribers (ServiceEnv m r t rmsg pmsg) t where
 instance HasNotifiers (ServiceEnv m r t rmsg pmsg) t where
   notifiers = pubSubNotifiers . psEnv . p2pEnv
 
--- instance HasInbox (ServiceEnv m r t rmsg pmsg) pmsg where
---     inbox = pubSubInbox . psEnv . p2pEnv
--- instance HasCache (ServiceEnv m r t rmsg pmsg) pmsg where
---     cache = pubSubCache . psEnv . p2pEnv
 instance HasPubSubEnv (ServiceEnv m r t rmsg pmsg) t where
   pubSubEnv = psEnv . p2pEnv
 
