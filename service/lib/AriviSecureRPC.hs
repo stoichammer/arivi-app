@@ -37,18 +37,24 @@ import GHC.Generics
 
 import Data.ByteString as BS
 import Data.Hashable
-import Data.Text.Lazy as TL
 
-import Control.Monad.Reader
-import Network.Simple.TCP as T
-
+--import Data.Text.Lazy as TL
 import AriviNetworkServiceHandler
 import Control.Concurrent.Async.Lifted (async)
 import Control.Concurrent.MVar
 import Control.Concurrent.STM
+import Control.Monad.Reader
+import qualified Data.ByteString.Char8 ()
+import qualified Data.ByteString.Lazy as LBS
 import Data.Map.Strict as M
+import Data.Serialize
 import Data.Set as Set
+import Data.Text as DT
+import Network.Simple.TCP as T
+import System.Random
+import Text.Printf
 
+--import Text.Printf
 --import STMContainers.Map as HM
 import Service_Types ()
 import Thrift.Protocol.Binary ()
@@ -93,8 +99,8 @@ newtype MsgIdMapper =
 data TCPEnv =
   TCPEnv
     { tcpConn :: (Socket, SockAddr)
-    , reqQueue :: TChan (IPCRequest, (MVar BS.ByteString))
-    , msgMatch :: TVar (M.Map Int (MVar BS.ByteString))
+    , reqQueue :: TChan (IPCRequest, (MVar String))
+    , msgMatch :: TVar (M.Map Int (MVar String))
     } --deriving(Eq, Ord, Show)
 
 class HasTCPEnv env where
@@ -116,16 +122,15 @@ type HasService env m
 
 globalHandlerRpc :: (HasService env m) => String -> m (Maybe String)
 globalHandlerRpc msg = do
-  liftIO $ print ("globalHandlerRpc called..")
   tcpE <- asks getTCPEnv
   let que = reqQueue tcpE
-  mid <- randomRIO (1, 268435456)
-  let req = IPCRequest mid "RPC" (M.singleton "encReq" msg)
+  mid <- liftIO $ randomRIO (1, 268435456)
+  let req = IPCRequest mid "RPC_REQ" (M.singleton "encReq" msg)
   mv <- liftIO $ newEmptyMVar
   liftIO $ atomically $ writeTChan que (req, mv)
-  resp1 <- liftIO $ takeMVar mv
-  liftIO $ print (show resp1)
-  return (Just (show resp1))
+  resp <- liftIO $ takeMVar mv
+  liftIO $ print (resp)
+  return (Just (resp))
 
 processIPCRequests :: (HasService env m) => m ()
 processIPCRequests =
@@ -138,26 +143,64 @@ processIPCRequests =
     mp <- liftIO $ readTVarIO mm
     let nmp = M.insert (msgid (fst req)) (snd req) mp
     liftIO $ atomically $ writeTVar mm nmp
+    liftIO $ print (A.encode (fst req))
     T.sendLazy (fst connSock) (A.encode (fst req))
     return ()
 
-processIPCResponses :: (HasService env m) => m ()
-processIPCResponses =
+handleResponse :: Socket -> TVar (M.Map Int (MVar String)) -> IO ()
+handleResponse connSock mm =
   forever $ do
-    tcpE <- asks getTCPEnv
-    let connSock = tcpConn tcpE
-    let mm = msgMatch tcpE
+    lenBytes <- T.recv connSock 2
     mp <- liftIO $ readTVarIO mm
-    bytes <- liftIO $ T.recv (fst connSock) 1024
-    case bytes of
-      Just x -> do
-        liftIO $ print (show x)
-        let mv = M.lookup 123 mp
-        case mv of
-          Just a -> liftIO $ putMVar a x
-          Nothing -> liftIO $ print ("HM lookup failed.")
-      Nothing -> liftIO $ print ("Nothing.")
+    case lenBytes of
+      Just l -> do
+        let lenPrefix = runGet getWord16be l -- Char8.readInt l
+        case lenPrefix of
+          Right a -> do
+            pl <- T.recv connSock (fromIntegral (toInteger a))
+            case pl of
+              Just y -> do
+                let lz = (LBS.fromStrict y)
+                let ipcReq = A.decode lz :: Maybe IPCRequest
+                case ipcReq of
+                  Just x -> do
+                    printf "Decoded resp: %s\n" (show x)
+                    let mid = msgid x
+                    case (M.lookup "encResp" (params x)) of
+                      Just rsp -> do
+                        printf "msgid: %d\n" (mid)
+                        let mv = M.lookup mid mp
+                        case mv of
+                          Just k -> do
+                            liftIO $ putMVar k rsp
+                            return ()
+                          Nothing -> liftIO $ print ("HM lookup failed.")
+                        return ()
+                      Nothing -> printf "Invalid payload.\n"
+                  Nothing ->
+                    printf "Decode 'IPCRequest' failed.\n" (show ipcReq)
+              Nothing -> printf "Payload read error\n"
+          Left _b -> printf "Length prefix corrupted.\n"
+      Nothing -> printf "Connection closed.\n"
     return ()
+
+processIPCResponses :: (HasService env m) => m ()
+processIPCResponses = do
+  tcpE <- asks getTCPEnv
+  let connSock = fst (tcpConn tcpE)
+  let mm = msgMatch tcpE
+  liftIO $ handleResponse connSock mm
+  return ()
+    -- bytes <- liftIO $ T.recv connSock 1024
+    -- case bytes of
+    --   Just x -> do
+    --     liftIO $ print (show x)
+    --     let mv = M.lookup 123 mp
+    --     case mv of
+    --       Just a -> liftIO $ putMVar a x
+    --       Nothing -> liftIO $ print ("HM lookup failed.")
+    --   Nothing -> liftIO $ print ("Nothing.")
+    -- return ()
 
 -- registerAriviSecureRPC :: (HasP2PEnv env m ServiceResource String String String) => m ()
 -- registerAriviSecureRPC =
@@ -176,7 +219,7 @@ goGetResource ::
 goGetResource rpcCall = do
   let req = (request rpcCall)
   let ind = rPCReq_key req
-  let msg = show (rPCReq_request req)
+  let msg = DT.unpack (rPCReq_request req)
   liftIO $ print ("fetchResource")
   resource <- fetchResource (RpcPayload AriviSecureRPC msg)
   --liftIO $ print (typeOf resource)
@@ -184,13 +227,13 @@ goGetResource rpcCall = do
   case resource of
     Left _ -> do
       liftIO $ print "Exception: No peers available to issue RPC"
-      let errMsg = TL.pack "__EXCEPTION__NO_PEERS"
+      let errMsg = DT.pack "__EXCEPTION__NO_PEERS"
       liftIO $ (putMVar (response rpcCall) (RPCResp ind errMsg))
       return ()
     Right (RpcError _) -> liftIO $ print "Exception: RPC error"
     Right (RpcPayload _ str) -> do
       liftIO $ print (str)
-      let respMsg = TL.pack str
+      let respMsg = DT.pack str
       liftIO $ (putMVar (response rpcCall) (RPCResp ind respMsg))
       return ()
 

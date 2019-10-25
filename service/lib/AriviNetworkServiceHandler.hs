@@ -24,37 +24,40 @@ import Shared_Types
 import Data.Queue as Q
 
 --import Data.String
-import Data.Text.Lazy
+--import Data.Text.Lazy
 import GHC.Generics
 import Network.Simple.TCP
 
 import Data.Serialize
 
+import Control.Concurrent.Async.Lifted (async)
+import Data.Text as T
+
 --import Data.Maybe
 import Text.Printf
-
-import Control.Concurrent.Async.Lifted (async)
 
 --import Control.Exception (throw)
 import Control.Concurrent.MVar
 import Control.Concurrent.STM
 import Control.Monad
 import Data.Aeson as A
-import qualified Data.ByteString.Char8 as Char8
+
+--import qualified Data.ByteString.Char8 as Char8
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Map.Strict as M
+import Data.Text.Encoding
 
 data RPCReq =
   RPCReq
     { rPCReq_key :: Int
-    , rPCReq_request :: Text
+    , rPCReq_request :: T.Text
     }
   deriving (Show, Eq)
 
 data RPCResp =
   RPCResp
     { rPCResp_key :: Int
-    , rPCResp_response :: Text
+    , rPCResp_response :: T.Text
     }
   deriving (Show, Eq)
 
@@ -144,12 +147,13 @@ sendRequest :: MVar Socket -> TChan RPCCall -> Int -> String -> IO ()
 sendRequest sockMVar rpcQ mid encReq = do
   printf "sendRequest(%d, %s)\n" mid (show encReq)
   resp <- newEmptyMVar
-  let rpcCall = RPCCall (RPCReq mid (pack encReq)) (resp)
+  let rpcCall = RPCCall (RPCReq mid (T.pack encReq)) (resp)
   atomically $ writeTChan (rpcQ) rpcCall
   rpcResp <- (readMVar resp)
   let val = rPCResp_response rpcResp
   connSock <- takeMVar sockMVar
-  send connSock (Char8.pack $ (show val))
+  --send connSock (Char8.pack $ (show val))
+  send connSock (encodeUtf8 val)
   putMVar sockMVar connSock
   return ()
 

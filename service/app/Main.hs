@@ -160,8 +160,9 @@ runNode config ariviHandler
           t2 <- async (loopPubSub (pubSubQueue ariviHandler))
           async (processIPCRequests)
           async (processIPCResponses)
-          wait t1
-          wait t2)
+          -- wait t1
+          -- wait t2
+          liftIO $ threadDelay 99999999000000000)
   return ()
 
 main :: IO ()
