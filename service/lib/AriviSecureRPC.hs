@@ -44,8 +44,10 @@ import Control.Concurrent.Async.Lifted (async)
 import Control.Concurrent.MVar
 import Control.Concurrent.STM
 import Control.Monad.Reader
+import Data.Binary as DB
 import qualified Data.ByteString.Char8 ()
 import qualified Data.ByteString.Lazy as LBS
+import Data.Int
 import Data.Map.Strict as M
 import Data.Serialize
 import Data.Set as Set
@@ -99,7 +101,7 @@ newtype MsgIdMapper =
 data TCPEnv =
   TCPEnv
     { tcpConn :: (Socket, SockAddr)
-    , reqQueue :: TChan (IPCRequest, (MVar String))
+    , reqQueue :: TChan (IPCMessage, (MVar String))
     , msgMatch :: TVar (M.Map Int (MVar String))
     } --deriving(Eq, Ord, Show)
 
@@ -125,7 +127,7 @@ globalHandlerRpc msg = do
   tcpE <- asks getTCPEnv
   let que = reqQueue tcpE
   mid <- liftIO $ randomRIO (1, 268435456)
-  let req = IPCRequest mid "RPC_REQ" (M.singleton "encReq" msg)
+  let req = IPCMessage mid "RPC_REQ" (M.singleton "encReq" msg)
   mv <- liftIO $ newEmptyMVar
   liftIO $ atomically $ writeTChan que (req, mv)
   resp <- liftIO $ takeMVar mv
@@ -136,15 +138,19 @@ processIPCRequests :: (HasService env m) => m ()
 processIPCRequests =
   forever $ do
     tcpE <- asks getTCPEnv
-    let connSock = tcpConn tcpE
+    let connSock = fst (tcpConn tcpE)
     let que = reqQueue tcpE
     let mm = msgMatch tcpE
     req <- liftIO $ atomically $ readTChan que
     mp <- liftIO $ readTVarIO mm
     let nmp = M.insert (msgid (fst req)) (snd req) mp
     liftIO $ atomically $ writeTVar mm nmp
-    liftIO $ print (A.encode (fst req))
-    T.sendLazy (fst connSock) (A.encode (fst req))
+    let body = A.encode (fst req)
+    liftIO $ print (body)
+    let ma = LBS.length body
+    let xa = Prelude.fromIntegral (ma) :: Int16
+    T.sendLazy connSock (DB.encode (xa :: Int16))
+    T.sendLazy connSock (body)
     return ()
 
 handleResponse :: Socket -> TVar (M.Map Int (MVar String)) -> IO ()
@@ -161,7 +167,7 @@ handleResponse connSock mm =
             case pl of
               Just y -> do
                 let lz = (LBS.fromStrict y)
-                let ipcReq = A.decode lz :: Maybe IPCRequest
+                let ipcReq = A.decode lz :: Maybe IPCMessage
                 case ipcReq of
                   Just x -> do
                     printf "Decoded resp: %s\n" (show x)
@@ -178,7 +184,7 @@ handleResponse connSock mm =
                         return ()
                       Nothing -> printf "Invalid payload.\n"
                   Nothing ->
-                    printf "Decode 'IPCRequest' failed.\n" (show ipcReq)
+                    printf "Decode 'IPCMessage' failed.\n" (show ipcReq)
               Nothing -> printf "Payload read error\n"
           Left _b -> printf "Length prefix corrupted.\n"
       Nothing -> printf "Connection closed.\n"

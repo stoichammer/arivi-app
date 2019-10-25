@@ -214,16 +214,12 @@ readTcpSock connection fragmentsHM =
         liftIO $ sendPing writeLock sock createFrame
         parcelOrFailAfterPing <- liftIO $ getParcelWithTimeout sock 60000000
         case parcelOrFailAfterPing of
-          Left e -> do
-            liftIO (print e)
-            throw e
+          Left e -> throw e
           Right parcel ->
             processParcel parcel connection fragmentsHM >>= \case
               Nothing -> readTcpSock connection fragmentsHM
               Just p2pMsg -> return p2pMsg
-      Left e -> do
-        liftIO (print e)
-        throw e
+      Left e -> throw e
       Right parcel ->
         processParcel parcel connection fragmentsHM >>= \case
           Nothing -> readTcpSock connection fragmentsHM
