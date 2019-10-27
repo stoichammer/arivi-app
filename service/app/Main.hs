@@ -172,8 +172,7 @@ main = do
   unless b (defaultConfig path)
   config <- Config.readConfig (path <> "/config.yaml")
   ariviHandler <- newAriviNetworkServiceHandler
-  _ <- async (setupIPCServer ariviHandler)
-      -- (Config.thriftListenPort config)
+  _ <- async (setupIPCServer ariviHandler (Config.thriftListenPort config))
       -- (Config.thriftRemotePort config)
   --let mv    = ariviThriftLog ariviHandler
   --let queue = rpcQueue ariviHandler

@@ -26,7 +26,7 @@ import Data.Queue as Q
 --import Data.String
 --import Data.Text.Lazy
 import GHC.Generics
-import Network.Simple.TCP
+import Network.Simple.TCP as ST
 
 import Data.Serialize
 
@@ -35,6 +35,8 @@ import Data.Text as T
 
 import Data.Binary as DB
 import Data.Int
+
+import Network.Socket
 
 --import Data.Maybe
 import Text.Printf
@@ -138,26 +140,55 @@ handleRPCReqResp sockMVar rpcQ mid encReq = do
   atomically $ writeTChan (rpcQ) rpcCall
   rpcResp <- (readMVar resp)
   let val = unpack (rPCResp_response rpcResp)
-  connSock <- takeMVar sockMVar
   let body = A.encode (IPCMessage mid "RPC_RESP" (M.singleton "encResp" val))
-  --let body = encodeUtf8 serial
   let ma = LBS.length body
   let xa = Prelude.fromIntegral (ma) :: Int16
+  connSock <- takeMVar sockMVar
   sendLazy connSock (DB.encode (xa :: Int16))
   sendLazy connSock (body)
+  putMVar sockMVar connSock
+  return ()
+
+handleSubscribeReqResp ::
+     MVar Socket -> TChan PubSubMsg -> Int -> String -> IO ()
+handleSubscribeReqResp sockMVar psQ mid subject = do
+  printf "handleSubscribeReqResp(%d, %s)\n" mid (subject)
+  let sub = Subscribe1 (subject)
+  atomically $ writeTChan (psQ) sub
+  let body = A.encode (IPCMessage mid "SUB_RESP" (M.singleton "status" "ACK"))
+  let ma = LBS.length body
+  let xa = Prelude.fromIntegral (ma) :: Int16
+  connSock <- takeMVar sockMVar
+  sendLazy connSock (DB.encode (xa :: Int16))
+  sendLazy connSock (body)
+  putMVar sockMVar connSock
+  return ()
+
+handlePublishReqResp ::
+     MVar Socket -> TChan PubSubMsg -> Int -> String -> String -> IO ()
+handlePublishReqResp sockMVar psQ mid subject body = do
+  printf "handlePublishReqResp(%d, %s, %s)\n" mid subject body
+  let pub = Publish1 (subject) (body)
+  atomically $ writeTChan (psQ) pub
+  let body1 = A.encode (IPCMessage mid "PUB_RESP" (M.singleton "status" "ACK"))
+  let ma = LBS.length body1
+  let xa = Prelude.fromIntegral (ma) :: Int16
+  connSock <- takeMVar sockMVar
+  sendLazy connSock (DB.encode (xa :: Int16))
+  sendLazy connSock (body1)
   putMVar sockMVar connSock
   return ()
 
 handleConnection :: AriviNetworkServiceHandler -> Socket -> IO ()
 handleConnection handler connSock =
   forever $ do
-    lenBytes <- recv connSock 2
+    lenBytes <- ST.recv connSock 2
     case lenBytes of
       Just l -> do
         let lenPrefix = runGet getWord16be l -- Char8.readInt l
         case lenPrefix of
           Right a -> do
-            payload <- recv connSock (fromIntegral (toInteger a))
+            payload <- ST.recv connSock (fromIntegral (toInteger a))
             case payload of
               Just y -> do
                 let lz = (LBS.fromStrict y)
@@ -166,28 +197,59 @@ handleConnection handler connSock =
                   Just x -> do
                     printf "Decoded (%s)\n" (show x)
                     sockMVar <- newMVar connSock
-                    case (M.lookup "encReq" (params x)) of
-                      Just enc -> do
-                        _ <-
-                          async
-                            (handleRPCReqResp
-                               (sockMVar)
-                               (rpcQueue handler)
-                               (msgid x)
-                               (enc))
-                        return ()
-                      Nothing -> printf "Invalid payload.\n"
+                    case (mtype x) of
+                      "RPC_REQ" -> do
+                        case (M.lookup "encReq" (params x)) of
+                          Just enc -> do
+                            _ <-
+                              async
+                                (handleRPCReqResp
+                                   (sockMVar)
+                                   (rpcQueue handler)
+                                   (msgid x)
+                                   (enc))
+                            return ()
+                          Nothing -> printf "Invalid payload.\n"
+                      "SUB_REQ" -> do
+                        case (M.lookup "subject" (params x)) of
+                          Just su -> do
+                            _ <-
+                              async
+                                (handleSubscribeReqResp
+                                   sockMVar
+                                   (pubSubQueue handler)
+                                   (msgid x)
+                                   su)
+                            return ()
+                          Nothing -> printf "Invalid payload.\n"
+                      "PUB_REQ" -> do
+                        case (M.lookup "subject" (params x)) of
+                          Just su -> do
+                            case (M.lookup "body" (params x)) of
+                              Just bdy -> do
+                                _ <-
+                                  async
+                                    (handlePublishReqResp
+                                       sockMVar
+                                       (pubSubQueue handler)
+                                       (msgid x)
+                                       su
+                                       bdy)
+                                return ()
+                              Nothing -> printf "Invalid payload.\n"
+                          Nothing -> printf "Invalid payload.\n"
+                      __ -> printf "Invalid message type.\n"
                   Nothing ->
                     printf "Decode 'IPCMessage' failed.\n" (show ipcReq)
               Nothing -> printf "Payload read error\n"
           Left _b -> printf "Length prefix corrupted.\n"
       Nothing -> printf "Connection closed.\n"
 
-setupIPCServer :: AriviNetworkServiceHandler -> IO ()
-setupIPCServer handler = do
+setupIPCServer :: AriviNetworkServiceHandler -> PortNumber -> IO ()
+setupIPCServer handler listenPort = do
   printf "Starting TCP (IPC) server..."
   _ <-
-    serve (Host "127.0.0.1") "9090" $ \(connSock, remoteAddr) -> do
+    serve (Host "127.0.0.1") (show listenPort) $ \(connSock, remoteAddr) -> do
       putStrLn $ "TCP connection established from " ++ show remoteAddr
       handleConnection handler connSock
   return ()

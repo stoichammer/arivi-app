@@ -35,7 +35,7 @@ import Codec.Serialise
 import Control.Monad.IO.Class
 import GHC.Generics
 
-import Data.ByteString as BS
+--import Data.ByteString as BS
 import Data.Hashable
 
 --import Data.Text.Lazy as TL
@@ -80,24 +80,6 @@ instance Serialise ServiceResource
 instance Hashable ServiceResource
                             --liftIO $ print (typeOf (thriftHandle resource))
 
-globalHandlerPubSub :: (HasService env m) => String -> m Status
-globalHandlerPubSub msg = do
-  val <- asks getTCPEnv
-  let _conn = tcpConn val
-  liftIO $ print (msg)
-  --_x <- liftIO $ Client.notify (conn, conn) (pack msg) (pack msg)
-  --liftIO $ print val
-  if msg /= "!@#!@#PUB_SUB_HEADER"
-    then do
-      liftIO (Prelude.putStrLn "Ok")
-      -- _ <- async (getHelloWorld msg)
-      return Ok
-    else liftIO (Prelude.putStrLn "Error") >>
-         return Arivi.P2P.PubSub.Types.Error
-
-newtype MsgIdMapper =
-  MsgIdMapper (M.Map Int (MVar BS.ByteString))
-
 data TCPEnv =
   TCPEnv
     { tcpConn :: (Socket, SockAddr)
@@ -133,6 +115,20 @@ globalHandlerRpc msg = do
   resp <- liftIO $ takeMVar mv
   liftIO $ print (resp)
   return (Just (resp))
+
+globalHandlerPubSub :: (HasService env m) => String -> m Status
+globalHandlerPubSub msg = do
+  liftIO $ print ("globalHandlerPubSub")
+  tcpE <- asks getTCPEnv
+  let que = reqQueue tcpE
+  mid <- liftIO $ randomRIO (1, 268435456)
+  let req = IPCMessage mid "PUB_REQ" (M.singleton "subject" msg)
+  mv <- liftIO $ newEmptyMVar
+  liftIO $ atomically $ writeTChan que (req, mv)
+  resp <- liftIO $ takeMVar mv
+      -- parse this response and either send Ok or Error, Arivi.P2P.PubSub.Types.Error
+  liftIO $ print (resp)
+  return (Ok)
 
 processIPCRequests :: (HasService env m) => m ()
 processIPCRequests =
@@ -197,16 +193,6 @@ processIPCResponses = do
   let mm = msgMatch tcpE
   liftIO $ handleResponse connSock mm
   return ()
-    -- bytes <- liftIO $ T.recv connSock 1024
-    -- case bytes of
-    --   Just x -> do
-    --     liftIO $ print (show x)
-    --     let mv = M.lookup 123 mp
-    --     case mv of
-    --       Just a -> liftIO $ putMVar a x
-    --       Nothing -> liftIO $ print ("HM lookup failed.")
-    --   Nothing -> liftIO $ print ("Nothing.")
-    -- return ()
 
 -- registerAriviSecureRPC :: (HasP2PEnv env m ServiceResource String String String) => m ()
 -- registerAriviSecureRPC =
