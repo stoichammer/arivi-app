@@ -2,6 +2,7 @@
 
 module Arivi.P2P.PeerMaintainer
   ( fillQuotas
+  , maintainSubscriptions
   ) where
 
 import qualified Arivi.P2P.Kademlia.Types as KademliaTypes
@@ -28,15 +29,18 @@ import Data.Set as Set
 
 -- | Sends subscribe messages for each topic to every passed peer.
 -- | TODO: Batched subscribes for multiple topics.
-sendSubscribes ::
+maintainSubscriptions ::
      (Serialise pmsg, Show t)
   => (HasP2PEnv env m r t rmsg pmsg) =>
-       [NodeId] -> m ()
-sendSubscribes nodeList = do
-  topicVar <- asks topics
-  topicList <- liftIO $ atomically $ readTVar topicVar
-  liftIO $ print (length topicList)
-  mapM_ (subscribeForTopic nodeList) (Set.toList topicList)
+       TVar [NodeId] -> m ()
+maintainSubscriptions nodeTV =
+  forever $ do
+    topicVar <- asks topics
+    topicList <- liftIO $ atomically $ readTVar topicVar
+    nodeList <- liftIO $ atomically $ readTVar nodeTV
+    liftIO $ print (length topicList)
+    mapM_ (subscribeForTopic nodeList) (Set.toList topicList)
+    liftIO $ threadDelay (30 * 1000000)
 
 subscribeForTopic ::
      (Serialise msg, Show t)
@@ -50,8 +54,8 @@ subscribeForTopic nodeList t =
 fillQuotas ::
      (Serialise pmsg, Show t)
   => (HasP2PEnv env m r t rmsg pmsg) =>
-       Integer -> m ()
-fillQuotas numPeers =
+       Integer -> TVar [NodeId] -> m ()
+fillQuotas numPeers nodeTV =
   forever $ do
     rpcRecord <- asks rpcEnv
     let Resourcers resourcers = rpcResourcers rpcRecord
@@ -65,7 +69,9 @@ fillQuotas numPeers =
         Right peers -> do
           peerNodeIds <- addPeerFromKademlia peers
           sendOptionsMessage peerNodeIds Options
-          sendSubscribes peerNodeIds
+          nodeList <- liftIO $ atomically $ readTVar nodeTV
+          let newNodeList = Set.toList (Set.fromList (nodeList ++ peerNodeIds))
+          liftIO $ atomically $ writeTVar nodeTV newNodeList
           liftIO $ threadDelay (30 * 1000000)
 
 isFilledHelper :: Int -> [TVar (Set a)] -> IO Bool

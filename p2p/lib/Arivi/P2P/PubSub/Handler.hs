@@ -19,7 +19,8 @@ import Arivi.P2P.Types
 
 import Codec.Serialise
 import Control.Concurrent.MVar ()
-import Control.Concurrent.STM
+
+-- import Control.Concurrent.STM
 import Control.Concurrent.STM.TVar ()
 import Control.Lens ()
 import Control.Monad.Reader
@@ -80,11 +81,11 @@ subscribeHandler ::
        NodeId -> Request ('PubSub 'Subscribe) (PubSubPayload t Timer) -> m (Response ('PubSub 'Subscribe) Status)
 subscribeHandler nid (PubSubRequest (PubSubPayload (t, subTimer))) = do
   subs <- asks subscribers
-  tops <- asks topics
-  topxx <- liftIO $ atomically $ readTVar tops
+  -- tops <- asks topics
+  -- topxx <- liftIO $ atomically $ readTVar tops
   liftIO $ print (t)
   $(logDebug) "Subscribe received handler invoked"
-  success <- liftIO $ newSubscriber nid subs topxx subTimer t
+  success <- liftIO $ newSubscriber nid subs subTimer t
   if success
     then return (PubSubResponse Ok)
     else return (PubSubResponse Error)

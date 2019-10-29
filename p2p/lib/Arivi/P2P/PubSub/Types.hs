@@ -96,11 +96,10 @@ newSubscriber ::
      (Ord t, Hashable t)
   => NodeId
   -> Subscribers t
-  -> Set t
   -> Integer -- Timer
   -> t
   -> IO Bool
-newSubscriber nid (Subscribers subs) _topics _ t = do
+newSubscriber nid (Subscribers subs) _ t = do
   yy <- liftIO $ atomically $ (H.lookup t subs)
   case yy of
     Just x
