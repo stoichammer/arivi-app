@@ -10,57 +10,42 @@
 
 module AriviSecureRPC
   ( module AriviSecureRPC
-        -- ServiceResource(..) ,
-        -- globalHandlerRpc,
-        -- loopCall
   ) where
 
-import Arivi.P2P.P2PEnv
-
--- import Arivi.P2P.RPC.Functions
--- import Arivi.P2P.RPC.Types
-import Arivi.P2P.Types
-
 import Arivi.P2P.MessageHandler.HandlerTypes
+import Arivi.P2P.P2PEnv
 import Arivi.P2P.PubSub.Class
 import Arivi.P2P.PubSub.Env
 import Arivi.P2P.PubSub.Publish as Pub
 import Arivi.P2P.PubSub.Types
 import Arivi.P2P.RPC.Env
 import Arivi.P2P.RPC.Fetch
+import Arivi.P2P.Types
 import Arivi.P2P.Types ()
-import Data.Aeson as A
-
-import Codec.Serialise
-import Control.Monad.IO.Class
-import GHC.Generics
-
---import Data.ByteString as BS
-import Data.Hashable
-
---import Data.Text.Lazy as TL
 import AriviNetworkServiceHandler
+import Codec.Serialise
+import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async.Lifted (async)
 import Control.Concurrent.MVar
 import Control.Concurrent.STM
+import Control.Monad.IO.Class
 import Control.Monad.Reader
+import Data.Aeson as A
 import Data.Binary as DB
 import qualified Data.ByteString.Char8 ()
 import qualified Data.ByteString.Lazy as LBS
+import Data.Hashable
 import Data.Int
 import Data.Map.Strict as M
 import Data.Serialize
 import Data.Set as Set
 import Data.Text as DT
+import GHC.Generics
 import Network.Simple.TCP as T
+import Service_Types ()
 import System.Random
 import Text.Printf
-
---import Text.Printf
---import STMContainers.Map as HM
-import Service_Types ()
 import Thrift.Protocol.Binary ()
-
 import Thrift.Server ()
 import Thrift.Transport ()
 
@@ -116,17 +101,18 @@ globalHandlerRpc msg = do
   liftIO $ print (resp)
   return (Just (resp))
 
-globalHandlerPubSub :: (HasService env m) => String -> m Status
-globalHandlerPubSub msg = do
+globalHandlerPubSub :: (HasService env m) => String -> String -> m Status
+globalHandlerPubSub tpc msg = do
   liftIO $ print ("globalHandlerPubSub")
   tcpE <- asks getTCPEnv
   let que = reqQueue tcpE
   mid <- liftIO $ randomRIO (1, 268435456)
-  let req = IPCMessage mid "PUB_REQ" (M.singleton "subject" msg)
+  let hm = M.union (M.singleton "subject" tpc) (M.singleton "body" msg)
+  let req = IPCMessage mid "PUB_REQ" hm
   mv <- liftIO $ newEmptyMVar
   liftIO $ atomically $ writeTChan que (req, mv)
   resp <- liftIO $ takeMVar mv
-      -- parse this response and either send Ok or Error, Arivi.P2P.PubSub.Types.Error
+  -- parse this response and either send Ok or Error, Arivi.P2P.PubSub.Types.Error
   liftIO $ print (resp)
   return (Ok)
 
@@ -168,22 +154,41 @@ handleResponse connSock mm =
                   Just x -> do
                     printf "Decoded resp: %s\n" (show x)
                     let mid = msgid x
-                    case (M.lookup "encResp" (params x)) of
-                      Just rsp -> do
-                        printf "msgid: %d\n" (mid)
-                        let mv = M.lookup mid mp
-                        case mv of
-                          Just k -> do
-                            liftIO $ putMVar k rsp
+                    case (mtype x) of
+                      "RPC_RESP" -> do
+                        case (M.lookup "encResp" (params x)) of
+                          Just rsp -> do
+                            printf "msgid: %d\n" (mid)
+                            case (M.lookup mid mp) of
+                              Just k -> do
+                                liftIO $ putMVar k rsp
+                                return ()
+                              Nothing -> liftIO $ print ("HM lookup failed.")
                             return ()
-                          Nothing -> liftIO $ print ("HM lookup failed.")
-                        return ()
-                      Nothing -> printf "Invalid payload.\n"
+                          Nothing -> printf "Invalid RPC payload.\n"
+                      "PUB_RESP" -> do
+                        case (M.lookup "status" (params x)) of
+                          Just "ACK" -> do
+                            printf "Publish resp status: Ok!\n"
+                            case (M.lookup mid mp) of
+                              Just k -> do
+                                liftIO $ putMVar k "ACK"
+                              Nothing -> liftIO $ print ("HM lookup failed.")
+                          Just "ERR" -> do
+                            printf "Publish resp status: Error!\n"
+                            case (M.lookup mid mp) of
+                              Just k -> do
+                                liftIO $ putMVar k "ERR"
+                              Nothing -> liftIO $ print ("HM lookup failed.")
+                          ___ -> printf "Invalid Publish resp status.\n"
+                      ___ -> printf "Invalid message type.\n"
                   Nothing ->
                     printf "Decode 'IPCMessage' failed.\n" (show ipcReq)
               Nothing -> printf "Payload read error\n"
           Left _b -> printf "Length prefix corrupted.\n"
-      Nothing -> printf "Connection closed.\n"
+      Nothing -> do
+        printf "Connection closed.\n"
+        liftIO $ threadDelay 15000000
     return ()
 
 processIPCResponses :: (HasService env m) => m ()

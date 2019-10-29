@@ -10,48 +10,27 @@ module AriviNetworkServiceHandler
   , RPCResp(..)
   , PubSubMsg(..)
   , IPCMessage(..)
-  -- , Subscribe1(..)
-  -- , Notify1(..)
-  -- , Publish(..)
   ) where
 
---import qualified AriviNetworkService
--- import AriviNetworkService_Iface
-import Shared_Types
-
---import Codec.Serialise as S
---import Data.Int
-import Data.Queue as Q
-
---import Data.String
---import Data.Text.Lazy
-import GHC.Generics
-import Network.Simple.TCP as ST
-
-import Data.Serialize
-
+import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async.Lifted (async)
-import Data.Text as T
-
-import Data.Binary as DB
-import Data.Int
-
-import Network.Socket
-
---import Data.Maybe
-import Text.Printf
-
---import Control.Exception (throw)
 import Control.Concurrent.MVar
 import Control.Concurrent.STM
 import Control.Monad
+import Control.Monad.IO.Class
 import Data.Aeson as A
-
---import qualified Data.ByteString as BS
+import Data.Binary as DB
 import qualified Data.ByteString.Lazy as LBS
+import Data.Int
 import qualified Data.Map.Strict as M
+import Data.Serialize
+import Data.Text as T
+import GHC.Generics
+import Network.Simple.TCP as ST
+import Network.Socket
+import Shared_Types
+import Text.Printf
 
---import Data.Text.Encoding
 data RPCReq =
   RPCReq
     { rPCReq_key :: Int
@@ -110,28 +89,8 @@ newAriviNetworkServiceHandler = do
   logg <- newMVar mempty
   rpcQ <- atomically $ newTChan
   psQ <- atomically $ newTChan
-  --let localhost = "localhost" :: HostName
-  --transport <- hOpen ("localhost" :: HostName, PortNumber remotePort)
   return $ AriviNetworkServiceHandler logg rpcQ psQ
 
--- instance AriviNetworkService_Iface AriviNetworkServiceHandler where
---   ping _ = return (True)
---     -- args logid  & msg are passed from the remote side (thrift)
---   subscribe self top = do
---     printf "subscribe(%s)\n" top
---     let sub = Subscribe1 (show top)
---     atomically $ writeTChan (pubSubQueue self) sub
---     return (top)
---   publish self top msg = do
---     printf "publish(%s, %s)\n" top msg
---     let pub = Publish1 (show top) (show msg)
---     atomically $ writeTChan (pubSubQueue self) pub
---     return (top)
---   notify self top msg = do
---     printf "notify(%s, %s)\n" top msg
---     let ntf = Notify1 (show top) (show msg)
---     atomically $ writeTChan (pubSubQueue self) ntf
---     return (top)
 handleRPCReqResp :: MVar Socket -> TChan RPCCall -> Int -> String -> IO ()
 handleRPCReqResp sockMVar rpcQ mid encReq = do
   printf "handleRPCReqResp(%d, %s)\n" mid (show encReq)
@@ -243,7 +202,9 @@ handleConnection handler connSock =
                     printf "Decode 'IPCMessage' failed.\n" (show ipcReq)
               Nothing -> printf "Payload read error\n"
           Left _b -> printf "Length prefix corrupted.\n"
-      Nothing -> printf "Connection closed.\n"
+      Nothing -> do
+        printf "Connection closed.\n"
+        liftIO $ threadDelay 15000000
 
 setupIPCServer :: AriviNetworkServiceHandler -> PortNumber -> IO ()
 setupIPCServer handler listenPort = do
