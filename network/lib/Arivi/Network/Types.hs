@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE RankNTypes #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
-{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -52,25 +52,22 @@ module Arivi.Network.Types
     , HasUdpPort(..)
     ) where
 
-import           Arivi.Crypto.Utils.Keys.Encryption as Keys
-import           Arivi.Utils.Logging                (HasLogging)
-import           Codec.Serialise
-import           Codec.Serialise.Class
-import           Codec.Serialise.Decoding
-import           Codec.Serialise.Encoding
-import           Crypto.PubKey.Curve25519           as Curve25519 (PublicKey,
-                                                                   publicKey)
-import           Crypto.PubKey.Ed25519              as Ed25519 (SecretKey,
-                                                                Signature,
-                                                                signature)
-import           Data.ByteArray
-import           Data.ByteString
-import qualified Data.ByteString.Lazy               as BSL
-import           Data.Int                           (Int32, Int64, Int8)
-import           Data.Monoid   ()
-import           GHC.Generics
-import           Network.Socket                     as Network
-import           Control.Lens.TH
+import Arivi.Crypto.Utils.Keys.Encryption as Keys
+import Arivi.Utils.Logging (HasLogging)
+import Codec.Serialise
+import Codec.Serialise.Class
+import Codec.Serialise.Decoding
+import Codec.Serialise.Encoding
+import Control.Lens.TH
+import Crypto.PubKey.Curve25519 as Curve25519 (PublicKey, publicKey)
+import Crypto.PubKey.Ed25519 as Ed25519 (SecretKey, Signature, signature)
+import Data.ByteArray
+import Data.ByteString
+import qualified Data.ByteString.Lazy as BSL
+import Data.Int (Int32, Int64, Int8)
+import Data.Monoid ()
+import GHC.Generics
+import Network.Socket as Network
 
 type ConnectionId = ByteString
 
@@ -107,71 +104,80 @@ type PlainText = ByteString
 type CipherText = ByteString
 
 -- | This message is encrypted and sent in the handshake message
-data HandshakeInitMasked = HandshakeInitMessage
-    { versionList   :: [Version]
-    , connectionId  :: ConnectionId
-    , nonce         :: Nonce
-    , nodePublicKey :: NodeId
-    , signature     :: Signature
-    } deriving (Show, Eq, Generic)
+data HandshakeInitMasked =
+    HandshakeInitMessage
+        { versionList :: [Version]
+        , connectionId :: ConnectionId
+        , nonce :: Nonce
+        , nodePublicKey :: NodeId
+        , signature :: Signature
+        }
+    deriving (Show, Eq, Generic)
 
-data HandshakeRespMasked = HandshakeRespMsg
-    { versionList  :: [Version]
-    , nonce        :: Nonce
-    , connectionId :: ConnectionId
-    } deriving (Show, Eq, Generic)
+data HandshakeRespMasked =
+    HandshakeRespMsg
+        { versionList :: [Version]
+        , nonce :: Nonce
+        , connectionId :: ConnectionId
+        }
+    deriving (Show, Eq, Generic)
 
 -- | These are the different types of Headers for different types of Parcels
 data Header
-    = HandshakeInitHeader { ephemeralPublicKey :: PublicKey -- ^ `PublicKey` for
+    = HandshakeInitHeader
+          { ephemeralPublicKey :: PublicKey -- ^ `PublicKey` for
                                                       --    generating ssk
-                          , aeadNonce          :: AeadNonce --  ^ 8 Byte Nonce in
+          , aeadNonce :: AeadNonce --  ^ 8 Byte Nonce in
                                                       --    Int64 format
-                           }
-    | HandshakeRespHeader { ephemeralPublicKey :: PublicKey -- ^ `PublicKey` for
+          }
+    | HandshakeRespHeader
+          { ephemeralPublicKey :: PublicKey -- ^ `PublicKey` for
                                                         --    generating ssk
-                          , aeadNonce          :: AeadNonce -- ^ 8 Byte Nonce used
+          , aeadNonce :: AeadNonce -- ^ 8 Byte Nonce used
                                                        --   for encryption
-                           }
+          }
     | PingHeader
     | PongHeader
-    | DataHeader { messageId          :: MessageId -- ^ Unique Message
+    | DataHeader
+          { messageId :: MessageId -- ^ Unique Message
                                                       --   Identifier
-                 , fragmentNumber     :: FragmentNumber -- ^ Number of fragment
-                 , totalFragments     :: FragmentNumber -- ^ Total fragments in
+          , fragmentNumber :: FragmentNumber -- ^ Number of fragment
+          , totalFragments :: FragmentNumber -- ^ Total fragments in
                                                       --   current Message
-                 , parcelConnectionId :: ConnectionId -- ^ Connection Identifier
+          , parcelConnectionId :: ConnectionId -- ^ Connection Identifier
                                                       --   for particular
                                                       --   connection
-                 , nonce              :: Nonce -- ^ Nonce which
+          , nonce :: Nonce -- ^ Nonce which
                                                       --   increments by one
                                                       --   after each message
                                                       --   is sent. Useful for
                                                       --   preventing Replay
                                                       --   Attacks
-                 , aeadNonce          :: AeadNonce -- ^ 8 Byte Nonce used
+          , aeadNonce :: AeadNonce -- ^ 8 Byte Nonce used
                                                        --   for encryption
-                  }
-    | ErrorHeader { messageId          :: MessageId -- ^ Unique Message
+          }
+    | ErrorHeader
+          { messageId :: MessageId -- ^ Unique Message
                                                       --   Identifier
-                  , fragmentNumber     :: FragmentNumber -- ^ Number of fragment
-                  , totalFragments     :: FragmentNumber -- ^ Total fragments in
+          , fragmentNumber :: FragmentNumber -- ^ Number of fragment
+          , totalFragments :: FragmentNumber -- ^ Total fragments in
                                                       --   current Message
-                  , descriptor         :: Descriptor -- ^ Shows type of error
+          , descriptor :: Descriptor -- ^ Shows type of error
                                                     --   and other fields
-                  , parcelConnectionId :: ConnectionId -- ^ Connection Identifier
+          , parcelConnectionId :: ConnectionId -- ^ Connection Identifier
                                                       --   for particular
                                                       --   connection
-                   }
-    | ByeHeader { fragmentNumber     :: FragmentNumber -- ^ Number of fragment
-                , totalFragments     :: FragmentNumber -- ^ Total fragments in
+          }
+    | ByeHeader
+          { fragmentNumber :: FragmentNumber -- ^ Number of fragment
+          , totalFragments :: FragmentNumber -- ^ Total fragments in
                                                       --   current Message
-                , parcelConnectionId :: ConnectionId -- ^ Connection Identifier
+          , parcelConnectionId :: ConnectionId -- ^ Connection Identifier
                                                       --   for particular
                                                       --   connection
-                , messageId          :: MessageId -- ^ Unique Message
+          , messageId :: MessageId -- ^ Unique Message
                                                       --   Identifier
-                 }
+          }
     deriving (Show, Eq, Generic)
 
 -- | This is pseudo frame which contains `Header` and `CipherText`.These fields
@@ -180,10 +186,12 @@ data Header
 --   so it will be useful at the receiving side to know which type of Parcel is
 --   this. After encoding these fields length of the parcel in Plain Text is
 --   appended before sending on the Network.
-data Parcel = Parcel
-    { header           :: Header -- ^ Header of the Parcel
-    , encryptedPayload :: Payload -- ^ Encrypted `P2PMessage
-    } deriving (Show, Eq, Generic)
+data Parcel =
+    Parcel
+        { header :: Header -- ^ Header of the Parcel
+        , encryptedPayload :: Payload -- ^ Encrypted `P2PMessage
+        }
+    deriving (Show, Eq, Generic)
 
 makeDataParcel :: Header -> Payload -> Parcel
 makeDataParcel = Parcel
@@ -219,9 +227,11 @@ data TransportType
     | TCP
     deriving (Eq, Show, Generic, Read)
 
-newtype Payload = Payload
-    { getPayload :: BSL.ByteString
-    } deriving (Show, Eq, Generic)
+newtype Payload =
+    Payload
+        { getPayload :: BSL.ByteString
+        }
+    deriving (Show, Eq, Generic)
 
 instance Serialise Version
 
@@ -256,9 +266,7 @@ decodePublicKey = do
     len <- decodeListLen
     tag <- decodeWord
     case (len, tag) of
-        (2, 0) ->
-            throwCryptoError . publicKey <$>
-            (decode :: Decoder s Data.ByteString.ByteString)
+        (2, 0) -> throwCryptoError . publicKey <$> (decode :: Decoder s Data.ByteString.ByteString)
         _ -> fail "invalid PublicKey encoding"
 
 -- Serilaise instance for Signature
@@ -276,26 +284,27 @@ decodeSignature = do
     len <- decodeListLen
     tag <- decodeWord
     case (len, tag) of
-        (2, 0) ->
-            throwCryptoError . Ed25519.signature <$>
-            (decode :: Decoder s ByteString)
+        (2, 0) -> throwCryptoError . Ed25519.signature <$> (decode :: Decoder s ByteString)
         _ -> fail "invalid Signature encoding"
 
-data ConnectionHandle = ConnectionHandle
-    { send :: forall m. (HasLogging m) =>
-                            BSL.ByteString -> m ()
-    , recv :: forall m. (HasLogging m) =>
-                            m BSL.ByteString
-    , close :: forall m. (HasLogging m) =>
-                             m ()
-    }
+data ConnectionHandle =
+    ConnectionHandle
+        { send :: forall m. (HasLogging m) =>
+                                BSL.ByteString -> m ()
+        , recv :: forall m. (HasLogging m) =>
+                                m BSL.ByteString
+        , close :: forall m. (HasLogging m) =>
+                                 m ()
+        }
 
-data NetworkConfig = NetworkConfig
-    { _nodeId  :: NodeId
-    , _ip      :: HostName
-    , _udpPort :: PortNumber
-    , _tcpPort :: PortNumber
-    } deriving (Eq, Ord, Show, Generic)
+data NetworkConfig =
+    NetworkConfig
+        { _nodeId :: NodeId
+        , _ip :: HostName
+        , _udpPort :: PortNumber
+        , _tcpPort :: PortNumber
+        }
+    deriving (Eq, Ord, Show, Generic)
 
 defaultNetworkConfig :: NetworkConfig
 defaultNetworkConfig = NetworkConfig "0" "127.0.0.1" 6565 6565

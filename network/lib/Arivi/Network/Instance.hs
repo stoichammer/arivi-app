@@ -1,43 +1,35 @@
-{-# LANGUAGE Rank2Types          #-}
+{-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell     #-}
-{-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE QuasiQuotes         #-}
-{-# LANGUAGE RecordWildCards     #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Arivi.Network.Instance
     ( openConnection
     ) where
 
-import           Arivi.Env
-import           Arivi.Network.Connection        as Conn
-import           Arivi.Network.ConnectionHandler
-import           Arivi.Network.Exception
-import           Arivi.Network.Handshake
-import           Arivi.Network.StreamClient
-import           Arivi.Network.Types             as ANT (ConnectionHandle (..),
-                                                         PersonalityType (..),
-                                                         TransportType (..),
-                                                         NetworkConfig(..))
-import           Arivi.Utils.Logging
-import           Control.Exception               (try)
+import Arivi.Env
+import Arivi.Network.Connection as Conn
+import Arivi.Network.ConnectionHandler
+import Arivi.Network.Exception
+import Arivi.Network.Handshake
+import Arivi.Network.StreamClient
+import Arivi.Network.Types as ANT (ConnectionHandle(..), NetworkConfig(..), PersonalityType(..), TransportType(..))
+import Arivi.Utils.Logging
+import Control.Exception (try)
 
-import           Control.Monad.Reader
-import           Crypto.PubKey.Ed25519           (SecretKey)
-import           Data.HashMap.Strict             as HM
-import           Data.IORef
-import           Text.InterpolatedString.Perl6
+import Control.Monad.Reader
+import Crypto.PubKey.Ed25519 (SecretKey)
+import Data.HashMap.Strict as HM
+import Data.IORef
+import Text.InterpolatedString.Perl6
 
-doEncryptedHandshake ::
-       Conn.IncompleteConnection -> SecretKey -> IO Conn.CompleteConnection
+doEncryptedHandshake :: Conn.IncompleteConnection -> SecretKey -> IO Conn.CompleteConnection
 doEncryptedHandshake connection sk = do
     (ephemeralKeyPair, serialisedParcel) <- initiatorHandshake sk connection
-    sendFrame
-        (Conn.waitWrite connection)
-        (Conn.socket connection)
-        (frame serialisedParcel)
-    hsRespParcel <-
-        appropos (Conn.waitWrite connection) (Conn.socket connection)
+    sendFrame (Conn.waitWrite connection) (Conn.socket connection) (frame serialisedParcel)
+    hsRespParcel <- appropos (Conn.waitWrite connection) (Conn.socket connection)
     return $ receiveHandshakeResponse connection ephemeralKeyPair hsRespParcel
   where
     frame msg =
@@ -54,22 +46,18 @@ openConnection ::
     => NetworkConfig
     -> TransportType
     -> m (Either AriviNetworkException ConnectionHandle)
-openConnection NetworkConfig{..} tt  =
-    $(withLoggingTH)
-    (LogNetworkStatement [qc|Opening Connection to host {_ip} {portNum}|])
-        LevelDebug $ do
-            let cId = makeConnectionId _ip  portNum tt
-            sock <- liftIO $ createSocket _ip (read (show portNum)) tt
-            conn <-
-                liftIO $
-                mkIncompleteConnection cId _nodeId _ip portNum tt INITIATOR sock 2
-            case tt of
-                TCP -> openTcpConnection conn
-                UDP -> openUdpConnection conn
+openConnection NetworkConfig {..} tt =
+    $(withLoggingTH) (LogNetworkStatement [qc|Opening Connection to host {_ip} {portNum}|]) LevelDebug $ do
+        let cId = makeConnectionId _ip portNum tt
+        sock <- liftIO $ createSocket _ip (read (show portNum)) tt
+        conn <- liftIO $ mkIncompleteConnection cId _nodeId _ip portNum tt INITIATOR sock 2
+        case tt of
+            TCP -> openTcpConnection conn
+            UDP -> openUdpConnection conn
   where
-     portNum = portNum' tt
-     portNum' TCP = _tcpPort
-     portNum' UDP = _udpPort
+    portNum = portNum' tt
+    portNum' TCP = _tcpPort
+    portNum' UDP = _udpPort
 
 openTcpConnection ::
        forall m. (MonadIO m, HasLogging m, HasSecretKey m)
@@ -84,10 +72,10 @@ openTcpConnection conn = do
         Right updatedConn ->
             return . Right $
             ConnectionHandle
-            { ANT.send = sendTcpMessage updatedConn
-            , ANT.recv = readTcpSock updatedConn fragmentsHM
-            , ANT.close = closeConnection (Conn.socket updatedConn)
-            }
+                { ANT.send = sendTcpMessage updatedConn
+                , ANT.recv = readTcpSock updatedConn fragmentsHM
+                , ANT.close = closeConnection (Conn.socket updatedConn)
+                }
 
 openUdpConnection ::
        (MonadIO m, HasLogging m, HasSecretKey m)
@@ -101,7 +89,7 @@ openUdpConnection conn = do
         Right updatedConn ->
             return . Right $
             ConnectionHandle
-            { ANT.send = sendUdpMessage updatedConn
-            , ANT.recv = readUdpSock updatedConn
-            , ANT.close = closeConnection (Conn.socket updatedConn)
-            }
+                { ANT.send = sendUdpMessage updatedConn
+                , ANT.recv = readUdpSock updatedConn
+                , ANT.close = closeConnection (Conn.socket updatedConn)
+                }

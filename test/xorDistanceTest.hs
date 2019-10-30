@@ -1,13 +1,13 @@
-import           Arivi.Crypto.Utils.XorDistance
+import Arivi.Crypto.Utils.XorDistance
 
+firstKey =
+    "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
 
-firstKey =  "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-secondKey = "ffffefffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+secondKey =
+    "ffffefffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
 
-
-main :: IO()
+main :: IO ()
 main = do
-
-    print(getRawXor firstKey secondKey)
-    print(getXorDistance firstKey secondKey)
-    print(getXorDistance firstKey firstKey)
+    print (getRawXor firstKey secondKey)
+    print (getXorDistance firstKey secondKey)
+    print (getXorDistance firstKey firstKey)

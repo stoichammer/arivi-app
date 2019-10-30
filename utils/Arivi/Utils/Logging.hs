@@ -1,9 +1,9 @@
-{-# LANGUAGE ConstraintKinds       #-}
-{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings     #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Arivi.Utils.Logging
     ( LogStatement(..)
@@ -17,20 +17,20 @@ module Arivi.Utils.Logging
 
 --    , withChanLogging
 --    , withChanLoggingTH
-import           Control.Concurrent.STM
-import           Control.Exception           as CE
-import           Control.Exception.Lifted    as CEL
-import           Control.Monad.Catch
-import           Control.Monad.IO.Class
-import           Control.Monad.Logger
-import           Control.Monad.Trans.Control
-import           Data.Monoid            ()
-import           Data.Text                   as T
-import           Data.Time
-import           GHC.Stack
-import           Language.Haskell.TH
-import           Language.Haskell.TH.Syntax
-import           System.CPUTime
+import Control.Concurrent.STM
+import Control.Exception as CE
+import Control.Exception.Lifted as CEL
+import Control.Monad.Catch
+import Control.Monad.IO.Class
+import Control.Monad.Logger
+import Control.Monad.Trans.Control
+import Data.Monoid ()
+import Data.Text as T
+import Data.Time
+import GHC.Stack
+import Language.Haskell.TH
+import Language.Haskell.TH.Syntax
+import System.CPUTime
 
 type LogChan = TQueue (Loc, LogSource, LogLevel, Text)
 
@@ -38,27 +38,19 @@ data LogStatement
     = LogNetworkStatement Text
     | LogP2PStatement Text
 
-type HasLogging m
-     = ( MonadLogger m
-       , MonadIO m
-       , MonadBaseControl IO m
-       , MonadThrow m
-       , MonadCatch m
-       , HasCallStack)
+type HasLogging m = (MonadLogger m, MonadIO m, MonadBaseControl IO m, MonadThrow m, MonadCatch m, HasCallStack)
 
 toText :: LogStatement -> Text
 toText (LogNetworkStatement l) = "LogNetworkStatement " <> l
-toText (LogP2PStatement l)     = "LogP2PStatement " <> l
+toText (LogP2PStatement l) = "LogP2PStatement " <> l
 
 withLoggingTH :: Q Exp
 withLoggingTH = [|withLocLogging $(qLocation >>= liftLoc)|]
 
 --withChanLoggingTH :: Q Exp
 --withChanLoggingTH = [|withChanLocLogging $(qLocation >>= liftLoc)|]
-withLocLogging ::
-       (HasLogging m) => Loc -> LogStatement -> LogLevel -> m a -> m a
-withLocLogging loc ls ll =
-    logToF (monadLoggerLog loc (pack "") ll) (logOtherN ll) ls
+withLocLogging :: (HasLogging m) => Loc -> LogStatement -> LogLevel -> m a -> m a
+withLocLogging loc ls ll = logToF (monadLoggerLog loc (pack "") ll) (logOtherN ll) ls
 
 withLogging :: (HasLogging m) => LogStatement -> LogLevel -> m a -> m a
 withLogging = withLocLogging defaultLoc
@@ -80,11 +72,13 @@ logToF ::
     -> m a
 logToF lf rf ls action = do
     currentTime <- liftIO getCurrentTime
-    rf $ T.pack (show currentTime) <>  toText ls
+    rf $ T.pack (show currentTime) <> toText ls
     (_, result) <- timeIt action
     case result of
         Left (e :: SomeException) -> do
-            lf $ "Exception occured: " <> T.pack (displayException e) <> "at" <> T.pack (show $ prettyCallStack callStack)
+            lf $
+                "Exception occured: " <> T.pack (displayException e) <> "at" <>
+                T.pack (show $ prettyCallStack callStack)
             throwM e
         Right r
             -- TODO: rf ("Took: " <> pack (show time))

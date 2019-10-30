@@ -1,8 +1,8 @@
 {-# LANGUAGE Rank2Types, ScopedTypeVariables #-}
 
 module Arivi.P2P
-  ( module Arivi.P2P
-  ) where
+    ( module Arivi.P2P
+    ) where
 
 import Arivi.Network
 import qualified Arivi.P2P.Config as Config
@@ -25,23 +25,15 @@ emptyNodeList = []
 
 -- | Called by the service in Xoken core
 initP2P ::
-     (Serialise pmsg, Show t)
-  => (HasP2PEnv env m r t rmsg pmsg) =>
-       Config.Config -> m ()
+       (Serialise pmsg, Show t)
+    => (HasP2PEnv env m r t rmsg pmsg) =>
+           Config.Config -> m ()
 initP2P config = do
-  _ <-
-    async
-      (runUdpServer (show (Config.udpPort config)) newIncomingConnectionHandler)
-  _ <-
-    async
-      (runTcpServer (show (Config.tcpPort config)) newIncomingConnectionHandler)
-  loadDefaultPeers (Config.trustedPeers config)
-  liftIO $ threadDelay 5000000
-  -- reputedNodes <- getAllReputedNodes
-  -- loadReputedPeers reputedNodes -- What do I do with an error. Doing nothing for now
-  nl <- liftIO $ newTVarIO emptyNodeList
-  _ <- async $ fillQuotas 2 nl -- hardcoding here assuming each resource requires 2 peers
-  _ <- async $ maintainSubscriptions nl
-  return ()
-    -- wait tcpTid
-    -- wait udpTid
+    _ <- async (runUdpServer (show (Config.udpPort config)) newIncomingConnectionHandler)
+    _ <- async (runTcpServer (show (Config.tcpPort config)) newIncomingConnectionHandler)
+    loadDefaultPeers (Config.trustedPeers config)
+    liftIO $ threadDelay 5000000
+    nl <- liftIO $ newTVarIO emptyNodeList
+    _ <- async $ fillQuotas 2 nl -- hardcoding here assuming each resource requires 2 peers
+    _ <- async $ maintainSubscriptions nl
+    return ()

@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 
 module Arivi.Env
@@ -7,15 +7,17 @@ module Arivi.Env
 
 import qualified Crypto.PubKey.Ed25519 as Ed25519
 
-data AriviEnv = AriviEnv
-    { ariviEnvCryptoEnv :: CryptoEnv
-    , ariviEnvTcpPort   :: Int -- ^ TCP port for new connections
-    , ariviEnvUdpPort   :: Int -- ^ UDP port for new connections
-    }
+data AriviEnv =
+    AriviEnv
+        { ariviEnvCryptoEnv :: CryptoEnv
+        , ariviEnvTcpPort :: Int -- ^ TCP port for new connections
+        , ariviEnvUdpPort :: Int -- ^ UDP port for new connections
+        }
 
-data CryptoEnv = CryptoEnv
-    { cryptoEnvSecretKey :: Ed25519.SecretKey
-    }
+data CryptoEnv =
+    CryptoEnv
+        { cryptoEnvSecretKey :: Ed25519.SecretKey
+        }
 
 class (Monad m) =>
       HasNetworkEnv m
@@ -30,18 +32,5 @@ class (HasNetworkEnv m) =>
 
 mkAriviEnv :: Int -> Int -> Ed25519.SecretKey -> AriviEnv
 mkAriviEnv tcpPort udpPort sk =
-    AriviEnv
-        { ariviEnvCryptoEnv = CryptoEnv sk
-        , ariviEnvTcpPort = tcpPort
-        , ariviEnvUdpPort = udpPort
-        }
--- makeLensesWith camelCaseFields ''AriviNetworkInstance
--- makeLensesWith camelCaseFields ''AriviEnv
--- makeLensesWith camelCaseFields ''CryptoEnv
--- instance Has AriviNetworkInstance AriviEnv where
---     get = networkInstance
--- instance Has SecretKey AriviEnv where
---     get = cryptoEnv . secretKey
--- instance Has Socket AriviEnv where
---    get = udpSocket
+    AriviEnv {ariviEnvCryptoEnv = CryptoEnv sk, ariviEnvTcpPort = tcpPort, ariviEnvUdpPort = udpPort}
 --

@@ -1,17 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
 
---------------------------------------------------------------------------------
--- |
--- Module      : Arivi.P2P.LevelDB
--- License     :
--- Maintainer  : Mahesh Uligade <maheshuligade@gmail.com>
--- Stability   :
--- Portability :
---
--- This module provides different functions that are used in management of
--- database
---
---------------------------------------------------------------------------------
 module Arivi.P2P.LevelDB
     ( getDBPath
     , getValue
@@ -19,13 +7,11 @@ module Arivi.P2P.LevelDB
     , deleteValue
     ) where
 
-import           Control.Monad.IO.Unlift      (MonadUnliftIO)
-import           Control.Monad.Trans.Resource (runResourceT)
-import           Data.ByteString              (ByteString)
-import           Data.Default                 (def)
-import           Database.LevelDB             (bloomFilter, createIfMissing,
-                                               defaultOptions, delete,
-                                               filterPolicy, get, open, put)
+import Control.Monad.IO.Unlift (MonadUnliftIO)
+import Control.Monad.Trans.Resource (runResourceT)
+import Data.ByteString (ByteString)
+import Data.Default (def)
+import Database.LevelDB (bloomFilter, createIfMissing, defaultOptions, delete, filterPolicy, get, open, put)
 
 -- | This is path for the Database location
 getDBPath :: String
@@ -36,11 +22,7 @@ getValue :: (MonadUnliftIO m) => ByteString -> m (Maybe ByteString)
 getValue key =
     runResourceT $ do
         bloom <- bloomFilter 10
-        db <-
-            open
-                getDBPath
-                defaultOptions
-                {createIfMissing = True, filterPolicy = Just . Left $ bloom}
+        db <- open getDBPath defaultOptions {createIfMissing = True, filterPolicy = Just . Left $ bloom}
         get db def key
 
 -- | Stores given (Key,Value) pair in database
@@ -48,11 +30,7 @@ putValue :: (MonadUnliftIO m) => ByteString -> ByteString -> m ()
 putValue key value =
     runResourceT $ do
         bloom <- bloomFilter 10
-        db <-
-            open
-                getDBPath
-                defaultOptions
-                {createIfMissing = True, filterPolicy = Just . Left $ bloom}
+        db <- open getDBPath defaultOptions {createIfMissing = True, filterPolicy = Just . Left $ bloom}
         put db def key value
         return ()
 
@@ -61,10 +39,6 @@ deleteValue :: (MonadUnliftIO m) => ByteString -> m ()
 deleteValue key =
     runResourceT $ do
         bloom <- bloomFilter 10
-        db <-
-            open
-                getDBPath
-                defaultOptions
-                {createIfMissing = True, filterPolicy = Just . Left $ bloom}
+        db <- open getDBPath defaultOptions {createIfMissing = True, filterPolicy = Just . Left $ bloom}
         delete db def key
         return ()

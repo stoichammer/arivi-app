@@ -2,15 +2,15 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 
 module Arivi.P2P.MessageHandler.Utils
-  ( module Arivi.P2P.MessageHandler.Utils
-  ) where
+    ( module Arivi.P2P.MessageHandler.Utils
+    ) where
 
 import Arivi.Network
-  ( AriviNetworkException(..)
-  , ConnectionHandle(..)
-  , TransportType(..)
-  , openConnection
-  )
+    ( AriviNetworkException(..)
+    , ConnectionHandle(..)
+    , TransportType(..)
+    , openConnection
+    )
 import Arivi.P2P.Exception
 import Arivi.P2P.MessageHandler.HandlerTypes hiding (uuid)
 import Arivi.P2P.P2PEnv
@@ -29,11 +29,11 @@ import Data.UUID.V4 (nextRandom)
 
 logWithNodeId :: (HasLogging m) => NodeId -> String -> m ()
 logWithNodeId peerNodeId logLine =
-  $(logDebug) $ toS $ logLine ++ show peerNodeId
+    $(logDebug) $ toS $ logLine ++ show peerNodeId
 
 getNodeId :: TVar PeerDetails -> IO NodeId
 getNodeId peerDetailsTVar =
-  (^. networkConfig . nodeId) <$> readTVarIO peerDetailsTVar
+    (^. networkConfig . nodeId) <$> readTVarIO peerDetailsTVar
 
 -- | wraps the payload with message type { Kademlia | Rpc | PubSub} and UUID
 generateP2PMessage :: Maybe P2PUUID -> MessageType -> P2PPayload -> P2PMessage
@@ -55,16 +55,16 @@ getTransportType Option = TCP
 getTransportType _ = TCP
 
 networkToP2PException ::
-     Either AriviNetworkException a -> Either AriviP2PException a
+       Either AriviNetworkException a -> Either AriviP2PException a
 networkToP2PException (Left e) = Left (NetworkException e)
 networkToP2PException (Right a) = Right a
 
 -- | Wrapper around openConnection
 openConnectionToPeer ::
-     (HasNodeEndpoint m, HasLogging m)
-  => NetworkConfig
-  -> TransportType
-  -> m (Either AriviNetworkException ConnectionHandle)
+       (HasNodeEndpoint m, HasLogging m)
+    => NetworkConfig
+    -> TransportType
+    -> m (Either AriviNetworkException ConnectionHandle)
 openConnectionToPeer = openConnection
 
 safeDeserialise :: Either DeserialiseFailure a -> Either AriviP2PException a
@@ -81,48 +81,48 @@ getUUID = UUID.toString <$> nextRandom
 
 doesPeerExist :: TVar NodeIdPeerMap -> NodeId -> IO Bool
 doesPeerExist nodeIdPeerTVar peerNodeId =
-  HM.member peerNodeId <$> readTVarIO nodeIdPeerTVar
+    HM.member peerNodeId <$> readTVarIO nodeIdPeerTVar
 
 mkPeer :: NetworkConfig -> TransportType -> Handle -> STM (TVar PeerDetails)
 mkPeer nc transportType connHandle = do
-  lock <- newTMVar True
-  let peerDetails =
-        PeerDetails
-          { _networkConfig = nc
-          , _rep = 0.0 -- needs to be a float. Not a Maybe Int
-          , _streamHandle =
-              case transportType of
-                TCP -> connHandle
-                UDP -> NotConnected
-          , _datagramHandle =
-              case transportType of
-                UDP -> connHandle
-                TCP -> NotConnected
-          , _uuidMap = HM.empty
-          , _connectionLock = lock
-          }
-  newTVar peerDetails
+    lock <- newTMVar True
+    let peerDetails =
+            PeerDetails
+                { _networkConfig = nc
+                , _rep = 0.0 -- needs to be a float. Not a Maybe Int
+                , _streamHandle =
+                      case transportType of
+                          TCP -> connHandle
+                          UDP -> NotConnected
+                , _datagramHandle =
+                      case transportType of
+                          UDP -> connHandle
+                          TCP -> NotConnected
+                , _uuidMap = HM.empty
+                , _connectionLock = lock
+                }
+    newTVar peerDetails
 
 -- | Adds new peer passed details
 -- | Assume we get IP and portNumber as well.
 -- | Need to discuss if its really needed to store IP and port in case that the node is the recipient of the handshake
 addNewPeer :: NodeId -> TVar PeerDetails -> TVar NodeIdPeerMap -> STM ()
 addNewPeer peerNodeId peerDetailsTVar nodeIdMapTVar =
-  modifyTVar' nodeIdMapTVar (HM.insert peerNodeId peerDetailsTVar)
+    modifyTVar' nodeIdMapTVar (HM.insert peerNodeId peerDetailsTVar)
 
 -- | Updates the NodeIdPeerMap with the passed details
 -- | Need to discuss if its really needed to store IP and port in case that the node is the recipient of the handshake
 updatePeer :: TransportType -> Handle -> TVar PeerDetails -> STM ()
 updatePeer transportType connHandle peerDetailsTVar =
-  modifyTVar' peerDetailsTVar updateConnHandle
+    modifyTVar' peerDetailsTVar updateConnHandle
   where
     updateConnHandle peerDetails =
-      if transportType == TCP
-        then peerDetails & streamHandle .~ connHandle
-        else peerDetails & datagramHandle .~ connHandle
+        if transportType == TCP
+            then peerDetails & streamHandle .~ connHandle
+            else peerDetails & datagramHandle .~ connHandle
 
 -- | Create an entry in the nodeIdPeerDetails map with the given NetworkConfig and transportType
 addPeerToMap :: NetworkConfig -> TransportType -> TVar NodeIdPeerMap -> STM ()
 addPeerToMap nc transportType nodeIdMapTVar = do
-  peerDetailsTVar <- mkPeer nc transportType NotConnected
-  addNewPeer (nc ^. nodeId) peerDetailsTVar nodeIdMapTVar
+    peerDetailsTVar <- mkPeer nc transportType NotConnected
+    addNewPeer (nc ^. nodeId) peerDetailsTVar nodeIdMapTVar

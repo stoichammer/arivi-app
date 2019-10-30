@@ -1,12 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
 
--- |
--- Module      :  Arivi.Network.Replay
--- Copyright   :
--- License     :
--- Maintainer  :  Mahesh Uligade <maheshuligade@gmail.com>
--- Stability   :
--- Portability :
 --
 -- This module provides useful checking and preventing replay attack
 --
@@ -15,7 +8,7 @@ module Arivi.Network.Replay
     , noOfPendings
     ) where
 
-import           Data.List (genericSplitAt)
+import Data.List (genericSplitAt)
 
 -- | Checks if given nonce is present in the pending list
 isPresent :: Integer -> [(Integer, Integer)] -> Bool
@@ -35,8 +28,7 @@ updateElement n (leftPair, rightPair)
     | (&&) (leftPair == n) (n == rightPair) = []
     | (&&) (leftPair == n) (n < rightPair) = [(leftPair + 1, rightPair)]
     | (&&) (leftPair < n) (n == rightPair) = [(leftPair, rightPair - 1)]
-    | (&&) (leftPair < n) (n < rightPair) =
-        [(leftPair, n - 1), (n + 1, rightPair)]
+    | (&&) (leftPair < n) (n < rightPair) = [(leftPair, n - 1), (n + 1, rightPair)]
     | otherwise = error "Number is out of range"
 
 -- | Gives the index of the range pair where the nonce is present
@@ -57,21 +49,15 @@ updatePendingList replayNonce pendingList =
     case getRangeIndex replayNonce pendingList of
         Nothing -> pendingList
         Just index -> do
-            let (leftPart, middleElmt:rightPart) =
-                    genericSplitAt index pendingList
+            let (leftPart, middleElmt:rightPart) = genericSplitAt index pendingList
             let updatedMiddle = updateElement replayNonce middleElmt
-            let updatedPendingList =
-                    (++) ((++) leftPart updatedMiddle) rightPart
+            let updatedPendingList = (++) ((++) leftPart updatedMiddle) rightPart
             updatedPendingList
 
 -- | Checks if the given replayNonce is already received or not. If it is there
 -- then removes it from pending list and gives updated pending list and missing
 -- count
-isReplayAttack ::
-       Monad m
-    => Integer
-    -> [(Integer, Integer)]
-    -> m (Bool, [(Integer, Integer)])
+isReplayAttack :: Monad m => Integer -> [(Integer, Integer)] -> m (Bool, [(Integer, Integer)])
 isReplayAttack replayNonce pendingList =
     if isPresent replayNonce pendingList
         then return (False, updatePendingList replayNonce pendingList)

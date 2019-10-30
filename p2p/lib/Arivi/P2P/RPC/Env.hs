@@ -1,8 +1,8 @@
-{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE ConstraintKinds       #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ConstraintKinds #-}
 
 module Arivi.P2P.RPC.Env
     ( module Arivi.P2P.RPC.Env
@@ -16,18 +16,15 @@ import Data.HashMap.Strict as HM
 import Data.Hashable
 import Data.Set as Set
 
-data RpcEnv r msg = RpcEnv {
-      rpcResourcers :: Resourcers r
-}
+data RpcEnv r msg =
+    RpcEnv
+        { rpcResourcers :: Resourcers r
+        }
 
 class HasRpcEnv env r msg | env -> r msg where
     rpcEnv :: env -> RpcEnv r msg
 
-type HasRpc env r msg =
-    (   HasRpcEnv env r msg
-      , Eq r, Ord r, Hashable r, Serialise r
-      , Eq msg, Hashable msg, Serialise msg
-    )
+type HasRpc env r msg = (HasRpcEnv env r msg, Eq r, Ord r, Hashable r, Serialise r, Eq msg, Hashable msg, Serialise msg)
 
 mkRpc :: (Ord r, Hashable r) => [r] -> IO (RpcEnv r msg)
 mkRpc resourceList = do

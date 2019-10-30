@@ -7,13 +7,6 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances, ConstraintKinds #-}
 
--- |
--- Module      :  Arivi.P2P.Types
--- Copyright   :
--- License     :
--- Maintainer  :  Mahesh Uligade <maheshuligade@gmail.com>
--- Stability   :
--- Portability :
 --
 -- This module provides different data types that are used in the P2P layer
 --
@@ -24,15 +17,15 @@ module Arivi.P2P.Types
     , defaultNetworkConfig
     ) where
 
-import           Arivi.Network.Types (NetworkConfig(..), nodeId, defaultNetworkConfig)
-import           Codec.Serialise
-import           Codec.Serialise.Encoding
-import           Codec.Serialise.Decoding
-import           GHC.Generics        (Generic)
-import           Data.HashMap.Strict (HashMap)
-import           Data.Hashable
-import           Data.Proxy
-import           Data.Monoid ((<>))
+import Arivi.Network.Types (NetworkConfig(..), defaultNetworkConfig, nodeId)
+import Codec.Serialise
+import Codec.Serialise.Decoding
+import Codec.Serialise.Encoding
+import Data.HashMap.Strict (HashMap)
+import Data.Hashable
+import Data.Monoid ((<>))
+import Data.Proxy
+import GHC.Generics (Generic)
 
 type Map = HashMap
 
@@ -42,11 +35,12 @@ data PubSub
     | Subscribe
     deriving (Eq, Show, Ord, Generic, Serialise)
 
-data MessageType = Kademlia
-                 | Option
-                 | Rpc
-                 | PubSub PubSub
-                 deriving (Eq, Show, Ord, Generic, Serialise)
+data MessageType
+    = Kademlia
+    | Option
+    | Rpc
+    | PubSub PubSub
+    deriving (Eq, Show, Ord, Generic, Serialise)
 
 data Request :: MessageType -> * -> * where
     RpcRequest :: msg -> Request 'Rpc msg
@@ -61,93 +55,90 @@ data Response :: MessageType -> * -> * where
     PubSubResponse :: msg -> Response ('PubSub i) msg
 
 class Msg (i :: k) where
-  msgType :: Proxy i -> MessageType
+    msgType :: Proxy i -> MessageType
 
 instance Msg i => Msg (Request i msg) where
-  msgType _ = msgType (Proxy :: Proxy i)
+    msgType _ = msgType (Proxy :: Proxy i)
 
 instance (Msg i) => Msg (Response i msg) where
-  msgType _ = msgType (Proxy :: Proxy i)
+    msgType _ = msgType (Proxy :: Proxy i)
 
 instance Msg 'Rpc where
-  msgType _ = Rpc
+    msgType _ = Rpc
 
 instance Msg 'Option where
-  msgType _ = Option
+    msgType _ = Option
 
 instance Msg 'Kademlia where
-  msgType _ = Kademlia
+    msgType _ = Kademlia
 
 instance Msg ('PubSub 'Notify) where
-  msgType _ = PubSub Notify
+    msgType _ = PubSub Notify
 
 instance Msg ('PubSub 'Publish) where
-  msgType _ = PubSub Publish
+    msgType _ = PubSub Publish
 
 instance Msg ('PubSub 'Subscribe) where
-  msgType _ = PubSub Subscribe
+    msgType _ = PubSub Subscribe
 
 type Resource r = (Eq r, Hashable r, Serialise r)
 
-data Error = ResourceNotFound deriving (Eq, Ord, Show, Generic, Serialise)
+data Error =
+    ResourceNotFound
+    deriving (Eq, Ord, Show, Generic, Serialise)
 
-data RpcPayload r msg = RpcPayload r msg
-                      | RpcError Error 
-                      deriving (Eq, Ord, Show, Generic, Serialise)
+data RpcPayload r msg
+    = RpcPayload r msg
+    | RpcError Error
+    deriving (Eq, Ord, Show, Generic, Serialise)
 
-data OptionPayload msg = OptionPayload msg
-                       deriving (Eq, Ord, Show, Generic, Serialise)
+data OptionPayload msg =
+    OptionPayload msg
+    deriving (Eq, Ord, Show, Generic, Serialise)
 
-
-newtype PubSubPayload t msg = PubSubPayload (t, msg)
-                      deriving (Eq, Ord, Show, Generic, Serialise)
+newtype PubSubPayload t msg =
+    PubSubPayload (t, msg)
+    deriving (Eq, Ord, Show, Generic, Serialise)
 
 data family RTTI (f :: k -> *) :: (k -> *)
 
 class HasRTTI f a where
-  rtti :: RTTI f a
+    rtti :: RTTI f a
 
-data instance RTTI (Request i) msg where
-  RttiReqRpc :: RTTI (Request 'Rpc) msg
-  RttiReqKademlia :: RTTI (Request 'Kademlia) msg
-  RttiReqOption :: RTTI (Request 'Option) msg
-  RttiReqPubSub :: RTTI (Request ('PubSub i)) msg
+data instance  RTTI (Request i) msg where
+        RttiReqRpc :: RTTI (Request 'Rpc) msg
+        RttiReqKademlia :: RTTI (Request 'Kademlia) msg
+        RttiReqOption :: RTTI (Request 'Option) msg
+        RttiReqPubSub :: RTTI (Request ('PubSub i)) msg
 
 instance HasRTTI (Request 'Rpc) msg where
-  rtti = RttiReqRpc
+    rtti = RttiReqRpc
 
 instance HasRTTI (Request 'Kademlia) msg where
-  rtti = RttiReqKademlia
+    rtti = RttiReqKademlia
 
 instance HasRTTI (Request 'Option) msg where
-  rtti = RttiReqOption
-
+    rtti = RttiReqOption
 
 instance HasRTTI (Request ('PubSub i)) msg where
-  rtti = RttiReqPubSub
+    rtti = RttiReqPubSub
 
 -- GHC can't derive Generic instances for GADTs, so we need to write
 -- serialise instances by hand. The encoding part is trvial, decoding gets
 -- tricky. The following code uses a data family to propagate some type level
 -- info to runtime. See https://www.well-typed.com/blog/2017/06/rtti/ . An
 -- alternate approach using Singletons is also provided below
-
-instance (HasRTTI (Request i) msg, Serialise msg) =>
-         Serialise (Request i msg) where
+instance (HasRTTI (Request i) msg, Serialise msg) => Serialise (Request i msg) where
     encode = encodeRequest
     decode = decodeRequest rtti
 
 encodeRequest :: (Serialise msg) => Request i msg -> Encoding
 encodeRequest (RpcRequest msg) = encodeListLen 2 <> encodeWord 0 <> encode msg
-encodeRequest (OptionRequest msg) =
-    encodeListLen 2 <> encodeWord 1 <> encode msg
-encodeRequest (KademliaRequest msg) =
-    encodeListLen 2 <> encodeWord 2 <> encode msg
-encodeRequest (PubSubRequest msg) =
-    encodeListLen 2 <> encodeWord 3 <> encode msg
+encodeRequest (OptionRequest msg) = encodeListLen 2 <> encodeWord 1 <> encode msg
+encodeRequest (KademliaRequest msg) = encodeListLen 2 <> encodeWord 2 <> encode msg
+encodeRequest (PubSubRequest msg) = encodeListLen 2 <> encodeWord 3 <> encode msg
 
-decodeRequest ::
-       (Serialise msg) => RTTI (Request i) msg -> Decoder s (Request i msg)
+decodeRequest :: (Serialise msg) => RTTI (Request i) msg -> Decoder s (Request i msg)
 decodeRequest RttiReqRpc = do
     len <- decodeListLen
     tag <- decodeWord
@@ -166,7 +157,6 @@ decodeRequest RttiReqKademlia = do
     case (len, tag) of
         (2, 2) -> KademliaRequest <$> decode
         _ -> fail "Invalid KademliaRequest type"
-
 decodeRequest RttiReqPubSub = do
     len <- decodeListLen
     tag <- decodeWord
@@ -192,22 +182,17 @@ instance HasRTTI (Response 'Kademlia) msg where
 instance HasRTTI (Response ('PubSub i)) msg where
     rtti = RttiResPubSub
 
-instance (HasRTTI (Response i) msg, Serialise msg) =>
-         Serialise (Response i msg) where
+instance (HasRTTI (Response i) msg, Serialise msg) => Serialise (Response i msg) where
     encode = encodeResponse
     decode = decodeResponse rtti
 
 encodeResponse :: (Serialise msg) => Response i msg -> Encoding
 encodeResponse (RpcResponse msg) = encodeListLen 2 <> encodeWord 0 <> encode msg
-encodeResponse (OptionResponse msg) =
-    encodeListLen 2 <> encodeWord 1 <> encode msg
-encodeResponse (KademliaResponse msg) =
-    encodeListLen 2 <> encodeWord 2 <> encode msg
-encodeResponse (PubSubResponse msg) =
-    encodeListLen 2 <> encodeWord 3 <> encode msg
+encodeResponse (OptionResponse msg) = encodeListLen 2 <> encodeWord 1 <> encode msg
+encodeResponse (KademliaResponse msg) = encodeListLen 2 <> encodeWord 2 <> encode msg
+encodeResponse (PubSubResponse msg) = encodeListLen 2 <> encodeWord 3 <> encode msg
 
-decodeResponse ::
-       (Serialise msg) => RTTI (Response i) msg -> Decoder s (Response i msg)
+decodeResponse :: (Serialise msg) => RTTI (Response i) msg -> Decoder s (Response i msg)
 decodeResponse RttiResRpc = do
     len <- decodeListLen
     tag <- decodeWord
@@ -233,7 +218,6 @@ decodeResponse RttiResPubSub = do
         (2, 3) -> PubSubResponse <$> decode
         _ -> fail "Failed to deserialise into a valid PubSubResponse type"
 
-
 deriving instance (Eq i) => Eq (Request t i)
 
 compareRequest :: (Ord i) => Request t i -> Request t i -> Ordering
@@ -243,8 +227,7 @@ compareRequest (OptionRequest a) (OptionRequest b) = compare a b
 compareRequest (PubSubRequest a) (PubSubRequest b) = compare a b
 
 instance (Ord i) => Ord (Request t i) where
-  compare = compareRequest
-
+    compare = compareRequest
 
 deriving instance (Eq i) => Eq (Response t i)
 
@@ -255,8 +238,7 @@ compareResponse (OptionResponse a) (OptionResponse b) = compare a b
 compareResponse (PubSubResponse a) (PubSubResponse b) = compare a b
 
 instance (Ord i) => Ord (Response t i) where
-  compare = compareResponse
-
+    compare = compareResponse
 {-
 -- Serialise instances for Request and Response GADTs using Singletons
 data instance Sing (m :: MessageType) where
