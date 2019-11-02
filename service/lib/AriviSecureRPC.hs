@@ -125,6 +125,43 @@ processIPCRequests =
         T.sendLazy connSock (body)
         return ()
 
+decodeIPCResponse :: M.Map Int (MVar String) -> LBS.ByteString -> IO ()
+decodeIPCResponse mp resp = do
+    let ipcReq = A.decode resp :: Maybe IPCMessage
+    case ipcReq of
+        Just x -> do
+            printf "Decoded resp: %s\n" (show x)
+            let mid = msgid x
+            case (mtype x) of
+                "RPC_RESP" -> do
+                    case (M.lookup "encResp" (params x)) of
+                        Just rsp -> do
+                            printf "msgid: %d\n" (mid)
+                            case (M.lookup mid mp) of
+                                Just k -> do
+                                    liftIO $ putMVar k rsp
+                                    return ()
+                                Nothing -> liftIO $ print ("Lookup failed.")
+                            return ()
+                        Nothing -> printf "Invalid RPC payload.\n"
+                "PUB_RESP" -> do
+                    case (M.lookup "status" (params x)) of
+                        Just "ACK" -> do
+                            printf "Publish resp status: Ok!\n"
+                            case (M.lookup mid mp) of
+                                Just k -> do
+                                    liftIO $ putMVar k "ACK"
+                                Nothing -> liftIO $ print ("Lookup failed.")
+                        Just "ERR" -> do
+                            printf "Publish resp status: Error!\n"
+                            case (M.lookup mid mp) of
+                                Just k -> do
+                                    liftIO $ putMVar k "ERR"
+                                Nothing -> liftIO $ print ("Lookup failed.")
+                        ___ -> printf "Invalid Publish resp status.\n"
+                ___ -> printf "Invalid message type.\n"
+        Nothing -> printf "Decode 'IPCMessage' failed.\n" (show ipcReq)
+
 handleResponse :: Socket -> TVar (M.Map Int (MVar String)) -> IO ()
 handleResponse connSock mm =
     forever $ do
@@ -137,42 +174,7 @@ handleResponse connSock mm =
                     Right a -> do
                         pl <- T.recv connSock (fromIntegral (toInteger a))
                         case pl of
-                            Just y -> do
-                                let lz = (LBS.fromStrict y)
-                                let ipcReq = A.decode lz :: Maybe IPCMessage
-                                case ipcReq of
-                                    Just x -> do
-                                        printf "Decoded resp: %s\n" (show x)
-                                        let mid = msgid x
-                                        case (mtype x) of
-                                            "RPC_RESP" -> do
-                                                case (M.lookup "encResp" (params x)) of
-                                                    Just rsp -> do
-                                                        printf "msgid: %d\n" (mid)
-                                                        case (M.lookup mid mp) of
-                                                            Just k -> do
-                                                                liftIO $ putMVar k rsp
-                                                                return ()
-                                                            Nothing -> liftIO $ print ("HM lookup failed.")
-                                                        return ()
-                                                    Nothing -> printf "Invalid RPC payload.\n"
-                                            "PUB_RESP" -> do
-                                                case (M.lookup "status" (params x)) of
-                                                    Just "ACK" -> do
-                                                        printf "Publish resp status: Ok!\n"
-                                                        case (M.lookup mid mp) of
-                                                            Just k -> do
-                                                                liftIO $ putMVar k "ACK"
-                                                            Nothing -> liftIO $ print ("HM lookup failed.")
-                                                    Just "ERR" -> do
-                                                        printf "Publish resp status: Error!\n"
-                                                        case (M.lookup mid mp) of
-                                                            Just k -> do
-                                                                liftIO $ putMVar k "ERR"
-                                                            Nothing -> liftIO $ print ("HM lookup failed.")
-                                                    ___ -> printf "Invalid Publish resp status.\n"
-                                            ___ -> printf "Invalid message type.\n"
-                                    Nothing -> printf "Decode 'IPCMessage' failed.\n" (show ipcReq)
+                            Just y -> decodeIPCResponse mp $ LBS.fromStrict y
                             Nothing -> printf "Payload read error\n"
                     Left _b -> printf "Length prefix corrupted.\n"
             Nothing -> do

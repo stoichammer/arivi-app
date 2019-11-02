@@ -42,7 +42,6 @@ import Data.ByteString.Lazy as BSL (ByteString)
 import Data.ByteString.Lazy.Char8 as BSLC (pack)
 import Data.Int
 import Data.Map.Strict as M
-import Data.Monoid ((<>))
 import Data.String.Conv
 import Data.Text
 import Data.Typeable
@@ -114,9 +113,7 @@ defaultConfig path = do
     Config.makeConfig config (path <> "/config.yaml")
 
 runNode :: Config.Config -> AriviNetworkServiceHandler -> IO ()
-runNode config ariviHandler
-    -- config <- Config.readConfig configPath
- = do
+runNode config ariviHandler = do
     p2pEnv <- mkP2PEnv config globalHandlerRpc globalHandlerPubSub [AriviSecureRPC] []
     let rPort = Config.thriftRemotePort config
     sockTuple <- connectSock "127.0.0.1" (show rPort)
@@ -129,14 +126,10 @@ runNode config ariviHandler
         runAppM
             serviceEnv
             (do initP2P config
-                liftIO $ threadDelay 5000000
-                t1 <- async (loopRPC (rpcQueue ariviHandler))
+                --t1 <- async (loopRPC (rpcQueue ariviHandler))
                 t2 <- async (loopPubSub (pubSubQueue ariviHandler))
                 async (processIPCRequests)
-                async (processIPCResponses)
-          -- wait t1
-          -- wait t2
-                liftIO $ threadDelay 99999999000000000)
+                processIPCResponses)
     return ()
 
 main :: IO ()
@@ -149,8 +142,7 @@ main = do
     _ <- async (setupIPCServer ariviHandler (Config.thriftListenPort config))
     runNode config ariviHandler
     return ()
-
-a :: Prelude.Int -> BSL.ByteString
-a n = BSLC.pack (Prelude.replicate n 'a')
+-- a :: Prelude.Int -> BSL.ByteString
+-- a n = BSLC.pack (Prelude.replicate n 'a')
 -- myAmazingHandler :: (HasLogging m) => ConnectionHandle -> m ()
 -- myAmazingHandler h = forever $ recv h >>= send h

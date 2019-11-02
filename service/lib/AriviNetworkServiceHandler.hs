@@ -12,15 +12,15 @@ module AriviNetworkServiceHandler
     , IPCMessage(..)
     ) where
 
-import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async.Lifted (async)
 import Control.Concurrent.MVar
 import Control.Concurrent.STM
-import Control.Monad
 import Control.Monad.IO.Class
+import Control.Monad.Loops
 import Data.Aeson as A
 import Data.Binary as DB
 import qualified Data.ByteString.Lazy as LBS
+import Data.IORef
 import Data.Int
 import qualified Data.Map.Strict as M
 import Data.Serialize
@@ -133,9 +133,41 @@ handlePublishReqResp sockMVar psQ mid subject body = do
     putMVar sockMVar connSock
     return ()
 
+decodeRequest :: AriviNetworkServiceHandler -> MVar Socket -> LBS.ByteString -> IO ()
+decodeRequest handler sockMVar req = do
+    let ipcReq = A.decode req :: Maybe IPCMessage
+    case ipcReq of
+        Just x -> do
+            printf "Decoded (%s)\n" (show x)
+            case (mtype x) of
+                "RPC_REQ" -> do
+                    case (M.lookup "encReq" (params x)) of
+                        Just enc -> do
+                            _ <- async (handleRPCReqResp (sockMVar) (rpcQueue handler) (msgid x) (enc))
+                            return ()
+                        Nothing -> printf "Invalid payload.\n"
+                "SUB_REQ" -> do
+                    case (M.lookup "subject" (params x)) of
+                        Just su -> do
+                            _ <- async (handleSubscribeReqResp sockMVar (pubSubQueue handler) (msgid x) su)
+                            return ()
+                        Nothing -> printf "Invalid payload.\n"
+                "PUB_REQ" -> do
+                    case (M.lookup "subject" (params x)) of
+                        Just su -> do
+                            case (M.lookup "body" (params x)) of
+                                Just bdy -> do
+                                    _ <- async (handlePublishReqResp sockMVar (pubSubQueue handler) (msgid x) su bdy)
+                                    return ()
+                                Nothing -> printf "Invalid payload.\n"
+                        Nothing -> printf "Invalid payload.\n"
+                __ -> printf "Invalid message type.\n"
+        Nothing -> printf "Decode 'IPCMessage' failed.\n" (show ipcReq)
+
 handleConnection :: AriviNetworkServiceHandler -> Socket -> IO ()
-handleConnection handler connSock =
-    forever $ do
+handleConnection handler connSock = do
+    continue <- liftIO $ newIORef True
+    whileM_ (liftIO $ readIORef continue) $ do
         lenBytes <- ST.recv connSock 2
         case lenBytes of
             Just l -> do
@@ -145,60 +177,14 @@ handleConnection handler connSock =
                         payload <- ST.recv connSock (fromIntegral (toInteger a))
                         case payload of
                             Just y -> do
-                                let lz = (LBS.fromStrict y)
-                                let ipcReq = A.decode lz :: Maybe IPCMessage
-                                case ipcReq of
-                                    Just x -> do
-                                        printf "Decoded (%s)\n" (show x)
-                                        sockMVar <- newMVar connSock
-                                        case (mtype x) of
-                                            "RPC_REQ" -> do
-                                                case (M.lookup "encReq" (params x)) of
-                                                    Just enc -> do
-                                                        _ <-
-                                                            async
-                                                                (handleRPCReqResp
-                                                                     (sockMVar)
-                                                                     (rpcQueue handler)
-                                                                     (msgid x)
-                                                                     (enc))
-                                                        return ()
-                                                    Nothing -> printf "Invalid payload.\n"
-                                            "SUB_REQ" -> do
-                                                case (M.lookup "subject" (params x)) of
-                                                    Just su -> do
-                                                        _ <-
-                                                            async
-                                                                (handleSubscribeReqResp
-                                                                     sockMVar
-                                                                     (pubSubQueue handler)
-                                                                     (msgid x)
-                                                                     su)
-                                                        return ()
-                                                    Nothing -> printf "Invalid payload.\n"
-                                            "PUB_REQ" -> do
-                                                case (M.lookup "subject" (params x)) of
-                                                    Just su -> do
-                                                        case (M.lookup "body" (params x)) of
-                                                            Just bdy -> do
-                                                                _ <-
-                                                                    async
-                                                                        (handlePublishReqResp
-                                                                             sockMVar
-                                                                             (pubSubQueue handler)
-                                                                             (msgid x)
-                                                                             su
-                                                                             bdy)
-                                                                return ()
-                                                            Nothing -> printf "Invalid payload.\n"
-                                                    Nothing -> printf "Invalid payload.\n"
-                                            __ -> printf "Invalid message type.\n"
-                                    Nothing -> printf "Decode 'IPCMessage' failed.\n" (show ipcReq)
+                                sockMVar <- newMVar connSock
+                                decodeRequest handler sockMVar (LBS.fromStrict y)
+                                return ()
                             Nothing -> printf "Payload read error\n"
                     Left _b -> printf "Length prefix corrupted.\n"
             Nothing -> do
                 printf "Connection closed.\n"
-                liftIO $ threadDelay 15000000
+                writeIORef continue False
 
 setupIPCServer :: AriviNetworkServiceHandler -> PortNumber -> IO ()
 setupIPCServer handler listenPort = do
