@@ -29,8 +29,8 @@ data Config =
         , sbound :: Int
         , pingThreshold :: Int
         , kademliaConcurrencyFactor :: Int
-        , thriftListenPort :: PortNumber
-        , thriftRemotePort :: PortNumber
+        , ipcListenPort :: PortNumber
+        , ipcRemotePort :: PortNumber
         }
     deriving (Show, Generic)
 

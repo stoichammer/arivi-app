@@ -115,7 +115,7 @@ defaultConfig path = do
 runNode :: Config.Config -> AriviNetworkServiceHandler -> IO ()
 runNode config ariviHandler = do
     p2pEnv <- mkP2PEnv config globalHandlerRpc globalHandlerPubSub [AriviSecureRPC] []
-    let rPort = Config.thriftRemotePort config
+    let rPort = Config.ipcRemotePort config
     sockTuple <- connectSock "127.0.0.1" (show rPort)
     Prelude.putStrLn $ "Connection established to " ++ show rPort
     que <- atomically $ newTChan
@@ -126,9 +126,9 @@ runNode config ariviHandler = do
         runAppM
             serviceEnv
             (do initP2P config
-                --t1 <- async (loopRPC (rpcQueue ariviHandler))
-                t2 <- async (loopPubSub (pubSubQueue ariviHandler))
-                async (processIPCRequests)
+                async $ loopRPC (rpcQueue ariviHandler)
+                async $ loopPubSub (pubSubQueue ariviHandler)
+                async $ processIPCRequests
                 processIPCResponses)
     return ()
 
@@ -139,7 +139,7 @@ main = do
     unless b (defaultConfig path)
     config <- Config.readConfig (path <> "/config.yaml")
     ariviHandler <- newAriviNetworkServiceHandler
-    _ <- async (setupIPCServer ariviHandler (Config.thriftListenPort config))
+    _ <- async (setupIPCServer ariviHandler (Config.ipcListenPort config))
     runNode config ariviHandler
     return ()
 -- a :: Prelude.Int -> BSL.ByteString
