@@ -195,9 +195,6 @@ processIPCResponses = do
 --     registerResource AriviSecureRPC handler Archived >>
 --     liftIO (threadDelay 5000000) >>
 --     updatePeerInResourceMap AriviSecureRPC
-stuffPublisher :: (HasP2PEnv env m ServiceResource ServiceTopic String String) => m ()
-stuffPublisher = Pub.publish (PubSubPayload ("HelloWorldTopic", "HelloworldMessage"))
-
 goGetResource :: (HasP2PEnv env m ServiceResource ServiceTopic String String) => RPCCall -> m ()
 goGetResource rpcCall = do
     let req = (request rpcCall)
@@ -205,8 +202,6 @@ goGetResource rpcCall = do
     let msg = DT.unpack (rPCReq_request req)
     liftIO $ print ("fetchResource")
     resource <- fetchResource (RpcPayload AriviSecureRPC msg)
-  --liftIO $ print (typeOf resource)
-  --liftIO $ print (theMessage resource)
     case resource of
         Left _ -> do
             liftIO $ print "Exception: No peers available to issue RPC"
@@ -224,8 +219,7 @@ loopRPC :: (HasP2PEnv env m ServiceResource ServiceTopic String String) => (TCha
 loopRPC queue =
     forever $ do
         item <- liftIO $ atomically $ (readTChan queue)
-        _ <- async (goGetResource item)
-      --liftIO $ print (req )
+        async (goGetResource item)
         return ()
 
 pubSubMsgType :: PubSubMsg -> [Char]

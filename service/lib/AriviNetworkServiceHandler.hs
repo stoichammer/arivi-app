@@ -33,14 +33,14 @@ import Text.Printf
 data RPCReq =
     RPCReq
         { rPCReq_key :: Int
-        , rPCReq_request :: T.Text
+        , rPCReq_request :: !T.Text
         }
     deriving (Show, Eq)
 
 data RPCResp =
     RPCResp
         { rPCResp_key :: Int
-        , rPCResp_response :: T.Text
+        , rPCResp_response :: !T.Text
         }
     deriving (Show, Eq)
 
