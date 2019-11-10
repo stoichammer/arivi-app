@@ -46,7 +46,7 @@ import Data.String.Conv
 import Data.Text
 import Data.Typeable
 import Network.Simple.TCP
-import STMContainers.Map as H
+import StmContainers.Map as H
 import System.Directory (doesPathExist)
 import System.Environment (getArgs)
 

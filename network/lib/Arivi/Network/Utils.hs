@@ -10,7 +10,9 @@ module Arivi.Network.Utils
 
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as Lazy (ByteString, fromStrict, toStrict)
-import Network.Socket (HostName, PortNumber, SockAddr(..), inet_ntoa)
+
+--import Data.Word
+import Network.Socket --(HostName, PortNumber, SockAddr(..), getNameInfo)
 
 -- | Converts lazy ByteString to Strict ByteString
 -- TODO: Find usage and depreacate this function
@@ -24,12 +26,20 @@ strictToLazy = Lazy.fromStrict
 
 -- | Given `SockAddr` retrieves `HostAddress`
 getIPAddress :: SockAddr -> IO HostName
-getIPAddress (SockAddrInet _ hostAddress) = inet_ntoa hostAddress
-getIPAddress (SockAddrInet6 _ _ (_, _, _, hA6) _) = inet_ntoa hA6
-getIPAddress _ = error "getIPAddress: SockAddr is not of constructor SockAddrInet "
+getIPAddress addr = do
+    hostport <- getNameInfo [NI_NUMERICHOST, NI_NUMERICSERV] True True addr
+    let hostname = fst hostport
+    case hostname of
+        Just x -> return x
+        Nothing -> error "getIPAddress: could not find!"
 
+-- getIPAddress (SockAddrInet _ hostAddress) = inet_ntoa hostAddress
+-- getIPAddress (SockAddrInet6 _ _ (_, _, _, hA6) _) = inet_ntoa hA6
 -- | Given `SockAddr` retrieves `PortNumber`
-getPortNumber :: SockAddr -> PortNumber
-getPortNumber (SockAddrInet portNumber _) = portNumber
-getPortNumber (SockAddrInet6 portNumber _ _ _) = portNumber
-getPortNumber _ = error "getPortNumber: SockAddr is not of constructor SockAddrInet "
+getPortNumber :: SockAddr -> IO PortNumber
+getPortNumber addr = do
+    hostport <- getNameInfo [NI_NUMERICHOST, NI_NUMERICSERV] True True addr
+    let port = snd hostport
+    case port of
+        Just x -> return $ fromInteger ((read x :: Integer))
+        Nothing -> error "getIPAddress: could not find!"

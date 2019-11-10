@@ -25,7 +25,7 @@ import Control.Monad.Trans
 import Data.Hashable
 import Data.Set (Set)
 import qualified Data.Set as Set
-import qualified STMContainers.Map as H
+import qualified StmContainers.Map as H
 
 -- Probably it's not worth it to put individual fields in TVar's instead
 -- of the entire record.

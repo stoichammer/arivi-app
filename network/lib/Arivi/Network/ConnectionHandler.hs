@@ -55,9 +55,9 @@ establishSecureConnection ::
 establishSecureConnection sk sock framer hsInitParcel = do
     socketName <- getPeerName sock
     ip <- getIPAddress socketName
-    let portNum = getPortNumber socketName
-        tt = getTransportType sock
-        cId = Conn.makeConnectionId ip portNum tt
+    portNum <- getPortNumber socketName
+    let tt = getTransportType sock
+    let cId = Conn.makeConnectionId ip portNum tt
     --print socketName
     egressNonce <- newTVarIO (2 :: SequenceNum)
     ingressNonce <- newTVarIO (2 :: SequenceNum)

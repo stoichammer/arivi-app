@@ -6,6 +6,7 @@ module Arivi.Network.Exception
     , mapIOException
     ) where
 
+--import Codec.CBOR.Read hiding (DeserialiseFailure)
 import Codec.Serialise (DeserialiseFailure(..))
 import Control.Exception
 import Crypto.Error (CryptoError(..))

@@ -42,7 +42,8 @@ runTcpServer port handler =
     $(withLoggingTH) (LogNetworkStatement "TCP Server started...") LevelInfo $
     liftWithSocketsDo $ do
         let hints = defaultHints {addrFlags = [AI_PASSIVE], addrSocketType = Stream}
-        addr:_ <- liftIO $ getAddrInfo (Just hints) Nothing (Just port)
+        addrs <- liftIO $ getAddrInfo (Just hints) Nothing (Just port)
+        let addr = addrs !! 0
     -- TODO: Deal with socket exceptions
         sock <- liftIO $ socket (addrFamily addr) (addrSocketType addr) (addrProtocol addr)
         liftIO $ setSocketOption sock ReuseAddr 1

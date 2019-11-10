@@ -71,9 +71,9 @@ data AriviNetworkServiceHandler =
 
 data IPCMessage =
     IPCMessage
-        { msgid :: Int
-        , mtype :: String
-        , params :: M.Map String String
+        { msgId :: Int
+        , msgType :: String
+        , payload :: M.Map String String
         }
     deriving (Show, Generic)
 
@@ -139,25 +139,25 @@ decodeRequest handler sockMVar req = do
     case ipcReq of
         Just x -> do
             printf "Decoded (%s)\n" (show x)
-            case (mtype x) of
+            case (msgType x) of
                 "RPC_REQ" -> do
-                    case (M.lookup "encReq" (params x)) of
+                    case (M.lookup "encReq" (payload x)) of
                         Just enc -> do
-                            _ <- async (handleRPCReqResp (sockMVar) (rpcQueue handler) (msgid x) (enc))
+                            _ <- async (handleRPCReqResp (sockMVar) (rpcQueue handler) (msgId x) (enc))
                             return ()
                         Nothing -> printf "Invalid payload.\n"
                 "SUB_REQ" -> do
-                    case (M.lookup "subject" (params x)) of
+                    case (M.lookup "subject" (payload x)) of
                         Just su -> do
-                            _ <- async (handleSubscribeReqResp sockMVar (pubSubQueue handler) (msgid x) su)
+                            _ <- async (handleSubscribeReqResp sockMVar (pubSubQueue handler) (msgId x) su)
                             return ()
                         Nothing -> printf "Invalid payload.\n"
                 "PUB_REQ" -> do
-                    case (M.lookup "subject" (params x)) of
+                    case (M.lookup "subject" (payload x)) of
                         Just su -> do
-                            case (M.lookup "body" (params x)) of
+                            case (M.lookup "body" (payload x)) of
                                 Just bdy -> do
-                                    _ <- async (handlePublishReqResp sockMVar (pubSubQueue handler) (msgid x) su bdy)
+                                    _ <- async (handlePublishReqResp sockMVar (pubSubQueue handler) (msgId x) su bdy)
                                     return ()
                                 Nothing -> printf "Invalid payload.\n"
                         Nothing -> printf "Invalid payload.\n"
@@ -174,8 +174,8 @@ handleConnection handler connSock = do
                 let lenPrefix = runGet getWord16be l -- Char8.readInt l
                 case lenPrefix of
                     Right a -> do
-                        payload <- ST.recv connSock (fromIntegral (toInteger a))
-                        case payload of
+                        pl <- ST.recv connSock (fromIntegral (toInteger a))
+                        case pl of
                             Just y -> do
                                 sockMVar <- newMVar connSock
                                 decodeRequest handler sockMVar (LBS.fromStrict y)

@@ -48,7 +48,7 @@ import qualified Data.ByteString.Char8 as C
 import Data.Monoid ()
 import qualified Data.Text as T
 import ListT (toList)
-import qualified STMContainers.Map as H
+import qualified StmContainers.Map as H
 import System.Random (randomRIO)
 
 updateNodeStatus :: (HasKbucket m, MonadIO m) => NodeStatus -> NodeId -> ExceptT AriviP2PException m ()
@@ -90,7 +90,7 @@ getVerifiedPeers peerR k = do
     let nid = nodeID peerR
         kbDistance = getKbIndex dnid nid
         kbm2 = getKbucket kb
-        kbtemp = H.stream kbm2
+        kbtemp = H.listT kbm2
     kvList <- liftIO $ atomically $ toList kbtemp
     let fl = filter (\x -> fst x == kbDistance) kvList
         fl2 = filter (\x -> fst x < kbDistance) kvList
@@ -188,7 +188,7 @@ getRandomVerifiedPeer :: (HasKbucket m, MonadIO m) => ExceptT AriviP2PException 
 getRandomVerifiedPeer = do
     kb <- lift getKb
     let vt = nodeStatusTable kb
-        st = H.stream vt
+        st = H.listT vt
     dnid <- getDefaultNodeId
     kvList <- liftIO $ atomically $ toList st
     let kvList' = filter (\x -> fst x /= dnid) kvList
@@ -219,7 +219,7 @@ responseHandler resp peerR peerT =
                     updateNodeStatus UnVerified (nodeID peerT)
     -- Logs the NodeStatus Table
             let kbm2 = nodeStatusTable kb
-                kbtemp = H.stream kbm2
+                kbtemp = H.listT kbm2
             kvList <- liftIO $ atomically $ toList kbtemp
             $(logDebug) $ T.append (T.pack "NodeStatusTable after adding : ") (T.pack (show kvList))
         Left (e :: Exception.SomeException) -> $(logDebug) (T.pack (show e))

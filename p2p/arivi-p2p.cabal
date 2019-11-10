@@ -68,7 +68,6 @@ library
                     ,  arivi-network
                     ,  arivi-crypto
                     ,  arivi-utils
-                    , thrift
                     , vector
                     , QuickCheck
                     , transformers-base

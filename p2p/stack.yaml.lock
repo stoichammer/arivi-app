@@ -54,12 +54,12 @@ packages:
   original:
     hackage: DRBG-0.5.5
 - completed:
-    hackage: stm-containers-0.2.16@sha256:e98efa8dcf0045ea8a78a04b4e2763cf2d8bc33aad0750e2f30a67f8f4e933b1,8454
+    hackage: stm-containers-1.1@sha256:e98efa8dcf0045ea8a78a04b4e2763cf2d8bc33aad0750e2f30a67f8f4e933b1,8454
     pantry-tree:
       size: 1564
       sha256: 00d9830990f351bda6b5322ec4adab4386d0a36d3f1a997ec378434c2923f376
   original:
-    hackage: stm-containers-0.2.16
+    hackage: stm-containers-1.1
 - completed:
     hackage: either-unwrap-1.1@sha256:bd9a8cc3ce127b0f922db4da0b3eb25036034406dd40c954d3f8aa6fe5aab313,605
     pantry-tree:

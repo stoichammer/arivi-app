@@ -14,6 +14,6 @@ extra-deps:
 - time-units-1.0.0
 - digest-pure-0.0.3
 - DRBG-0.5.5
-- stm-containers-0.2.16
+- stm-containers-1.1
 - either-unwrap-1.1
 - raaz-0.2.1

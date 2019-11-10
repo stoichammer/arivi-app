@@ -12,7 +12,7 @@ module AriviSecureRPC
     ( module AriviSecureRPC
     ) where
 
-import Arivi.P2P.MessageHandler.HandlerTypes
+import Arivi.P2P.MessageHandler.HandlerTypes (HasNetworkConfig, networkConfig)
 import Arivi.P2P.P2PEnv
 import Arivi.P2P.PubSub.Class
 import Arivi.P2P.PubSub.Env
@@ -20,8 +20,7 @@ import Arivi.P2P.PubSub.Publish as Pub
 import Arivi.P2P.PubSub.Types
 import Arivi.P2P.RPC.Env
 import Arivi.P2P.RPC.Fetch
-import Arivi.P2P.Types
-import Arivi.P2P.Types ()
+import Arivi.P2P.Types hiding (msgType)
 import AriviNetworkServiceHandler
 import Codec.Serialise
 import Control.Concurrent (threadDelay)
@@ -115,7 +114,7 @@ processIPCRequests =
         let mm = msgMatch tcpE
         req <- liftIO $ atomically $ readTChan que
         mp <- liftIO $ readTVarIO mm
-        let nmp = M.insert (msgid (fst req)) (snd req) mp
+        let nmp = M.insert (msgId (fst req)) (snd req) mp
         liftIO $ atomically $ writeTVar mm nmp
         let body = A.encode (fst req)
         liftIO $ print (body)
@@ -131,12 +130,12 @@ decodeIPCResponse mp resp = do
     case ipcReq of
         Just x -> do
             printf "Decoded resp: %s\n" (show x)
-            let mid = msgid x
-            case (mtype x) of
+            let mid = msgId x
+            case (msgType x) of
                 "RPC_RESP" -> do
-                    case (M.lookup "encResp" (params x)) of
+                    case (M.lookup "encResp" (payload x)) of
                         Just rsp -> do
-                            printf "msgid: %d\n" (mid)
+                            printf "msgId: %d\n" (mid)
                             case (M.lookup mid mp) of
                                 Just k -> do
                                     liftIO $ putMVar k rsp
@@ -145,7 +144,7 @@ decodeIPCResponse mp resp = do
                             return ()
                         Nothing -> printf "Invalid RPC payload.\n"
                 "PUB_RESP" -> do
-                    case (M.lookup "status" (params x)) of
+                    case (M.lookup "status" (payload x)) of
                         Just "ACK" -> do
                             printf "Publish resp status: Ok!\n"
                             case (M.lookup mid mp) of
@@ -219,7 +218,7 @@ loopRPC :: (HasP2PEnv env m ServiceResource ServiceTopic String String) => (TCha
 loopRPC queue =
     forever $ do
         item <- liftIO $ atomically $ (readTChan queue)
-        async (goGetResource item)
+        __ <- async (goGetResource item)
         return ()
 
 pubSubMsgType :: PubSubMsg -> [Char]

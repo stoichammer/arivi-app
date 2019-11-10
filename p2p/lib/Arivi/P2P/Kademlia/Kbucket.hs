@@ -47,7 +47,7 @@ import qualified Data.List as L
 import Data.Maybe
 import qualified Data.Text as T
 import ListT (toList)
-import qualified STMContainers.Map as H
+import qualified StmContainers.Map as H
 
 -- | Gets default peer relative to which all the peers are stores in Kbucket
 --   hash table based on XorDistance
@@ -110,7 +110,7 @@ addToKBucket peerR = do
             liftIO $ atomically $ H.insert tempp kbDistance kb
   -- Logs the Kbucket and pushes statsd metric to collectd server
     let kbm2 = getKbucket kb''
-        kbtemp = H.stream kbm2
+        kbtemp = H.listT kbm2
     kvList <- liftIO $ atomically $ toList kbtemp
     $(logDebug) $ T.append (T.pack "Kbucket after adding : ") (T.pack (show kvList))
     lift $ incrementCounter "KbucketSize"
@@ -152,7 +152,7 @@ getKClosestPeersByPeer :: (HasKbucket m, MonadIO m) => Peer -> Int -> ExceptT Ar
 getKClosestPeersByPeer peerR k = do
     localPeer <- getDefaultNodeId
     kbbb' <- lift getKb
-    let kbtemp = H.stream (getKbucket kbbb')
+    let kbtemp = H.listT (getKbucket kbbb')
     kvList <- liftIO $ atomically $ toList kbtemp
     let peer = nodeID peerR
         kbi = getKbIndex localPeer peer
@@ -167,7 +167,7 @@ getKClosestPeersByNodeid :: (HasKbucket m, MonadIO m) => NodeId -> Int -> Except
 getKClosestPeersByNodeid nid k = do
     localPeer <- getDefaultNodeId
     kbbb'' <- lift getKb
-    let kbtemp = H.stream (getKbucket kbbb'')
+    let kbtemp = H.listT (getKbucket kbbb'')
     kvList <- liftIO $ atomically $ toList kbtemp
     let kbi = getKbIndex localPeer nid
         tkeys = L.delete 0 (L.sort $ fmap fst kvList)

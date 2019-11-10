@@ -47,7 +47,7 @@ import Data.Time.Clock.POSIX (POSIXTime, getPOSIXTime)
 import Data.Word
 import GHC.Generics
 import Network.Socket
-import qualified STMContainers.Map as H
+import qualified StmContainers.Map as H
 
 -- | Helper function to get timeStamp/ epoch
 getTimeStamp :: IO TimeStamp

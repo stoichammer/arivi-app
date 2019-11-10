@@ -14,7 +14,7 @@ import Arivi.P2P.PubSub.Class
 import Arivi.P2P.PubSub.Types
 import Arivi.P2P.RPC.Types
 import Arivi.P2P.Types
-import Control.Applicative
+import Control.Applicative ()
 import Control.Concurrent.STM.TVar
 import Control.Monad.Except
 import Control.Monad.IO.Class (liftIO)

@@ -26,7 +26,7 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Time.Clock
 import GHC.Generics (Generic)
-import qualified STMContainers.Map as H
+import qualified StmContainers.Map as H
 
 type Timer = Integer
 
