@@ -29,11 +29,12 @@ initP2P ::
     => (HasP2PEnv env m r t rmsg pmsg) =>
            Config.Config -> m ()
 initP2P config = do
+    liftIO $ putStrLn $ "Starting Arivi P2P.. "
     _ <- async (runUdpServer (show (Config.udpPort config)) newIncomingConnectionHandler)
     _ <- async (runTcpServer (show (Config.tcpPort config)) newIncomingConnectionHandler)
     loadDefaultPeers (Config.trustedPeers config)
     liftIO $ threadDelay 5000000
     nl <- liftIO $ newTVarIO emptyNodeList
-    _ <- async $ fillQuotas 2 nl -- hardcoding here assuming each resource requires 2 peers
+    _ <- async $ fillQuotas 2 nl -- hardcoding here assuming each resource requires at least 2 peers
     _ <- async $ maintainSubscriptions nl
     return ()

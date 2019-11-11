@@ -24,7 +24,8 @@ import Control.Monad (forever)
 import Control.Monad.IO.Class
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy (fromStrict)
-import qualified Data.Text as T
+
+-- import qualified Data.Text as T
 import Network.Socket hiding (close, recv, recvFrom, send)
 import qualified Network.Socket
 import Network.Socket.ByteString hiding (recv, send)
@@ -44,16 +45,15 @@ runUdpServer ::
     => ServiceName
     -> (NetworkConfig -> TransportType -> ConnectionHandle -> m ())
     -> m ()
-runUdpServer portNumber handler =
-    $(withLoggingTH) (LogNetworkStatement "UDP Server started...") LevelDebug $ do
-        mSocket <- liftIO $ makeSocket portNumber Datagram
-        finally
-            (forever $ do
-                 (msg, peerSockAddr) <- liftIO $ recvFrom mSocket 4096
-                 mSocket' <- liftIO $ makeSocket portNumber Datagram
-                 liftIO $ connect mSocket' peerSockAddr
-                 async (newUdpConnection msg mSocket' handler))
-            (liftIO (print ("So long and thanks for all the fish." :: String) >> Network.Socket.close mSocket))
+runUdpServer portNumber handler = do
+    mSocket <- liftIO $ makeSocket portNumber Datagram
+    finally
+        (forever $ do
+             (msg, peerSockAddr) <- liftIO $ recvFrom mSocket 4096
+             mSocket' <- liftIO $ makeSocket portNumber Datagram
+             liftIO $ connect mSocket' peerSockAddr
+             async (newUdpConnection msg mSocket' handler))
+        (liftIO (print ("So long and thanks for all the fish." :: String) >> Network.Socket.close mSocket))
 
 newUdpConnection ::
        (HasSecretKey m, HasLogging m)
@@ -62,10 +62,7 @@ newUdpConnection ::
     -> (NetworkConfig -> TransportType -> ConnectionHandle -> m ())
     -> m ()
 newUdpConnection hsInitMsg sock handler =
-    liftIO (getPeerName sock) >>= \addr ->
-        $(withLoggingTH)
-            (LogNetworkStatement $ T.append (T.pack "newUdpConnection latest: ") (T.pack (show addr)))
-            LevelDebug $
+    liftIO (getPeerName sock) >>= \_ ->
         either
             (throw . NetworkDeserialiseException)
             (\hsInitParcel -> do

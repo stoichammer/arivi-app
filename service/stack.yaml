@@ -16,9 +16,9 @@ extra-deps:
 - timers-updatable-0.2.0.2
 - digest-pure-0.0.3
 - DRBG-0.5.5
-- stm-containers-1.1
+- stm-containers-1.0.1
 - either-unwrap-1.1
 - raaz-0.2.1
 - queue-0.1.2
-- monad-control
-- network-simple
+# - monad-control
+# - network-simple

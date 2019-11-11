@@ -54,7 +54,7 @@ library
                     ,  unordered-containers <= 0.2.9.0
                     ,  uuid
                     ,  hashable
-                    ,  stm-containers >= 0.2.16
+                    ,  stm-containers 
                     ,  list-t >= 1.0.0.1
                     ,  either-unwrap >= 1.1
                     ,  sorted-list

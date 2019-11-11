@@ -48,7 +48,6 @@ import Data.IORef
 import Data.Int
 import Network.Socket hiding (send)
 import qualified Network.Socket.ByteString.Lazy as N (recv)
-import Text.InterpolatedString.Perl6
 
 establishSecureConnection ::
        SecretKey -> Socket -> (BSL.ByteString -> BSL.ByteString) -> Parcel -> IO CompleteConnection
@@ -58,7 +57,6 @@ establishSecureConnection sk sock framer hsInitParcel = do
     portNum <- getPortNumber socketName
     let tt = getTransportType sock
     let cId = Conn.makeConnectionId ip portNum tt
-    --print socketName
     egressNonce <- newTVarIO (2 :: SequenceNum)
     ingressNonce <- newTVarIO (2 :: SequenceNum)
           -- TODO: Need to change this to proper value
@@ -138,66 +136,59 @@ sendTcpMessage ::
     => Conn.CompleteConnection
     -> BSLC.ByteString
     -> m ()
-sendTcpMessage conn msg =
-    $(withLoggingTH) (LogNetworkStatement [qc|sendTcpMessage: Host: {Conn.ipAddress conn} |]) LevelInfo $ do
-        let sock = Conn.socket conn
-            lock = Conn.waitWrite conn
-        fragments <- liftIO $ processPayload 1024 (Payload msg) conn
-        mapM_
-            (\frame ->
-                 liftIO (atomically frame >>= (try . sendFrame lock sock)) >>= \case
-                     Left (e :: SomeException) ->
-                         liftIO (print "SendTcpMessage" >> print e) >> closeConnection sock >>
-                         throw NetworkSocketException
-                     Right _ -> return ())
-            fragments
+sendTcpMessage conn msg = do
+    let sock = Conn.socket conn
+        lock = Conn.waitWrite conn
+    fragments <- liftIO $ processPayload 1024 (Payload msg) conn
+    mapM_
+        (\frame ->
+             liftIO (atomically frame >>= (try . sendFrame lock sock)) >>= \case
+                 Left (e :: SomeException) ->
+                     liftIO (print "SendTcpMessage" >> print e) >> closeConnection sock >> throw NetworkSocketException
+                 Right _ -> return ())
+        fragments
 
 sendUdpMessage ::
        forall m. (MonadIO m, HasLogging m)
     => Conn.CompleteConnection
     -> BSLC.ByteString
     -> m ()
-sendUdpMessage conn msg =
-    $(withLoggingTH)
-        (LogNetworkStatement
-             [qc|sendUdpMessage: Host: {Conn.ipAddress conn}: Port: {Conn.port conn}: MsgLength: {BSLC.length msg}|])
-        LevelInfo $ do
-        let sock = Conn.socket conn
-            lock = Conn.waitWrite conn
-        fragments <- liftIO $ processPayload 4096 (Payload msg) conn
-        mapM_
-            (\frame ->
-                 liftIO (atomically frame >>= (try . sendFrame lock sock)) >>= \case
-                     Left (e :: SomeException) -> liftIO (print e) >> closeConnection sock >> throw e
-                     Right _ -> return ())
-            fragments
+sendUdpMessage conn msg = do
+    let sock = Conn.socket conn
+        lock = Conn.waitWrite conn
+    fragments <- liftIO $ processPayload 4096 (Payload msg) conn
+    mapM_
+        (\frame ->
+             liftIO (atomically frame >>= (try . sendFrame lock sock)) >>= \case
+                 Left (e :: SomeException) -> liftIO (print e) >> closeConnection sock >> throw e
+                 Right _ -> return ())
+        fragments
 
 closeConnection :: (HasLogging m) => Socket -> m ()
 closeConnection sock = liftIO $ Network.Socket.close sock
 
 readTcpSock ::
        (HasLogging m) => Conn.CompleteConnection -> IORef (HM.HashMap MessageId BSL.ByteString) -> m BSL.ByteString
-readTcpSock connection fragmentsHM =
-    $(withLoggingTH) (LogNetworkStatement "readTcpSock: ") LevelInfo $ do
-        let sock = Conn.socket connection
-            writeLock = Conn.waitWrite connection
-        parcelOrFail <- liftIO $ getParcelWithTimeout sock 30000000
-        case parcelOrFail of
-            Left (NetworkDeserialiseException e) -> throw $ NetworkDeserialiseException e
-            Left NetworkTimeoutException -> do
-                liftIO $ sendPing writeLock sock createFrame
-                parcelOrFailAfterPing <- liftIO $ getParcelWithTimeout sock 60000000
-                case parcelOrFailAfterPing of
-                    Left e -> throw e
-                    Right parcel ->
-                        processParcel parcel connection fragmentsHM >>= \case
-                            Nothing -> readTcpSock connection fragmentsHM
-                            Just p2pMsg -> return p2pMsg
-            Left e -> throw e
-            Right parcel ->
-                processParcel parcel connection fragmentsHM >>= \case
-                    Nothing -> readTcpSock connection fragmentsHM
-                    Just p2pMsg -> return p2pMsg
+readTcpSock connection fragmentsHM = do
+    let sock = Conn.socket connection
+        writeLock = Conn.waitWrite connection
+    parcelOrFail <- liftIO $ getParcelWithTimeout sock 30000000
+    case parcelOrFail of
+        Left (NetworkDeserialiseException e) -> throw $ NetworkDeserialiseException e
+        Left NetworkTimeoutException -> do
+            liftIO $ sendPing writeLock sock createFrame
+            parcelOrFailAfterPing <- liftIO $ getParcelWithTimeout sock 60000000
+            case parcelOrFailAfterPing of
+                Left e -> throw e
+                Right parcel ->
+                    processParcel parcel connection fragmentsHM >>= \case
+                        Nothing -> readTcpSock connection fragmentsHM
+                        Just p2pMsg -> return p2pMsg
+        Left e -> throw e
+        Right parcel ->
+            processParcel parcel connection fragmentsHM >>= \case
+                Nothing -> readTcpSock connection fragmentsHM
+                Just p2pMsg -> return p2pMsg
 
 processParcel ::
        (HasLogging m)
@@ -226,9 +217,6 @@ processParcel parcel connection fragmentsHM =
         Parcel PongHeader {} _ -> return Nothing
         _ -> throw NetworkWrongParcelException
 
--- getDatagram :: Socket -> IO (Either AriviException Parcel)
--- getDatagram sock =
---     first AriviDeserialiseException . deserialiseOrFail <$> N.recv sock 5100
 getDatagramWithTimeout :: Socket -> Int -> IO (Either AriviNetworkException Parcel)
 getDatagramWithTimeout sock microseconds = do
     datagramOrNothing <-
@@ -243,27 +231,26 @@ getDatagramWithTimeout sock microseconds = do
                 Right datagram -> return $ first NetworkDeserialiseException $ deserialiseOrFail datagram
 
 readUdpSock :: (HasLogging m) => Conn.CompleteConnection -> m BSL.ByteString
-readUdpSock connection =
-    $(withLoggingTH) (LogNetworkStatement "readUdpSock: ") LevelInfo $ do
-        let sock = Conn.socket connection
-            writeLock = Conn.waitWrite connection
-        parcelOrFail <- liftIO $ getDatagramWithTimeout sock 30000000
-        case parcelOrFail of
-            Left (NetworkDeserialiseException e) -> throw $ NetworkDeserialiseException e
-            Left NetworkTimeoutException -> do
-                liftIO $ sendPing writeLock sock id
-                parcelOrFailAfterPing <- liftIO $ getDatagramWithTimeout sock 60000000
-                case parcelOrFailAfterPing of
-                    Left e -> throw e
-                    Right parcel ->
-                        processDatagram connection parcel >>= \case
-                            Nothing -> readUdpSock connection
-                            Just p2pMsg -> return p2pMsg
-            Left e -> throw e
-            Right parcel ->
-                processDatagram connection parcel >>= \case
-                    Nothing -> readUdpSock connection
-                    Just p2pMsg -> return p2pMsg
+readUdpSock connection = do
+    let sock = Conn.socket connection
+        writeLock = Conn.waitWrite connection
+    parcelOrFail <- liftIO $ getDatagramWithTimeout sock 30000000
+    case parcelOrFail of
+        Left (NetworkDeserialiseException e) -> throw $ NetworkDeserialiseException e
+        Left NetworkTimeoutException -> do
+            liftIO $ sendPing writeLock sock id
+            parcelOrFailAfterPing <- liftIO $ getDatagramWithTimeout sock 60000000
+            case parcelOrFailAfterPing of
+                Left e -> throw e
+                Right parcel ->
+                    processDatagram connection parcel >>= \case
+                        Nothing -> readUdpSock connection
+                        Just p2pMsg -> return p2pMsg
+        Left e -> throw e
+        Right parcel ->
+            processDatagram connection parcel >>= \case
+                Nothing -> readUdpSock connection
+                Just p2pMsg -> return p2pMsg
 
 processDatagram :: (HasLogging m) => Conn.CompleteConnection -> Parcel -> m (Maybe BSL.ByteString)
 processDatagram connection parcel =

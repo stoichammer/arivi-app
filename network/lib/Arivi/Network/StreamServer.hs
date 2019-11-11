@@ -39,10 +39,10 @@ runTcpServer ::
     -> (NetworkConfig -> TransportType -> ConnectionHandle -> m ())
     -> m ()
 runTcpServer port handler =
-    $(withLoggingTH) (LogNetworkStatement "TCP Server started...") LevelInfo $
     liftWithSocketsDo $ do
         let hints = defaultHints {addrFlags = [AI_PASSIVE], addrSocketType = Stream}
         addrs <- liftIO $ getAddrInfo (Just hints) Nothing (Just port)
+        -- liftIO $ putStrLn $ show addrs
         let addr = addrs !! 0
     -- TODO: Deal with socket exceptions
         sock <- liftIO $ socket (addrFamily addr) (addrSocketType addr) (addrProtocol addr)
@@ -65,23 +65,18 @@ acceptIncomingSocket sock handler =
 -- TODO: Use rec MonadFix
 handleInboundConnection ::
        (HasSecretKey m, HasLogging m) => Socket -> (NetworkConfig -> TransportType -> ConnectionHandle -> m ()) -> m ()
-handleInboundConnection sock handler =
-    $(withLoggingTH) (LogNetworkStatement "handleInboundConnection: ") LevelDebug $ do
-        sk <- getSecretKey
-        conn <- liftIO $ readHandshakeInitSock sock >>= establishSecureConnection sk sock createFrame
-        fragmentsHM <- liftIO $ newIORef HM.empty
-        let nc =
-                NetworkConfig
-                    { _nodeId = Conn.remoteNodeId conn
-                    , _ip = Conn.ipAddress conn
-                    , _udpPort = Conn.port conn
-                    , _tcpPort = 0
-                    }
-        handler
-            nc
-            (Conn.transportType conn)
-            ConnectionHandle
-                { Arivi.Network.Types.send = sendTcpMessage conn
-                , Arivi.Network.Types.recv = readTcpSock conn fragmentsHM
-                , Arivi.Network.Types.close = closeConnection (Conn.socket conn)
-                }
+handleInboundConnection sock handler = do
+    sk <- getSecretKey
+    conn <- liftIO $ readHandshakeInitSock sock >>= establishSecureConnection sk sock createFrame
+    fragmentsHM <- liftIO $ newIORef HM.empty
+    let nc =
+            NetworkConfig
+                {_nodeId = Conn.remoteNodeId conn, _ip = Conn.ipAddress conn, _udpPort = Conn.port conn, _tcpPort = 0}
+    handler
+        nc
+        (Conn.transportType conn)
+        ConnectionHandle
+            { Arivi.Network.Types.send = sendTcpMessage conn
+            , Arivi.Network.Types.recv = readTcpSock conn fragmentsHM
+            , Arivi.Network.Types.close = closeConnection (Conn.socket conn)
+            }

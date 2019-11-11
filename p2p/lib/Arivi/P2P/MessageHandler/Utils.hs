@@ -5,12 +5,7 @@ module Arivi.P2P.MessageHandler.Utils
     ( module Arivi.P2P.MessageHandler.Utils
     ) where
 
-import Arivi.Network
-    ( AriviNetworkException(..)
-    , ConnectionHandle(..)
-    , TransportType(..)
-    , openConnection
-    )
+import Arivi.Network (AriviNetworkException(..), ConnectionHandle(..), TransportType(..), openConnection)
 import Arivi.P2P.Exception
 import Arivi.P2P.MessageHandler.HandlerTypes hiding (uuid)
 import Arivi.P2P.P2PEnv
@@ -28,12 +23,10 @@ import qualified Data.UUID as UUID (toString)
 import Data.UUID.V4 (nextRandom)
 
 logWithNodeId :: (HasLogging m) => NodeId -> String -> m ()
-logWithNodeId peerNodeId logLine =
-    $(logDebug) $ toS $ logLine ++ show peerNodeId
+logWithNodeId peerNodeId logLine = $(logDebug) $ toS $ logLine ++ show peerNodeId
 
 getNodeId :: TVar PeerDetails -> IO NodeId
-getNodeId peerDetailsTVar =
-    (^. networkConfig . nodeId) <$> readTVarIO peerDetailsTVar
+getNodeId peerDetailsTVar = (^. networkConfig . nodeId) <$> readTVarIO peerDetailsTVar
 
 -- | wraps the payload with message type { Kademlia | Rpc | PubSub} and UUID
 generateP2PMessage :: Maybe P2PUUID -> MessageType -> P2PPayload -> P2PMessage
@@ -54,8 +47,7 @@ getTransportType Kademlia = UDP
 getTransportType Option = TCP
 getTransportType _ = TCP
 
-networkToP2PException ::
-       Either AriviNetworkException a -> Either AriviP2PException a
+networkToP2PException :: Either AriviNetworkException a -> Either AriviP2PException a
 networkToP2PException (Left e) = Left (NetworkException e)
 networkToP2PException (Right a) = Right a
 
@@ -80,8 +72,7 @@ getUUID :: IO P2PUUID
 getUUID = UUID.toString <$> nextRandom
 
 doesPeerExist :: TVar NodeIdPeerMap -> NodeId -> IO Bool
-doesPeerExist nodeIdPeerTVar peerNodeId =
-    HM.member peerNodeId <$> readTVarIO nodeIdPeerTVar
+doesPeerExist nodeIdPeerTVar peerNodeId = HM.member peerNodeId <$> readTVarIO nodeIdPeerTVar
 
 mkPeer :: NetworkConfig -> TransportType -> Handle -> STM (TVar PeerDetails)
 mkPeer nc transportType connHandle = do
@@ -107,14 +98,12 @@ mkPeer nc transportType connHandle = do
 -- | Assume we get IP and portNumber as well.
 -- | Need to discuss if its really needed to store IP and port in case that the node is the recipient of the handshake
 addNewPeer :: NodeId -> TVar PeerDetails -> TVar NodeIdPeerMap -> STM ()
-addNewPeer peerNodeId peerDetailsTVar nodeIdMapTVar =
-    modifyTVar' nodeIdMapTVar (HM.insert peerNodeId peerDetailsTVar)
+addNewPeer peerNodeId peerDetailsTVar nodeIdMapTVar = modifyTVar' nodeIdMapTVar (HM.insert peerNodeId peerDetailsTVar)
 
 -- | Updates the NodeIdPeerMap with the passed details
 -- | Need to discuss if its really needed to store IP and port in case that the node is the recipient of the handshake
 updatePeer :: TransportType -> Handle -> TVar PeerDetails -> STM ()
-updatePeer transportType connHandle peerDetailsTVar =
-    modifyTVar' peerDetailsTVar updateConnHandle
+updatePeer transportType connHandle peerDetailsTVar = modifyTVar' peerDetailsTVar updateConnHandle
   where
     updateConnHandle peerDetails =
         if transportType == TCP

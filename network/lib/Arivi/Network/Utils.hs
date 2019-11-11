@@ -42,4 +42,4 @@ getPortNumber addr = do
     let port = snd hostport
     case port of
         Just x -> return $ fromInteger ((read x :: Integer))
-        Nothing -> error "getIPAddress: could not find!"
+        Nothing -> error "getPortNumber: could not find!"
