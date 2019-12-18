@@ -84,7 +84,7 @@ pipeline {
                     echo 'Deploying....'
                     running('4.Deploy');
                     sh 'mv `stack path --local-install-root`/bin/Main scripts/Deployment-Tools/Main'
-                    sh 'chmod +x scripts/Deployment-Tools/cronejob.sh'
+                    sh 'chmod +x scripts/Deployment-Tools/cronjob.sh'
                     sh 'cd scripts/Deployment-Tools; python fabfile.py Main 180;rm Main'
                 }
             }

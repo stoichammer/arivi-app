@@ -3,14 +3,16 @@ allow-newer: true
 
 
 packages:
-- crypto
-- network
-- p2p
-- utils
-- service
+
+    - service
 
 
 extra-deps:
+    - ../arivi-core/utils
+    - ../arivi-core/crypto
+    - ../arivi-core/p2p
+    - ../arivi-core/network
+    - ../xoken-core/core
     - serialise-0.2.0.0
     - cborg-0.2.0.0
     - timers-updatable-0.2.0.2
@@ -29,3 +31,5 @@ extra-deps:
     - primitive-extras-0.6.6
     - deferred-folds-0.6.12
     - focus-1
+    - murmur3-1.0.3
+    - secp256k1-haskell-0.1.5

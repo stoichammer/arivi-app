@@ -2,13 +2,10 @@ resolver: lts-12.26
 allow-newer: true
 
 packages:
-    - .
-    - ../utils
-    - ../p2p
-    - ../network
-    - ../crypto
+    - service
 
 extra-deps:
+
 - serialise-0.2.0.0
 - cborg-0.2.0.0
 - statsd-client-0.3.0.0
@@ -20,5 +17,3 @@ extra-deps:
 - either-unwrap-1.1
 - raaz-0.2.1
 - queue-0.1.2
-# - monad-control
-# - network-simple

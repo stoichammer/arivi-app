@@ -130,6 +130,20 @@ packages:
       sha256: fed6464f1e54113238acf850c499797a6116893604e9a3c66a89b58a89299bf9
   original:
     hackage: focus-1
+- completed:
+    hackage: murmur3-1.0.3@sha256:e6c97f0b43a7882c4509d1993c347f0dc540e03b90014da63623f1054bb4d2c8,1873
+    pantry-tree:
+      size: 338
+      sha256: ff5d2f29b96d321c3aa32f7f88bf57e96e869e340a20f326d9876d483ed4371f
+  original:
+    hackage: murmur3-1.0.3
+- completed:
+    hackage: secp256k1-haskell-0.1.5@sha256:15619e444d240b7ca1563c2f30dc56de88c58b0e38e8c95e299d496a30364da3,2027
+    pantry-tree:
+      size: 602
+      sha256: 1932d17a86db6aca40e5d13707d9c439b4564653521c25cc7c5937606654f79e
+  original:
+    hackage: secp256k1-haskell-0.1.5
 snapshots:
 - completed:
     size: 509471
