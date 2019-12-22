@@ -82,6 +82,7 @@ executable AriviSecureRPC
          AriviNetworkServiceHandler,
          AriviSecureRPC
          Service.Types
+         Service.Env
 
   default-language:    Haskell2010
   build-tool-depends: hspec-discover:hspec-discover

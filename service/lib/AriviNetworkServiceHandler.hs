@@ -4,14 +4,13 @@
 module AriviNetworkServiceHandler
     ( AriviNetworkServiceHandler(..)
     , newAriviNetworkServiceHandler
-    , setupIPCServer
+    , setupEndPointServer
     , RPCCall(..)
-    , RPCReq(..)
-    , RPCResp(..)
     , PubSubMsg(..)
-    , IPCMessage(..)
+    , EndPointMessage(..)
     ) where
 
+import Codec.Serialise
 import Control.Concurrent.Async.Lifted (async)
 import Control.Concurrent.MVar
 import Control.Concurrent.STM
@@ -28,40 +27,9 @@ import Data.Text as T
 import GHC.Generics
 import Network.Simple.TCP as ST
 import Network.Socket
+import Service.Data
+import Service.Types
 import Text.Printf
-
-data RPCReq =
-    RPCReq
-        { rPCReq_key :: Int
-        , rPCReq_request :: !T.Text
-        }
-    deriving (Show, Eq)
-
-data RPCResp =
-    RPCResp
-        { rPCResp_key :: Int
-        , rPCResp_response :: !T.Text
-        }
-    deriving (Show, Eq)
-
-data RPCCall =
-    RPCCall
-        { request :: RPCReq
-        , response :: MVar RPCResp
-        }
-
-data PubSubMsg
-    = Subscribe1
-          { topic :: String
-          }
-    | Publish1
-          { topic :: String
-          , message :: String
-          }
-    | Notify1
-          { topic :: String
-          , message :: String
-          }
 
 data AriviNetworkServiceHandler =
     AriviNetworkServiceHandler
@@ -69,34 +37,20 @@ data AriviNetworkServiceHandler =
         , pubSubQueue :: TChan PubSubMsg
         }
 
-data IPCMessage =
-    IPCMessage
-        { msgId :: Int
-        , msgType :: String
-        , payload :: M.Map String String
-        }
-    deriving (Show, Generic)
-
-instance ToJSON IPCMessage
-
-instance FromJSON IPCMessage
-
---instance Serialise IPCMessage
 newAriviNetworkServiceHandler :: IO AriviNetworkServiceHandler
 newAriviNetworkServiceHandler = do
     rpcQ <- atomically $ newTChan
     psQ <- atomically $ newTChan
     return $ AriviNetworkServiceHandler rpcQ psQ
 
-handleRPCReqResp :: MVar Socket -> TChan RPCCall -> Int -> String -> IO ()
+handleRPCReqResp :: MVar Socket -> TChan RPCCall -> Int -> RPCMessage -> IO ()
 handleRPCReqResp sockMVar rpcQ mid encReq = do
     printf "handleRPCReqResp(%d, %s)\n" mid (show encReq)
     resp <- newEmptyMVar
-    let rpcCall = RPCCall (RPCReq mid (T.pack encReq)) (resp)
+    let rpcCall = RPCCall (RPCIndMsg mid encReq) (resp)
     atomically $ writeTChan (rpcQ) rpcCall
     rpcResp <- (readMVar resp)
-    let val = unpack (rPCResp_response rpcResp)
-    let body = A.encode (IPCMessage mid "RPC_RESP" (M.singleton "encResp" val))
+    let body = serialise (EndPointMessage mid (RPC $ rpcMessage rpcResp))
     let ma = LBS.length body
     let xa = Prelude.fromIntegral (ma) :: Int16
     connSock <- takeMVar sockMVar
@@ -105,64 +59,34 @@ handleRPCReqResp sockMVar rpcQ mid encReq = do
     putMVar sockMVar connSock
     return ()
 
-handleSubscribeReqResp :: MVar Socket -> TChan PubSubMsg -> Int -> String -> IO ()
-handleSubscribeReqResp sockMVar psQ mid subject = do
-    printf "handleSubscribeReqResp(%d, %s)\n" mid (subject)
-    let sub = Subscribe1 (subject)
+handlePubSubReqResp :: MVar Socket -> TChan PubSubMsg -> PubSubMsg -> IO ()
+handlePubSubReqResp sockMVar psQ sub = do
+    print ("handleSubscribeReqResp " ++ show sub)
     atomically $ writeTChan (psQ) sub
-    let body = A.encode (IPCMessage mid "SUB_RESP" (M.singleton "status" "ACK"))
-    let ma = LBS.length body
-    let xa = Prelude.fromIntegral (ma) :: Int16
-    connSock <- takeMVar sockMVar
-    sendLazy connSock (DB.encode (xa :: Int16))
-    sendLazy connSock (body)
-    putMVar sockMVar connSock
-    return ()
-
-handlePublishReqResp :: MVar Socket -> TChan PubSubMsg -> Int -> String -> String -> IO ()
-handlePublishReqResp sockMVar psQ mid subject body = do
-    printf "handlePublishReqResp(%d, %s, %s)\n" mid subject body
-    let pub = Publish1 (subject) (body)
-    atomically $ writeTChan (psQ) pub
-    let body1 = A.encode (IPCMessage mid "PUB_RESP" (M.singleton "status" "ACK"))
-    let ma = LBS.length body1
-    let xa = Prelude.fromIntegral (ma) :: Int16
-    connSock <- takeMVar sockMVar
-    sendLazy connSock (DB.encode (xa :: Int16))
-    sendLazy connSock (body1)
-    putMVar sockMVar connSock
+    -- let body = serialise (EndPointMessage mid (PSN sub))
+    -- let ma = LBS.length body
+    -- let xa = Prelude.fromIntegral (ma) :: Int16
+    -- connSock <- takeMVar sockMVar
+    -- sendLazy connSock (DB.encode (xa :: Int16))
+    -- sendLazy connSock (body)
+    -- putMVar sockMVar connSock
     return ()
 
 decodeRequest :: AriviNetworkServiceHandler -> MVar Socket -> LBS.ByteString -> IO ()
 decodeRequest handler sockMVar req = do
-    let ipcReq = A.decode req :: Maybe IPCMessage
-    case ipcReq of
-        Just x -> do
-            printf "Decoded (%s)\n" (show x)
-            case (msgType x) of
-                "RPC_REQ" -> do
-                    case (M.lookup "encReq" (payload x)) of
-                        Just enc -> do
-                            _ <- async (handleRPCReqResp (sockMVar) (rpcQueue handler) (msgId x) (enc))
-                            return ()
-                        Nothing -> printf "Invalid payload.\n"
-                "SUB_REQ" -> do
-                    case (M.lookup "subject" (payload x)) of
-                        Just su -> do
-                            _ <- async (handleSubscribeReqResp sockMVar (pubSubQueue handler) (msgId x) su)
-                            return ()
-                        Nothing -> printf "Invalid payload.\n"
-                "PUB_REQ" -> do
-                    case (M.lookup "subject" (payload x)) of
-                        Just su -> do
-                            case (M.lookup "body" (payload x)) of
-                                Just bdy -> do
-                                    _ <- async (handlePublishReqResp sockMVar (pubSubQueue handler) (msgId x) su bdy)
-                                    return ()
-                                Nothing -> printf "Invalid payload.\n"
-                        Nothing -> printf "Invalid payload.\n"
-                __ -> printf "Invalid message type.\n"
-        Nothing -> printf "Decode 'IPCMessage' failed.\n" (show ipcReq)
+    let xdReq = deserialise req :: XDataReq
+    case xdReq of
+        XDataRPCReq mid met par -> do
+            printf "Decoded (%s)\n" (show met)
+            let req = RPCRequest met par
+            _ <- async (handleRPCReqResp (sockMVar) (rpcQueue handler) (mid) req)
+            return ()
+        XDataSubscribe top -> do
+            _ <- async (handlePubSubReqResp sockMVar (pubSubQueue handler) (Subscribe' top))
+            return ()
+        XDataPublish top body -> do
+            _ <- async (handlePubSubReqResp sockMVar (pubSubQueue handler) (Publish' top $ PubNotifyMessage body))
+            return ()
 
 handleConnection :: AriviNetworkServiceHandler -> Socket -> IO ()
 handleConnection handler connSock = do
@@ -171,7 +95,7 @@ handleConnection handler connSock = do
         lenBytes <- ST.recv connSock 2
         case lenBytes of
             Just l -> do
-                let lenPrefix = runGet getWord16be l -- Char8.readInt l
+                let lenPrefix = runGet getWord16be l
                 case lenPrefix of
                     Right a -> do
                         pl <- ST.recv connSock (fromIntegral (toInteger a))
@@ -186,11 +110,11 @@ handleConnection handler connSock = do
                 printf "Connection closed.\n"
                 writeIORef continue False
 
-setupIPCServer :: AriviNetworkServiceHandler -> PortNumber -> IO ()
-setupIPCServer handler listenPort = do
-    printf "Starting TCP (IPC) server..."
+setupEndPointServer :: AriviNetworkServiceHandler -> PortNumber -> IO ()
+setupEndPointServer handler listenPort = do
+    printf "Starting EndPoint listener..\n"
     _ <-
         serve (Host "127.0.0.1") (show listenPort) $ \(connSock, remoteAddr) -> do
-            putStrLn $ "TCP connection established from " ++ show remoteAddr
+            putStrLn $ "EndPoint connection established from " ++ show remoteAddr
             handleConnection handler connSock
     return ()

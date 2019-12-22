@@ -1,5 +1,5 @@
 
-Arivi Network Protocol: A secure network protocol akin to SSH/SCP that supports both TCP & UDP transports and offers the following features.
+Arivi Network Protocol: A secure network protocol akin to SSH/SCP that supports both EndPoint & UDP transports and offers the following features.
 - Chunking
 - Multiplexing/Demultiplexing
 - End to end encryption (IES key exchange, with perfect forward secrecy)

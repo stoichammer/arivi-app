@@ -23,6 +23,10 @@ import Data.ByteString
 import Data.Hashable
 import GHC.Generics
 
+import Control.Exception
+
+import Control.Concurrent.MVar
+
 -- import Network.Socket hiding (send)
 import Network.Xoken.Block
 
@@ -32,6 +36,43 @@ import Network.Xoken.Block
 -- import Network.Xoken.Transaction
 -- import System.Random
 -- import Text.Read
+data EndpointException
+    = InvalidMessageTypeException
+    | MessageParsingException
+    | UnsupportedMethodException
+    deriving (Show)
+
+instance Exception EndpointException
+
+data EndPointMessage =
+    EndPointMessage
+        { msgId :: Int
+        , payload :: CMessage
+        }
+    deriving (Show, Generic)
+
+instance Serialise EndPointMessage
+
+data RPCIndMsg =
+    RPCIndMsg
+        { rpcIndex :: Int
+        , rpcMessage :: !RPCMessage
+        }
+    deriving (Show, Eq)
+
+data RPCCall =
+    RPCCall
+        { request :: RPCIndMsg
+        , response :: MVar RPCIndMsg
+        }
+
+data EitherMessage a b
+    = RPC a
+    | PSN b
+    deriving (Show, Generic, Serialise)
+
+type CMessage = EitherMessage RPCMessage PubSubMsg
+
 data RPCMessage
     = RPCRequest
           { rqMethod :: String
@@ -40,7 +81,7 @@ data RPCMessage
     | RPCResponse
           { rsStatusCode :: Int16
           , rsStatusMessage :: Maybe String
-          , rsBody :: RPCResponseBody
+          , rsBody :: Maybe RPCResponseBody
           }
     deriving (Show, Generic, Hashable, Eq, Serialise)
 
@@ -68,9 +109,23 @@ data RPCResponseBody
           }
     deriving (Generic, Show, Hashable, Eq, Serialise)
 
+data PubSubMsg
+    = Subscribe'
+          { topic :: String
+          }
+    | Publish'
+          { topic :: String
+          , message :: PubNotifyMessage
+          }
+    | Notify'
+          { topic :: String
+          , message :: PubNotifyMessage
+          }
+    deriving (Show, Generic, Serialise)
+
 data PubNotifyMessage =
     PubNotifyMessage
-        { psBody :: ByteString
+        { psBody :: String
         }
     deriving (Show, Generic, Eq, Serialise)
 

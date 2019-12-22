@@ -26,6 +26,7 @@ import Arivi.P2P.RPC.Types
 import Arivi.P2P.ServiceRegistry
 import AriviNetworkServiceHandler
 import AriviSecureRPC
+import Codec.Serialise
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async.Lifted (async, wait)
 import Control.Concurrent.Async.Lifted (async)
@@ -39,24 +40,27 @@ import Control.Monad.Reader
 import Control.Monad.Trans.Control
 import Data.ByteString as BS
 import Data.ByteString.Lazy as BSL (ByteString)
-import Data.ByteString.Lazy.Char8 as BSLC (pack)
+import Data.ByteString.Lazy.Char8 as BSLC (pack, unpack)
 import Data.Int
 import Data.Map.Strict as M
 import Data.String.Conv
 import Data.Text
 import Data.Typeable
 import Network.Simple.TCP
+import Numeric (showHex)
+import Service.Data
+import Service.Env
 import Service.Types
 import StmContainers.Map as H
 import System.Directory (doesPathExist)
 import System.Environment (getArgs)
 
 newtype AppM a =
-    AppM (ReaderT (ServiceEnv AppM ServiceResource ServiceTopic String String) (LoggingT IO) a)
+    AppM (ReaderT (ServiceEnv AppM ServiceResource ServiceTopic RPCMessage PubNotifyMessage) (LoggingT IO) a)
     deriving ( Functor
              , Applicative
              , Monad
-             , MonadReader (ServiceEnv AppM ServiceResource ServiceTopic String String)
+             , MonadReader (ServiceEnv AppM ServiceResource ServiceTopic RPCMessage PubNotifyMessage)
              , MonadIO
              , MonadThrow
              , MonadCatch
@@ -91,7 +95,7 @@ instance HasPRT AppM where
     getReputedVsOtherTVar = asks (tvReputedVsOther . prtEnv . p2pEnv)
     getKClosestVsRandomTVar = asks (tvKClosestVsRandom . prtEnv . p2pEnv)
 
-runAppM :: ServiceEnv AppM ServiceResource ServiceTopic String String -> AppM a -> LoggingT IO a
+runAppM :: ServiceEnv AppM ServiceResource ServiceTopic RPCMessage PubNotifyMessage -> AppM a -> LoggingT IO a
 runAppM env (AppM app) = runReaderT app env
 
 defaultConfig :: FilePath -> IO ()
@@ -110,27 +114,26 @@ defaultConfig path = do
                 5
                 3
                 9090
-                9091
     Config.makeConfig config (path <> "/config.yaml")
 
 runNode :: Config.Config -> AriviNetworkServiceHandler -> IO ()
 runNode config ariviHandler = do
     p2pEnv <- mkP2PEnv config globalHandlerRpc globalHandlerPubSub [AriviSecureRPC] []
-    let rPort = Config.ipcRemotePort config
-    sockTuple <- connectSock "127.0.0.1" (show rPort)
-    Prelude.putStrLn $ "Connection established to " ++ show rPort
+    -- let rPort = Config.ipcRemotePort config
+    -- sockTuple <- connectSock "127.0.0.1" (show rPort)
+    -- Prelude.putStrLn $ "Connection established to " ++ show rPort
     que <- atomically $ newTChan
     mmap <- newTVarIO $ M.empty
-    let tcpEnv = TCPEnv sockTuple que mmap
-    let serviceEnv = ServiceEnv tcpEnv p2pEnv
+    -- let tcpEnv = EndPointEnv sockTuple que mmap
+    let serviceEnv = ServiceEnv EndPointEnv p2pEnv
     runFileLoggingT (toS $ Config.logFile config) $
         runAppM
             serviceEnv
             (do initP2P config
                 async $ loopRPC (rpcQueue ariviHandler)
-                async $ loopPubSub (pubSubQueue ariviHandler)
-                async $ processIPCRequests
-                processIPCResponses)
+                loopPubSub (pubSubQueue ariviHandler))
+                -- async $ processEndPointRequests
+                --processEndPointResponses)
     return ()
 
 main :: IO ()
@@ -140,10 +143,6 @@ main = do
     unless b (defaultConfig path)
     config <- Config.readConfig (path <> "/config.yaml")
     ariviHandler <- newAriviNetworkServiceHandler
-    _ <- async (setupIPCServer ariviHandler (Config.ipcListenPort config))
+    _ <- async (setupEndPointServer ariviHandler (Config.endPointListenPort config))
     runNode config ariviHandler
     return ()
--- a :: Prelude.Int -> BSL.ByteString
--- a n = BSLC.pack (Prelude.replicate n 'a')
--- myAmazingHandler :: (HasLogging m) => ConnectionHandle -> m ()
--- myAmazingHandler h = forever $ recv h >>= send h
