@@ -93,7 +93,10 @@ data RPCReqParams
           { gbHeights :: [Int]
           }
     | GetBlockByHash
-          { gbBlockHash :: BlockHash
+          { gbBlockHash :: String
+          }
+    | GetBlocksByHashes
+          { gbBlockHashes :: [String]
           }
     deriving (Generic, Show, Hashable, Eq, Serialise)
 
@@ -106,6 +109,9 @@ data RPCResponseBody
           }
     | RespBlockByHash
           { block :: BlockRecord
+          }
+    | RespBlocksByHashes
+          { blocks :: [BlockRecord]
           }
     deriving (Generic, Show, Hashable, Eq, Serialise)
 
@@ -133,7 +139,7 @@ data PubNotifyMessage =
 data BlockRecord =
     BlockRecord
         { rbHeight :: Int
-        , rbHash :: BlockHash
-        , rbHeader :: BlockHeader
+        , rbHash :: String
+        , rbHeader :: String
         }
     deriving (Generic, Show, Hashable, Eq, Serialise)

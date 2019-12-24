@@ -136,8 +136,8 @@ goGetResource rpcCall = do
     liftIO $ print ("fetchResource")
     resource <- fetchResource (RpcPayload AriviSecureRPC msg)
     case resource of
-        Left _ -> do
-            liftIO $ print "Exception: No peers available to issue RPC"
+        Left e -> do
+            liftIO $ print ("Exception: No peers available to issue RPC" ++ show e)
             let errMsg = Just "__EXCEPTION__NO_PEERS"
             liftIO $ (putMVar (response rpcCall) $ RPCIndMsg ind (RPCResponse 400 errMsg Nothing))
             return ()

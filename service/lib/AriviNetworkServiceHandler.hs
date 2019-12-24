@@ -47,15 +47,18 @@ handleRPCReqResp :: MVar Socket -> TChan RPCCall -> Int -> RPCMessage -> IO ()
 handleRPCReqResp sockMVar rpcQ mid encReq = do
     printf "handleRPCReqResp(%d, %s)\n" mid (show encReq)
     resp <- newEmptyMVar
-    let rpcCall = RPCCall (RPCIndMsg mid encReq) (resp)
-    atomically $ writeTChan (rpcQ) rpcCall
-    rpcResp <- (readMVar resp)
-    let body = serialise (EndPointMessage mid (RPC $ rpcMessage rpcResp))
-    let ma = LBS.length body
-    let xa = Prelude.fromIntegral (ma) :: Int16
+    atomically $ writeTChan (rpcQ) $ RPCCall (RPCIndMsg mid encReq) resp
+    rpcResp <- readMVar resp
+    let body =
+            serialise $
+            XDataRPCResp
+                (rpcIndex rpcResp)
+                (rsStatusCode $ rpcMessage rpcResp)
+                (rsStatusMessage $ rpcMessage rpcResp)
+                (rsBody $ rpcMessage rpcResp)
     connSock <- takeMVar sockMVar
-    sendLazy connSock (DB.encode (xa :: Int16))
-    sendLazy connSock (body)
+    sendLazy connSock $ DB.encode (Prelude.fromIntegral (LBS.length body) :: Int16)
+    sendLazy connSock body
     putMVar sockMVar connSock
     return ()
 

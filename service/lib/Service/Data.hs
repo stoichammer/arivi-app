@@ -28,7 +28,7 @@ import Service.Types
 -- import Data.Word
 data XDataReq
     = XDataRPCReq
-          { id :: Int
+          { reqId :: Int
           , method :: String
           , params :: Maybe RPCReqParams
           }
@@ -43,44 +43,13 @@ data XDataReq
 
 data XDataResp
     = XDataRPCResp
-          { rsStatusCode :: Int16
-          , rsStatusMessage :: Maybe String
-          , rsBody :: Maybe RPCResponseBody
+          { matchId :: Int
+          , statusCode :: Int16
+          , statusMessage :: Maybe String
+          , respBody :: Maybe RPCResponseBody
           }
     | XDataNotify
           { notifyTopic :: String
           , notifyBody :: String
           }
     deriving (Show, Generic, Hashable, Eq, Serialise) --
-    --
-    -- data YMethod =
-    --     YMethod
-    --         { ss :: String
-    --         , pp :: Int
-    --         }
-    --     deriving (Generic, Show, Eq, Serialise)
-    --
-    -- data XMethod =
-    --     XMethod
-    --         { s :: String
-    --         , p :: XParams
-    --         }
-    --     deriving (Generic, Show, Eq, Serialise)
-    --
-    -- data XParams
-    --     = XGetOne
-    --           { ht :: Int
-    --           }
-    --     | XGetStr
-    --           { st :: String
-    --           }
-    --     | XGetMany
-    --           { hts :: [Int]
-    --           }
-    --     deriving (Generic, Show, Eq, Serialise)
-    -- let x = serialise (XMethod "abc" $ XGetOne 100)
-    -- let y = serialise (XMethod "xyz" $ XGetMany [1, 2, 3, 4, 5])
-    -- print (x)
-    -- print (y)
-    -- let z = serialise (YMethod "ghi" $ 100)
-    -- print (z)

@@ -119,9 +119,6 @@ defaultConfig path = do
 runNode :: Config.Config -> AriviNetworkServiceHandler -> IO ()
 runNode config ariviHandler = do
     p2pEnv <- mkP2PEnv config globalHandlerRpc globalHandlerPubSub [AriviSecureRPC] []
-    -- let rPort = Config.ipcRemotePort config
-    -- sockTuple <- connectSock "127.0.0.1" (show rPort)
-    -- Prelude.putStrLn $ "Connection established to " ++ show rPort
     que <- atomically $ newTChan
     mmap <- newTVarIO $ M.empty
     -- let tcpEnv = EndPointEnv sockTuple que mmap
@@ -142,6 +139,8 @@ main = do
     b <- doesPathExist (path <> "/config.yaml")
     unless b (defaultConfig path)
     config <- Config.readConfig (path <> "/config.yaml")
+    let yy = serialise $ XDataRPCReq 1 "test" $ Just $ GetBlockByHeight 100
+    print (yy)
     ariviHandler <- newAriviNetworkServiceHandler
     _ <- async (setupEndPointServer ariviHandler (Config.endPointListenPort config))
     runNode config ariviHandler
