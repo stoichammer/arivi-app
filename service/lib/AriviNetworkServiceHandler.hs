@@ -7,10 +7,8 @@ module AriviNetworkServiceHandler
     ( AriviNetworkServiceHandler(..)
     , newAriviNetworkServiceHandler
     , setupEndPointServer
-    , handleRequest
-    , RPCCall(..)
+    , handleNewConnectionRequest
     , PubSubMsg(..)
-    , EndPointMessage(..)
     ) where
 
 import Arivi.P2P.P2PEnv
@@ -41,15 +39,25 @@ import Text.Printf
 
 data AriviNetworkServiceHandler =
     AriviNetworkServiceHandler
+        { connQueue :: TChan EndPointConnection
+        }
+
+data EndPointConnection =
+    EndPointConnection
         { requestQueue :: TChan XDataReq
         , respWriteLock :: MVar Socket
         }
 
 newAriviNetworkServiceHandler :: IO AriviNetworkServiceHandler
 newAriviNetworkServiceHandler = do
+    conQ <- atomically $ newTChan
+    return $ AriviNetworkServiceHandler conQ
+
+newEndPointConnection :: IO EndPointConnection
+newEndPointConnection = do
     reqQueue <- atomically $ newTChan
     resLock <- newEmptyMVar
-    return $ AriviNetworkServiceHandler reqQueue resLock
+    return $ EndPointConnection reqQueue resLock
 
 goGetResource ::
        (HasP2PEnv env m ServiceResource ServiceTopic RPCMessage PubNotifyMessage) => RPCMessage -> m (RPCMessage)
@@ -88,32 +96,46 @@ handlePubSubReqResp sockMVar sub = do
     -- INSERT
     return ()
 
-handleRequest ::
+handleNewConnectionRequest ::
        (HasP2PEnv env m ServiceResource ServiceTopic RPCMessage PubNotifyMessage) => AriviNetworkServiceHandler -> m ()
-handleRequest handler = do
-    xdReq <- liftIO $ atomically $ readTChan $ requestQueue handler
-    case xdReq of
-        XDataRPCReq mid met par -> do
-            liftIO $ printf "Decoded (%s)\n" (show met)
-            let req = RPCRequest met par
-            _ <- async (handleRPCReqResp (respWriteLock handler) mid req)
-            return ()
-        XDataSubscribe top -> do
-            _ <- async (handlePubSubReqResp (respWriteLock handler) (Subscribe' top))
-            return ()
-        XDataPublish top body -> do
-            _ <- async (handlePubSubReqResp (respWriteLock handler) (Publish' top $ PubNotifyMessage body))
-            return ()
-
-enqueueRequest :: AriviNetworkServiceHandler -> LBS.ByteString -> IO ()
-enqueueRequest handler req = do
-    let xdReq = deserialise req :: XDataReq
-    atomically $ writeTChan (requestQueue handler) xdReq
-
-handleConnection :: AriviNetworkServiceHandler -> Socket -> IO ()
-handleConnection handler connSock = do
+handleNewConnectionRequest handler = do
     continue <- liftIO $ newIORef True
-    putMVar (respWriteLock handler) connSock
+    whileM_ (liftIO $ readIORef continue) $ do
+        liftIO $ printf "handleNewConnectionRequest\n"
+        epConn <- liftIO $ atomically $ readTChan $ connQueue handler
+        async $ handleRequest epConn
+
+handleRequest ::
+       (HasP2PEnv env m ServiceResource ServiceTopic RPCMessage PubNotifyMessage) => EndPointConnection -> m ()
+handleRequest handler = do
+    continue <- liftIO $ newIORef True
+    whileM_ (liftIO $ readIORef continue) $ do
+        liftIO $ printf "handleRequest\n"
+        xdReq <- liftIO $ atomically $ readTChan $ requestQueue handler
+        case xdReq of
+            XDataRPCReq mid met par -> do
+                liftIO $ printf "Decoded (%s)\n" (show met)
+                let req = RPCRequest met par
+                async (handleRPCReqResp (respWriteLock handler) mid req)
+                return ()
+            XDataSubscribe top -> do
+                async (handlePubSubReqResp (respWriteLock handler) (Subscribe' top))
+                return ()
+            XDataPublish top body -> do
+                async (handlePubSubReqResp (respWriteLock handler) (Publish' top $ PubNotifyMessage body))
+                return ()
+            XCloseConnection -> do
+                liftIO $ writeIORef continue False
+
+enqueueRequest :: EndPointConnection -> LBS.ByteString -> IO ()
+enqueueRequest epConn req = do
+    let xdReq = deserialise req :: XDataReq
+    atomically $ writeTChan (requestQueue epConn) xdReq
+
+handleConnection :: EndPointConnection -> Socket -> IO ()
+handleConnection epConn connSock = do
+    continue <- liftIO $ newIORef True
+    putMVar (respWriteLock epConn) connSock
     whileM_ (liftIO $ readIORef continue) $ do
         lenBytes <- ST.recv connSock 2
         case lenBytes of
@@ -124,12 +146,13 @@ handleConnection handler connSock = do
                         pl <- ST.recv connSock (fromIntegral (toInteger a))
                         case pl of
                             Just y -> do
-                                enqueueRequest handler (LBS.fromStrict y)
+                                enqueueRequest epConn (LBS.fromStrict y)
                                 return ()
                             Nothing -> printf "Payload read error\n"
                     Left _b -> printf "Length prefix corrupted.\n"
             Nothing -> do
                 printf "Connection closed.\n"
+                atomically $ writeTChan (requestQueue epConn) XCloseConnection
                 writeIORef continue False
 
 setupEndPointServer :: AriviNetworkServiceHandler -> PortNumber -> IO ()
@@ -138,5 +161,7 @@ setupEndPointServer handler listenPort = do
     _ <-
         serve (Host "127.0.0.1") (show listenPort) $ \(connSock, remoteAddr) -> do
             putStrLn $ "EndPoint connection established from " ++ show remoteAddr
-            handleConnection handler connSock
+            epConn <- newEndPointConnection
+            atomically $ writeTChan (connQueue handler) epConn
+            handleConnection epConn connSock
     return ()

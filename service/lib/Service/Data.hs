@@ -39,6 +39,7 @@ data XDataReq
           { publishTopic :: String
           , publishBody :: String
           }
+    | XCloseConnection
     deriving (Show, Generic, Hashable, Eq, Serialise)
 
 data XDataResp

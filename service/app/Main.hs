@@ -126,7 +126,7 @@ runNode config ariviHandler = do
         runAppM
             serviceEnv
             (do initP2P config
-                handleRequest ariviHandler)
+                handleNewConnectionRequest ariviHandler)
     return ()
 
 main :: IO ()

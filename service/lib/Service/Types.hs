@@ -8,34 +8,16 @@
 
 module Service.Types where
 
--- import Control.Concurrent.MVar
--- import Control.Concurrent.STM
--- import qualified Data.ByteString as B
--- import Data.Functor.Identity
-import Data.Int
-
--- import qualified Data.Map.Strict as M
---
--- import Data.Time.Clock
--- import Data.Word
 import Codec.Serialise
-import Data.ByteString
-import Data.Hashable
-import GHC.Generics
-
-import Control.Exception
-
 import Control.Concurrent.MVar
-
--- import Network.Socket hiding (send)
+import Control.Exception
+import Data.ByteString
+import qualified Data.ByteString.Lazy.Char8 as C
+import Data.Hashable
+import Data.Int
+import GHC.Generics
 import Network.Xoken.Block
 
--- import Network.Xoken.Constants
--- import Network.Xoken.Crypto.Hash
--- import Network.Xoken.Network
--- import Network.Xoken.Transaction
--- import System.Random
--- import Text.Read
 data EndpointException
     = InvalidMessageTypeException
     | MessageParsingException
@@ -43,35 +25,6 @@ data EndpointException
     deriving (Show)
 
 instance Exception EndpointException
-
-data EndPointMessage =
-    EndPointMessage
-        { msgId :: Int
-        , payload :: CMessage
-        }
-    deriving (Show, Generic)
-
-instance Serialise EndPointMessage
-
-data RPCIndMsg =
-    RPCIndMsg
-        { rpcIndex :: Int
-        , rpcMessage :: !RPCMessage
-        }
-    deriving (Show, Eq)
-
-data RPCCall =
-    RPCCall
-        { request :: RPCIndMsg
-        , response :: MVar RPCIndMsg
-        }
-
-data EitherMessage a b
-    = RPC a
-    | PSN b
-    deriving (Show, Generic, Serialise)
-
-type CMessage = EitherMessage RPCMessage PubSubMsg
 
 data RPCMessage
     = RPCRequest
@@ -98,6 +51,18 @@ data RPCReqParams
     | GetBlocksByHashes
           { gbBlockHashes :: [String]
           }
+    | GetTransactionByTxID
+          { gtTxHash :: String
+          }
+    | GetTransactionsByTxIDs
+          { gtTxHashes :: [String]
+          }
+    | GetOutputsByAddress
+          { gaAddrOutputs :: String
+          }
+    | GetOutputsByAddresses
+          { gasAddrOutputs :: [String]
+          }
     deriving (Generic, Show, Hashable, Eq, Serialise)
 
 data RPCResponseBody
@@ -112,6 +77,18 @@ data RPCResponseBody
           }
     | RespBlocksByHashes
           { blocks :: [BlockRecord]
+          }
+    | RespTransactionByTxID
+          { tx :: TxRecord
+          }
+    | RespTransactionsByTxIDs
+          { txs :: [TxRecord]
+          }
+    | RespOutputsByAddress
+          { saddressOutputs :: [AddressOutputs]
+          }
+    | RespOutputsByAddresses
+          { maddressOutputs :: [AddressOutputs]
           }
     deriving (Generic, Show, Hashable, Eq, Serialise)
 
@@ -129,13 +106,6 @@ data PubSubMsg
           }
     deriving (Show, Generic, Serialise)
 
-data PubNotifyMessage =
-    PubNotifyMessage
-        { psBody :: String
-        }
-    deriving (Show, Generic, Eq, Serialise)
-
---
 data BlockRecord =
     BlockRecord
         { rbHeight :: Int
@@ -143,3 +113,47 @@ data BlockRecord =
         , rbHeader :: String
         }
     deriving (Generic, Show, Hashable, Eq, Serialise)
+
+data TxRecord =
+    TxRecord
+        { txId :: String
+        , txBlockInfo :: BlockInfo'
+        , txSerialized :: C.ByteString
+        }
+    deriving (Show, Generic, Hashable, Eq, Serialise)
+
+data AddressOutputs =
+    AddressOutputs
+        { aoAddress :: String
+        , aoOutput :: OutPoint'
+        , aoBlockInfo :: BlockInfo'
+        , aoIsBlockConfirmed :: Bool
+        , aoIsOutputSpent :: Bool
+        , aoIsTypeReceive :: Bool
+        , aoOtherAddress :: String
+        , aoPrevOutpoint :: OutPoint'
+        , aoValue :: Int64
+        }
+    deriving (Show, Generic, Hashable, Eq, Serialise)
+
+data OutPoint' =
+    OutPoint'
+        { opTxHash :: String
+        , opIndex :: Int
+        }
+    deriving (Show, Generic, Hashable, Eq, Serialise)
+
+data BlockInfo' =
+    BlockInfo'
+        { binfBlockHash :: String
+        , binfTxIndex :: Int
+        , binfBlockHeight :: Int
+        }
+    deriving (Show, Generic, Hashable, Eq, Serialise)
+
+data PubNotifyMessage =
+    PubNotifyMessage
+        { psBody :: String
+        }
+    deriving (Show, Generic, Eq, Serialise)
+--
