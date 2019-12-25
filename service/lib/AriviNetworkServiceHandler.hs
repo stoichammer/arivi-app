@@ -155,11 +155,11 @@ handleConnection epConn connSock = do
                 atomically $ writeTChan (requestQueue epConn) XCloseConnection
                 writeIORef continue False
 
-setupEndPointServer :: AriviNetworkServiceHandler -> PortNumber -> IO ()
-setupEndPointServer handler listenPort = do
+setupEndPointServer :: AriviNetworkServiceHandler -> String -> PortNumber -> IO ()
+setupEndPointServer handler listenIP listenPort = do
     printf "Starting EndPoint listener..\n"
     _ <-
-        serve (Host "127.0.0.1") (show listenPort) $ \(connSock, remoteAddr) -> do
+        serve (Host listenIP) (show listenPort) $ \(connSock, remoteAddr) -> do
             putStrLn $ "EndPoint connection established from " ++ show remoteAddr
             epConn <- newEndPointConnection
             atomically $ writeTChan (connQueue handler) epConn

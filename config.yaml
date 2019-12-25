@@ -6,6 +6,7 @@ kademliaConcurrencyFactor: 3
 udpPort: 5682
 listenIP: 127.0.0.1
 endPointListenPort: 9090
+endPointListenIP: 127.0.0.1
 tcpPort: 5682
 myNodeId: 896a3386911188e653a5a08af2cbad69ff51313126f80d6a2e0ebed4e633ee9fb8444be24104c214d98176af3f3f772a345fb2b5873d83d735974c8639c6de3f
 

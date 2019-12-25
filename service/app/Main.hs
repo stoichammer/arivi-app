@@ -113,6 +113,7 @@ defaultConfig path = do
                 20
                 5
                 3
+                "127.0.0.1"
                 9090
     Config.makeConfig config (path <> "/config.yaml")
 
@@ -136,6 +137,6 @@ main = do
     unless b (defaultConfig path)
     config <- Config.readConfig (path <> "/config.yaml")
     ariviHandler <- newAriviNetworkServiceHandler
-    _ <- async (setupEndPointServer ariviHandler (Config.endPointListenPort config))
+    _ <- async (setupEndPointServer ariviHandler (Config.endPointListenIP config) (Config.endPointListenPort config))
     runNode config ariviHandler
     return ()
