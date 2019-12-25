@@ -121,16 +121,12 @@ runNode config ariviHandler = do
     p2pEnv <- mkP2PEnv config globalHandlerRpc globalHandlerPubSub [AriviSecureRPC] []
     que <- atomically $ newTChan
     mmap <- newTVarIO $ M.empty
-    -- let tcpEnv = EndPointEnv sockTuple que mmap
     let serviceEnv = ServiceEnv EndPointEnv p2pEnv
     runFileLoggingT (toS $ Config.logFile config) $
         runAppM
             serviceEnv
             (do initP2P config
-                async $ loopRPC (rpcQueue ariviHandler)
-                loopPubSub (pubSubQueue ariviHandler))
-                -- async $ processEndPointRequests
-                --processEndPointResponses)
+                handleRequest ariviHandler)
     return ()
 
 main :: IO ()
@@ -139,8 +135,6 @@ main = do
     b <- doesPathExist (path <> "/config.yaml")
     unless b (defaultConfig path)
     config <- Config.readConfig (path <> "/config.yaml")
-    let yy = serialise $ XDataRPCReq 1 "test" $ Just $ GetBlockByHeight 100
-    print (yy)
     ariviHandler <- newAriviNetworkServiceHandler
     _ <- async (setupEndPointServer ariviHandler (Config.endPointListenPort config))
     runNode config ariviHandler

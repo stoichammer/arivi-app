@@ -1,19 +1,26 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE MonoLocalBinds #-}
 
 module AriviNetworkServiceHandler
     ( AriviNetworkServiceHandler(..)
     , newAriviNetworkServiceHandler
     , setupEndPointServer
+    , handleRequest
     , RPCCall(..)
     , PubSubMsg(..)
     , EndPointMessage(..)
     ) where
 
+import Arivi.P2P.P2PEnv
+import Arivi.P2P.RPC.Fetch
+import Arivi.P2P.Types
 import Codec.Serialise
 import Control.Concurrent.Async.Lifted (async)
 import Control.Concurrent.MVar
 import Control.Concurrent.STM
+import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Loops
 import Data.Aeson as A
@@ -28,72 +35,85 @@ import GHC.Generics
 import Network.Simple.TCP as ST
 import Network.Socket
 import Service.Data
+import Service.Env
 import Service.Types
 import Text.Printf
 
 data AriviNetworkServiceHandler =
     AriviNetworkServiceHandler
-        { rpcQueue :: TChan RPCCall
-        , pubSubQueue :: TChan PubSubMsg
+        { requestQueue :: TChan XDataReq
+        , respWriteLock :: MVar Socket
         }
 
 newAriviNetworkServiceHandler :: IO AriviNetworkServiceHandler
 newAriviNetworkServiceHandler = do
-    rpcQ <- atomically $ newTChan
-    psQ <- atomically $ newTChan
-    return $ AriviNetworkServiceHandler rpcQ psQ
+    reqQueue <- atomically $ newTChan
+    resLock <- newEmptyMVar
+    return $ AriviNetworkServiceHandler reqQueue resLock
 
-handleRPCReqResp :: MVar Socket -> TChan RPCCall -> Int -> RPCMessage -> IO ()
-handleRPCReqResp sockMVar rpcQ mid encReq = do
-    printf "handleRPCReqResp(%d, %s)\n" mid (show encReq)
-    resp <- newEmptyMVar
-    atomically $ writeTChan (rpcQ) $ RPCCall (RPCIndMsg mid encReq) resp
-    rpcResp <- readMVar resp
-    let body =
-            serialise $
-            XDataRPCResp
-                (rpcIndex rpcResp)
-                (rsStatusCode $ rpcMessage rpcResp)
-                (rsStatusMessage $ rpcMessage rpcResp)
-                (rsBody $ rpcMessage rpcResp)
-    connSock <- takeMVar sockMVar
+goGetResource ::
+       (HasP2PEnv env m ServiceResource ServiceTopic RPCMessage PubNotifyMessage) => RPCMessage -> m (RPCMessage)
+goGetResource msg = do
+    liftIO $ print ("fetchResource")
+    resource <- fetchResource (RpcPayload AriviSecureRPC msg)
+    case resource of
+        Left e -> do
+            liftIO $ print ("Exception: No peers available to issue RPC" ++ show e)
+            return (RPCResponse 400 (Just "No connected peers") Nothing)
+        Right (RpcError _) -> return (RPCResponse 500 (Just "Unknown RPC error") Nothing)
+        Right (RpcPayload _ respMsg) -> do
+            liftIO $ print (respMsg)
+            return (respMsg)
+
+handleRPCReqResp ::
+       (HasP2PEnv env m ServiceResource ServiceTopic RPCMessage PubNotifyMessage)
+    => MVar Socket
+    -> Int
+    -> RPCMessage
+    -> m ()
+handleRPCReqResp sockMVar mid encReq = do
+    liftIO $ printf "handleRPCReqResp(%d, %s)\n" mid (show encReq)
+    rpcResp <- goGetResource encReq
+    let body = serialise $ XDataRPCResp (mid) (rsStatusCode rpcResp) (rsStatusMessage rpcResp) (rsBody rpcResp)
+    connSock <- liftIO $ takeMVar sockMVar
     sendLazy connSock $ DB.encode (Prelude.fromIntegral (LBS.length body) :: Int16)
     sendLazy connSock body
-    putMVar sockMVar connSock
+    liftIO $ putMVar sockMVar connSock
     return ()
 
-handlePubSubReqResp :: MVar Socket -> TChan PubSubMsg -> PubSubMsg -> IO ()
-handlePubSubReqResp sockMVar psQ sub = do
-    print ("handleSubscribeReqResp " ++ show sub)
-    atomically $ writeTChan (psQ) sub
-    -- let body = serialise (EndPointMessage mid (PSN sub))
-    -- let ma = LBS.length body
-    -- let xa = Prelude.fromIntegral (ma) :: Int16
-    -- connSock <- takeMVar sockMVar
-    -- sendLazy connSock (DB.encode (xa :: Int16))
-    -- sendLazy connSock (body)
-    -- putMVar sockMVar connSock
+handlePubSubReqResp ::
+       (HasP2PEnv env m ServiceResource ServiceTopic RPCMessage PubNotifyMessage) => MVar Socket -> PubSubMsg -> m ()
+handlePubSubReqResp sockMVar sub = do
+    liftIO $ print ("handleSubscribeReqResp " ++ show sub)
+    -- INSERT
     return ()
 
-decodeRequest :: AriviNetworkServiceHandler -> MVar Socket -> LBS.ByteString -> IO ()
-decodeRequest handler sockMVar req = do
-    let xdReq = deserialise req :: XDataReq
+handleRequest ::
+       (HasP2PEnv env m ServiceResource ServiceTopic RPCMessage PubNotifyMessage) => AriviNetworkServiceHandler -> m ()
+handleRequest handler = do
+    xdReq <- liftIO $ atomically $ readTChan $ requestQueue handler
     case xdReq of
         XDataRPCReq mid met par -> do
-            printf "Decoded (%s)\n" (show met)
+            liftIO $ printf "Decoded (%s)\n" (show met)
             let req = RPCRequest met par
-            _ <- async (handleRPCReqResp (sockMVar) (rpcQueue handler) (mid) req)
+            _ <- async (handleRPCReqResp (respWriteLock handler) mid req)
             return ()
         XDataSubscribe top -> do
-            _ <- async (handlePubSubReqResp sockMVar (pubSubQueue handler) (Subscribe' top))
+            _ <- async (handlePubSubReqResp (respWriteLock handler) (Subscribe' top))
             return ()
         XDataPublish top body -> do
-            _ <- async (handlePubSubReqResp sockMVar (pubSubQueue handler) (Publish' top $ PubNotifyMessage body))
+            _ <- async (handlePubSubReqResp (respWriteLock handler) (Publish' top $ PubNotifyMessage body))
             return ()
+
+enqueueRequest :: AriviNetworkServiceHandler -> LBS.ByteString -> IO ()
+enqueueRequest handler req = do
+    let xdReq = deserialise req :: XDataReq
+    atomically $ writeTChan (requestQueue handler) xdReq
 
 handleConnection :: AriviNetworkServiceHandler -> Socket -> IO ()
 handleConnection handler connSock = do
     continue <- liftIO $ newIORef True
+    putMVar (respWriteLock handler) connSock
     whileM_ (liftIO $ readIORef continue) $ do
         lenBytes <- ST.recv connSock 2
         case lenBytes of
@@ -104,8 +124,7 @@ handleConnection handler connSock = do
                         pl <- ST.recv connSock (fromIntegral (toInteger a))
                         case pl of
                             Just y -> do
-                                sockMVar <- newMVar connSock
-                                decodeRequest handler sockMVar (LBS.fromStrict y)
+                                enqueueRequest handler (LBS.fromStrict y)
                                 return ()
                             Nothing -> printf "Payload read error\n"
                     Left _b -> printf "Length prefix corrupted.\n"
