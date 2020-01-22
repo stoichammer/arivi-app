@@ -26,6 +26,9 @@ data EndpointException
 
 instance Exception EndpointException
 
+--
+-- INTERFACE START
+--
 data RPCMessage
     = RPCRequest
           { rqMethod :: String
@@ -63,6 +66,9 @@ data RPCReqParams
     | GetOutputsByAddresses
           { gasAddrOutputs :: [String]
           }
+    | GetMerkleBranchByTxID
+          { gmbMerkleBranch :: String
+          }
     deriving (Generic, Show, Hashable, Eq, Serialise)
 
 data RPCResponseBody
@@ -90,21 +96,10 @@ data RPCResponseBody
     | RespOutputsByAddresses
           { maddressOutputs :: [AddressOutputs]
           }
+    | RespMerkleBranchByTxID
+          { merkleBranch :: [MerkleBranchNode']
+          }
     deriving (Generic, Show, Hashable, Eq, Serialise)
-
-data PubSubMsg
-    = Subscribe'
-          { topic :: String
-          }
-    | Publish'
-          { topic :: String
-          , message :: PubNotifyMessage
-          }
-    | Notify'
-          { topic :: String
-          , message :: PubNotifyMessage
-          }
-    deriving (Show, Generic, Serialise)
 
 data BlockRecord =
     BlockRecord
@@ -151,9 +146,31 @@ data BlockInfo' =
         }
     deriving (Show, Generic, Hashable, Eq, Serialise)
 
+data MerkleBranchNode' =
+    MerkleBranchNode'
+        { nodeValue :: String
+        , isLeftNode :: Bool
+        }
+    deriving (Show, Generic, Hashable, Eq, Serialise)
+
 data PubNotifyMessage =
     PubNotifyMessage
         { psBody :: String
         }
     deriving (Show, Generic, Eq, Serialise)
+
 --
+--
+data PubSubMsg
+    = Subscribe'
+          { topic :: String
+          }
+    | Publish'
+          { topic :: String
+          , message :: PubNotifyMessage
+          }
+    | Notify'
+          { topic :: String
+          , message :: PubNotifyMessage
+          }
+    deriving (Show, Generic, Serialise)
