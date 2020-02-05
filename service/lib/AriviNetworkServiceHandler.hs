@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MonoLocalBinds #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module AriviNetworkServiceHandler
     ( AriviNetworkServiceHandler(..)
@@ -18,11 +19,13 @@ import Codec.Serialise
 import Control.Concurrent.Async.Lifted (async)
 import Control.Concurrent.MVar
 import Control.Concurrent.STM
+import Control.Exception
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Loops
 import Data.Aeson as A
 import Data.Binary as DB
+import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LBS
 import Data.IORef
 import Data.Int
@@ -137,31 +140,50 @@ handleConnection epConn connSock = do
     continue <- liftIO $ newIORef True
     putMVar (respWriteLock epConn) connSock
     whileM_ (liftIO $ readIORef continue) $ do
-        lenBytes <- ST.recv connSock 2
-        case lenBytes of
-            Just l -> do
+        res <- try $ recvAll connSock 2
+        case res of
+            Right l -> do
                 let lenPrefix = runGet getWord16be l
                 case lenPrefix of
                     Right a -> do
-                        pl <- ST.recv connSock (fromIntegral (toInteger a))
+                        pl <- try $ recvAll connSock (fromIntegral (toInteger a))
                         case pl of
-                            Just y -> do
+                            Right y -> do
                                 enqueueRequest epConn (LBS.fromStrict y)
                                 return ()
-                            Nothing -> printf "Payload read error\n"
-                    Left _b -> printf "Length prefix corrupted.\n"
-            Nothing -> do
-                printf "Connection closed.\n"
+                            Left (e :: IOException) -> putStrLn "Payload read error"
+                    Left _b -> putStrLn "Length prefix corrupted."
+            Left (e :: IOException) -> do
+                putStrLn "Connection closed."
                 atomically $ writeTChan (requestQueue epConn) XCloseConnection
                 writeIORef continue False
 
 setupEndPointServer :: AriviNetworkServiceHandler -> String -> PortNumber -> IO ()
 setupEndPointServer handler listenIP listenPort = do
-    printf "Starting EndPoint listener..\n"
+    putStrLn $ "Starting Xoken Arch"
     _ <-
         serve (Host listenIP) (show listenPort) $ \(connSock, remoteAddr) -> do
-            putStrLn $ "EndPoint connection established from " ++ show remoteAddr
+            putStrLn $ "client connection established : " ++ show remoteAddr
             epConn <- newEndPointConnection
             atomically $ writeTChan (connQueue handler) epConn
             handleConnection epConn connSock
     return ()
+
+-- Helper Functions
+recvAll :: (MonadIO m) => Socket -> Int -> m B.ByteString
+recvAll sock len = do
+    if len > 0
+        then do
+            res <- liftIO $ try $ ST.recv sock len
+            case res of
+                Left (e :: IOException) -> throw e
+                Right message ->
+                    case message of
+                        Nothing -> throw SocketReadException
+                        Just mesg -> do
+                            if B.length mesg == len
+                                then return mesg
+                                else if B.length mesg == 0
+                                         then throw ZeroLengthSocketReadException
+                                         else B.append mesg <$> recvAll sock (len - B.length mesg)
+        else return (B.empty)

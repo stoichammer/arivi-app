@@ -24,7 +24,14 @@ data EndpointException
     | UnsupportedMethodException
     deriving (Show)
 
+data PeerMessageException
+    = SocketReadException
+    | ZeroLengthSocketReadException
+    deriving (Show)
+
 instance Exception EndpointException
+
+instance Exception PeerMessageException
 
 --
 -- INTERFACE START

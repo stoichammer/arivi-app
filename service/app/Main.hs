@@ -20,6 +20,7 @@ import Arivi.Env
 import Arivi.Network
 import Arivi.P2P
 import qualified Arivi.P2P.Config as Config
+import Arivi.P2P.Kademlia.Types
 import Arivi.P2P.P2PEnv as PE
 import Arivi.P2P.PubSub.Types
 import Arivi.P2P.RPC.Types
@@ -39,6 +40,7 @@ import Control.Monad.Logger
 import Control.Monad.Reader
 import Control.Monad.Trans.Control
 import Data.ByteString as BS
+import qualified Data.ByteString.Base16 as B16
 import Data.ByteString.Lazy as BSL (ByteString)
 import Data.ByteString.Lazy.Char8 as BSLC (pack, unpack)
 import Data.Int
@@ -101,12 +103,17 @@ runAppM env (AppM app) = runReaderT app env
 defaultConfig :: FilePath -> IO ()
 defaultConfig path = do
     (sk, _) <- ACUPS.generateKeyPair
+    let bootstrapPeer =
+            Peer
+                ((fst . B16.decode)
+                     "a07b8847dc19d77f8ef966ba5a954dac2270779fb028b77829f8ba551fd2f7ab0c73441456b402792c731d8d39c116cb1b4eb3a18a98f4b099a5f9bdffee965c")
+                (NodeEndPoint "51.89.40.95" 5678 5678)
     let config =
             Config.Config
                 5678
                 5678
                 sk
-                []
+                [bootstrapPeer]
                 (generateNodeId sk)
                 "127.0.0.1"
                 (Data.Text.pack (path <> "/node.log"))
@@ -132,9 +139,9 @@ runNode config ariviHandler = do
 
 main :: IO ()
 main = do
-    (path:_) <- getArgs
-    b <- doesPathExist (path <> "/config.yaml")
-    unless b (defaultConfig path)
+    let path = "."
+    -- b <- doesPathExist (path <> "/config.yaml")
+    -- up <- unless b (defaultConfig path)
     config <- Config.readConfig (path <> "/config.yaml")
     ariviHandler <- newAriviNetworkServiceHandler
     _ <- async (setupEndPointServer ariviHandler (Config.endPointListenIP config) (Config.endPointListenPort config))
