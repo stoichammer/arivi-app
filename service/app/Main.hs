@@ -140,8 +140,8 @@ runNode config ariviHandler = do
 main :: IO ()
 main = do
     let path = "."
-    -- b <- doesPathExist (path <> "/config.yaml")
-    -- up <- unless b (defaultConfig path)
+    b <- doesPathExist (path <> "/config.yaml")
+    up <- unless b (defaultConfig path)
     config <- Config.readConfig (path <> "/config.yaml")
     ariviHandler <- newAriviNetworkServiceHandler
     _ <- async (setupEndPointServer ariviHandler (Config.endPointListenIP config) (Config.endPointListenPort config))
