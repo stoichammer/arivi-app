@@ -49,6 +49,7 @@ import Data.String.Conv
 import Data.Text
 import Data.Typeable
 import Network.Simple.TCP
+import NodeConfig as NC
 import Numeric (showHex)
 import Service.Data
 import Service.Env
@@ -120,8 +121,6 @@ defaultConfig path = do
                 20
                 5
                 3
-                "127.0.0.1"
-                9090
     Config.makeConfig config (path <> "/config.yaml")
 
 runNode :: Config.Config -> AriviNetworkServiceHandler -> IO ()
@@ -140,10 +139,12 @@ runNode config ariviHandler = do
 main :: IO ()
 main = do
     let path = "."
-    b <- doesPathExist (path <> "/config.yaml")
+    b <- doesPathExist (path <> "/arivi-config.yaml")
     up <- unless b (defaultConfig path)
-    config <- Config.readConfig (path <> "/config.yaml")
+    config <- Config.readConfig (path <> "/arivi-config.yaml")
+    nodeCnf <- NC.readConfig (path <> "/node-config.yaml")
+    print (show nodeCnf)
     ariviHandler <- newAriviNetworkServiceHandler
-    _ <- async (setupEndPointServer ariviHandler (Config.endPointListenIP config) (Config.endPointListenPort config))
+    _ <- async (setupEndPointServer ariviHandler (NC.endPointListenIP nodeCnf) (NC.endPointListenPort nodeCnf))
     runNode config ariviHandler
     return ()

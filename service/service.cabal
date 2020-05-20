@@ -73,6 +73,7 @@ executable xoken-arch
                 , xoken-core
                 , hspec
                 , base16-bytestring
+                , tinylog
 
   if flag(network-uri)
      build-depends: network-uri >= 2.6, network >= 2.6
@@ -80,8 +81,9 @@ executable xoken-arch
      build-depends: network < 2.6
 
   other-modules:
-         AriviNetworkServiceHandler,
+         AriviNetworkServiceHandler
          AriviSecureRPC
+         NodeConfig
          Service.Types
          Service.Env
          Service.Data
