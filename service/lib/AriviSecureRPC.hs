@@ -38,7 +38,6 @@ import Data.Serialize
 import Data.Set as Set
 import Data.Text as DT
 import GHC.Generics
-import Network.Simple.TCP as T
 import Service.Env
 import Service.Types
 import System.Random

@@ -32,9 +32,11 @@ import Data.Int
 import qualified Data.Map.Strict as M
 import Data.Serialize
 import Data.Text as T
+import Data.X509.CertificateStore
 import GHC.Generics
-import Network.Simple.TCP as ST
+import qualified Network.Simple.TCP.TLS as TLS
 import Network.Socket
+import qualified Network.TLS as NTLS
 import Service.Data
 import Service.Env
 import Service.Types
@@ -48,7 +50,7 @@ data AriviNetworkServiceHandler =
 data EndPointConnection =
     EndPointConnection
         { requestQueue :: TChan XDataReq
-        , respWriteLock :: MVar Socket
+        , respWriteLock :: MVar TLS.Context
         }
 
 newAriviNetworkServiceHandler :: IO AriviNetworkServiceHandler
@@ -78,7 +80,7 @@ goGetResource msg = do
 
 handleRPCReqResp ::
        (HasP2PEnv env m ServiceResource ServiceTopic RPCMessage PubNotifyMessage)
-    => MVar Socket
+    => MVar TLS.Context
     -> Int
     -> RPCMessage
     -> m ()
@@ -87,13 +89,15 @@ handleRPCReqResp sockMVar mid encReq = do
     rpcResp <- goGetResource encReq
     let body = serialise $ XDataRPCResp (mid) (rsStatusCode rpcResp) (rsStatusMessage rpcResp) (rsBody rpcResp)
     connSock <- liftIO $ takeMVar sockMVar
-    sendLazy connSock $ DB.encode (Prelude.fromIntegral (LBS.length body) :: Int16)
-    sendLazy connSock body
+    NTLS.sendData connSock $ DB.encode (Prelude.fromIntegral (LBS.length body) :: Int16)
+    NTLS.sendData connSock body
     liftIO $ putMVar sockMVar connSock
-    return ()
 
 handlePubSubReqResp ::
-       (HasP2PEnv env m ServiceResource ServiceTopic RPCMessage PubNotifyMessage) => MVar Socket -> PubSubMsg -> m ()
+       (HasP2PEnv env m ServiceResource ServiceTopic RPCMessage PubNotifyMessage)
+    => MVar TLS.Context
+    -> PubSubMsg
+    -> m ()
 handlePubSubReqResp sockMVar sub = do
     liftIO $ print ("handleSubscribeReqResp " ++ show sub)
     -- INSERT
@@ -135,55 +139,35 @@ enqueueRequest epConn req = do
     let xdReq = deserialise req :: XDataReq
     atomically $ writeTChan (requestQueue epConn) xdReq
 
-handleConnection :: EndPointConnection -> Socket -> IO ()
-handleConnection epConn connSock = do
+handleConnection :: EndPointConnection -> TLS.Context -> IO ()
+handleConnection epConn context = do
     continue <- liftIO $ newIORef True
-    putMVar (respWriteLock epConn) connSock
+    putMVar (respWriteLock epConn) context
     whileM_ (liftIO $ readIORef continue) $ do
-        res <- try $ recvAll connSock 2
+        res <- try $ TLS.recv context
         case res of
-            Right l -> do
-                let lenPrefix = runGet getWord16be l
-                case lenPrefix of
-                    Right a -> do
-                        pl <- try $ recvAll connSock (fromIntegral (toInteger a))
-                        case pl of
-                            Right y -> do
-                                enqueueRequest epConn (LBS.fromStrict y)
-                                return ()
-                            Left (e :: IOException) -> putStrLn "Payload read error"
-                    Left _b -> putStrLn "Length prefix corrupted."
+            Right r ->
+                case r of
+                    Just l -> enqueueRequest epConn (LBS.fromStrict l)
+                    Nothing -> putStrLn "Payload read error"
             Left (e :: IOException) -> do
                 putStrLn "Connection closed."
                 atomically $ writeTChan (requestQueue epConn) XCloseConnection
                 writeIORef continue False
 
-setupEndPointServer :: AriviNetworkServiceHandler -> String -> PortNumber -> IO ()
-setupEndPointServer handler listenIP listenPort = do
+setupEndPointServer :: AriviNetworkServiceHandler -> String -> PortNumber -> FilePath -> FilePath -> FilePath -> IO ()
+setupEndPointServer handler listenIP listenPort certFilePath keyFilePath mStoreFilePath = do
     putStrLn $ "Starting Xoken Arch"
-    _ <-
-        serve (Host listenIP) (show listenPort) $ \(connSock, remoteAddr) -> do
-            putStrLn $ "client connection established : " ++ show remoteAddr
-            epConn <- newEndPointConnection
-            atomically $ writeTChan (connQueue handler) epConn
-            handleConnection epConn connSock
-    return ()
-
--- Helper Functions
-recvAll :: (MonadIO m) => Socket -> Int -> m B.ByteString
-recvAll sock len = do
-    if len > 0
-        then do
-            res <- liftIO $ try $ ST.recv sock len
-            case res of
-                Left (e :: IOException) -> throw e
-                Right message ->
-                    case message of
-                        Nothing -> throw SocketReadException
-                        Just mesg -> do
-                            if B.length mesg == len
-                                then return mesg
-                                else if B.length mesg == 0
-                                         then throw ZeroLengthSocketReadException
-                                         else B.append mesg <$> recvAll sock (len - B.length mesg)
-        else return (B.empty)
+    cred <- NTLS.credentialLoadX509 certFilePath keyFilePath
+    case cred of
+        Right c -> do
+            cstore <- readCertificateStore mStoreFilePath
+            let settings = TLS.makeServerSettings c cstore
+            TLS.serve settings (TLS.Host listenIP) (show listenPort) $ \(context, sockAddr) -> do
+                putStrLn $ "client connection established : " ++ show sockAddr
+                epConn <- newEndPointConnection
+                atomically $ writeTChan (connQueue handler) epConn
+                handleConnection epConn context
+        Left err -> do
+            putStrLn $ "Unable to read credentials from file"
+            error "BadCredentialFile"

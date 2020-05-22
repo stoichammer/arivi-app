@@ -24,7 +24,6 @@ import Control.Monad.Reader
 import Data.Hashable
 import Data.Map.Strict as M
 import GHC.Generics
-import Network.Simple.TCP as T
 import Service.Types
 
 data ServiceResource =

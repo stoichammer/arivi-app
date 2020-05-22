@@ -48,7 +48,6 @@ import Data.Map.Strict as M
 import Data.String.Conv
 import Data.Text
 import Data.Typeable
-import Network.Simple.TCP
 import NodeConfig as NC
 import Numeric (showHex)
 import Service.Data
@@ -145,6 +144,6 @@ main = do
     nodeCnf <- NC.readConfig (path <> "/node-config.yaml")
     print (show nodeCnf)
     ariviHandler <- newAriviNetworkServiceHandler
-    _ <- async (setupEndPointServer ariviHandler (NC.endPointListenIP nodeCnf) (NC.endPointListenPort nodeCnf))
+    _ <- async (setupEndPointServer ariviHandler (NC.endPointListenIP nodeCnf) (NC.endPointListenPort nodeCnf) "" "" "")
     runNode config ariviHandler
     return ()
