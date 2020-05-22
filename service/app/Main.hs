@@ -139,11 +139,21 @@ main :: IO ()
 main = do
     let path = "."
     b <- doesPathExist (path <> "/arivi-config.yaml")
-    up <- unless b (defaultConfig path)
+    unless b (defaultConfig path)
     config <- Config.readConfig (path <> "/arivi-config.yaml")
     nodeCnf <- NC.readConfig (path <> "/node-config.yaml")
-    print (show nodeCnf)
-    ariviHandler <- newAriviNetworkServiceHandler
-    _ <- async (setupEndPointServer ariviHandler (NC.endPointListenIP nodeCnf) (NC.endPointListenPort nodeCnf) "" "" "")
-    runNode config ariviHandler
-    return ()
+    let certFP = path <> "/certificate.pem"
+        keyFP = path <> "/key.pem"
+        csrFP = path <> "/csr.csr"
+    cfp <- doesPathExist certFP
+    kfp <- doesPathExist keyFP
+    csfp <- doesPathExist csrFP
+    if cfp && kfp && csfp
+       then do
+          print (show nodeCnf)
+          ariviHandler <- newAriviNetworkServiceHandler
+          async $ setupEndPointServer ariviHandler (NC.endPointListenIP nodeCnf) (NC.endPointListenPort nodeCnf) certFP keyFP csrFP
+          runNode config ariviHandler
+       else do
+          Prelude.putStrLn "Some of the required files are missing"
+          error "MISSING TLS FILE"
