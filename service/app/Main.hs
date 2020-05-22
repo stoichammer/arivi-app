@@ -142,7 +142,7 @@ main = do
     unless b (defaultConfig path)
     config <- Config.readConfig (path <> "/arivi-config.yaml")
     nodeCnf <- NC.readConfig (path <> "/node-config.yaml")
-    let certFP = path <> "/certificate.pem"
+    let certFP = path <> "/certificate.cert"
         keyFP = path <> "/key.pem"
         csrFP = path <> "/csr.csr"
     cfp <- doesPathExist certFP

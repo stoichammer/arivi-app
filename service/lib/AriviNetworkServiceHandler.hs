@@ -44,23 +44,23 @@ import Text.Printf
 
 data AriviNetworkServiceHandler =
     AriviNetworkServiceHandler
-        { connQueue :: TChan EndPointConnection
+        { connQueue :: TQueue EndPointConnection
         }
 
 data EndPointConnection =
     EndPointConnection
-        { requestQueue :: TChan XDataReq
+        { requestQueue :: TQueue XDataReq
         , respWriteLock :: MVar TLS.Context
         }
 
 newAriviNetworkServiceHandler :: IO AriviNetworkServiceHandler
 newAriviNetworkServiceHandler = do
-    conQ <- atomically $ newTChan
+    conQ <- atomically $ newTQueue
     return $ AriviNetworkServiceHandler conQ
 
 newEndPointConnection :: IO EndPointConnection
 newEndPointConnection = do
-    reqQueue <- atomically $ newTChan
+    reqQueue <- atomically $ newTQueue
     resLock <- newEmptyMVar
     return $ EndPointConnection reqQueue resLock
 
@@ -109,7 +109,7 @@ handleNewConnectionRequest handler = do
     continue <- liftIO $ newIORef True
     whileM_ (liftIO $ readIORef continue) $ do
         liftIO $ printf "handleNewConnectionRequest\n"
-        epConn <- liftIO $ atomically $ readTChan $ connQueue handler
+        epConn <- liftIO $ atomically $ readTQueue $ connQueue handler
         async $ handleRequest epConn
 
 handleRequest ::
@@ -118,7 +118,7 @@ handleRequest handler = do
     continue <- liftIO $ newIORef True
     whileM_ (liftIO $ readIORef continue) $ do
         liftIO $ printf "handleRequest\n"
-        xdReq <- liftIO $ atomically $ readTChan $ requestQueue handler
+        xdReq <- liftIO $ atomically $ readTQueue $ requestQueue handler
         case xdReq of
             XDataRPCReq mid met par -> do
                 liftIO $ printf "Decoded (%s)\n" (show met)
@@ -137,7 +137,7 @@ handleRequest handler = do
 enqueueRequest :: EndPointConnection -> LBS.ByteString -> IO ()
 enqueueRequest epConn req = do
     let xdReq = deserialise req :: XDataReq
-    atomically $ writeTChan (requestQueue epConn) xdReq
+    atomically $ writeTQueue (requestQueue epConn) xdReq
 
 handleConnection :: EndPointConnection -> TLS.Context -> IO ()
 handleConnection epConn context = do
@@ -152,7 +152,7 @@ handleConnection epConn context = do
                     Nothing -> putStrLn "Payload read error"
             Left (e :: IOException) -> do
                 putStrLn "Connection closed."
-                atomically $ writeTChan (requestQueue epConn) XCloseConnection
+                atomically $ writeTQueue (requestQueue epConn) XCloseConnection
                 writeIORef continue False
 
 setupEndPointServer :: AriviNetworkServiceHandler -> String -> PortNumber -> FilePath -> FilePath -> FilePath -> IO ()
@@ -166,7 +166,7 @@ setupEndPointServer handler listenIP listenPort certFilePath keyFilePath mStoreF
             TLS.serve settings (TLS.Host listenIP) (show listenPort) $ \(context, sockAddr) -> do
                 putStrLn $ "client connection established : " ++ show sockAddr
                 epConn <- newEndPointConnection
-                atomically $ writeTChan (connQueue handler) epConn
+                atomically $ writeTQueue (connQueue handler) epConn
                 handleConnection epConn context
         Left err -> do
             putStrLn $ "Unable to read credentials from file"
