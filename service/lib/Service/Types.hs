@@ -117,7 +117,7 @@ data RPCResponseBody
           { nameBranch :: [OutPoint']
           }
     | RespRelayTx
-          { rrTx' :: Bool
+          { rrTx :: Bool
           }
     deriving (Generic, Show, Hashable, Eq, Serialise)
 

@@ -117,6 +117,7 @@ defaultConfig path = do
                 (generateNodeId sk)
                 "127.0.0.1"
                 (Data.Text.pack (path <> "/node.log"))
+                (Data.Text.pack (path <> "/arivi.log"))
                 20
                 5
                 3
@@ -125,8 +126,6 @@ defaultConfig path = do
 runNode :: Config.Config -> AriviNetworkServiceHandler -> IO ()
 runNode config ariviHandler = do
     p2pEnv <- mkP2PEnv config globalHandlerRpc globalHandlerPubSub [AriviSecureRPC] []
-    que <- atomically $ newTChan
-    mmap <- newTVarIO $ M.empty
     let serviceEnv = ServiceEnv EndPointEnv p2pEnv
     runFileLoggingT (toS $ Config.logFile config) $
         runAppM

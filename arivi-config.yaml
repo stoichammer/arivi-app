@@ -1,4 +1,5 @@
 logFile: ./node.log
+ariviLogFile: ./arivi.log
 sbound: 20
 secretKey: 2eb3f292f8244bf645079393a4c6a72fa7dbd6ac43b57eb7c4a327acf4eaa2a2
 trustedPeers:
