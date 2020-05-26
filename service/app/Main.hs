@@ -117,7 +117,6 @@ defaultConfig path = do
                 (generateNodeId sk)
                 "127.0.0.1"
                 (Data.Text.pack (path <> "/node.log"))
-                (Data.Text.pack (path <> "/arivi.log"))
                 20
                 5
                 3
