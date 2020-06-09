@@ -1,4 +1,4 @@
 logLevel: Debug
-logFileName: ./arch.log
+logFileName: ./proxy.log
 endPointListenPort: 9090
 endPointListenIP: 127.0.0.1

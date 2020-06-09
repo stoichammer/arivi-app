@@ -143,7 +143,6 @@ main = do
     up <- unless b (defaultConfig path)
     config <- Config.readConfig (path <> "/arivi-config.yaml")
     nodeCnf <- NC.readConfig (path <> "/node-config.yaml")
-    print (show nodeCnf)
     ariviHandler <- newAriviNetworkServiceHandler
     _ <- async (setupEndPointServer ariviHandler (NC.endPointListenIP nodeCnf) (NC.endPointListenPort nodeCnf))
     runNode config ariviHandler

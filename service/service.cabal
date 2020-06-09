@@ -9,8 +9,8 @@ description: The arivi library is a generic library to build P2P
   exchange of peering information. Network layer for some common
   protocol layers are supported.
 
-homepage:         http://github.com/xoken/arivi
-bug-reports:      https://github.com/xoken/arivi/issues
+homepage:         http://github.com/xoken/allpay-proxy
+bug-reports:      https://github.com/xoken/allpay-proxy/issues
 
 license:      BSD3
 license-file: LICENSE
@@ -23,13 +23,13 @@ cabal-version:      >=1.10
 
 source-repository head
   type: git
-  location: https://github.com/xoken/arivi/
+  location: https://github.com/xoken/allpay-proxy
 
 flag network-uri
  description: Get Network.URI from the network-uri package
  default: True
 
-executable xoken-arch
+executable aaproxy
   hs-source-dirs: app, lib
   main-is: Main.hs
   build-depends:  arivi-p2p

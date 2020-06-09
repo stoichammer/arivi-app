@@ -160,7 +160,7 @@ handleConnection epConn connSock = do
 
 setupEndPointServer :: AriviNetworkServiceHandler -> String -> PortNumber -> IO ()
 setupEndPointServer handler listenIP listenPort = do
-    putStrLn $ "Starting Xoken Arch"
+    putStrLn $ "Starting Allegory/AllPay proxy"
     _ <-
         serve (Host listenIP) (show listenPort) $ \(connSock, remoteAddr) -> do
             putStrLn $ "client connection established : " ++ show remoteAddr
