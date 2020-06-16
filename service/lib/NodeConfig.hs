@@ -28,6 +28,12 @@ data NodeConfig =
         , logFileName :: T.Text
         , endPointListenIP :: String
         , endPointListenPort :: PortNumber
+        , bitcoinNetwork :: Network
+        , endPointTLSListenIP :: String
+        , endPointTLSListenPort :: PortNumber
+        , tlsCertificatePath :: FilePath
+        , tlsKeyfilePath :: FilePath
+        , tlsCertificateStorePath :: FilePath
         }
     deriving (Show, Generic)
 

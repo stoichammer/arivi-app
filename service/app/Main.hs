@@ -9,6 +9,8 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Main
     ( module Main
@@ -25,8 +27,6 @@ import Arivi.P2P.P2PEnv as PE
 import Arivi.P2P.PubSub.Types
 import Arivi.P2P.RPC.Types
 import Arivi.P2P.ServiceRegistry
-import AriviNetworkServiceHandler
-import AriviSecureRPC
 import Codec.Serialise
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async.Lifted (async, wait)
@@ -39,24 +39,33 @@ import Control.Monad.Catch
 import Control.Monad.Logger
 import Control.Monad.Reader
 import Control.Monad.Trans.Control
+import Data.Aeson
+import Data.Aeson.Types (parse)
 import Data.ByteString as BS
 import qualified Data.ByteString.Base16 as B16
-import Data.ByteString.Lazy as BSL (ByteString)
+import Data.ByteString.Lazy as BSL
 import Data.ByteString.Lazy.Char8 as BSLC (pack, unpack)
+import Data.IORef
 import Data.Int
 import Data.Map.Strict as M
+import Data.Maybe
 import Data.String.Conv
 import Data.Text
+import qualified Data.Text.Encoding as DTE
 import Data.Typeable
+import Database.LevelDB
+import LevelDB
 import Network.Simple.TCP
-import NodeConfig as NC
+import Network.Xoken.Keys.Extended
+import qualified NodeConfig as NC
 import Numeric (showHex)
 import Service.Data
 import Service.Env
 import Service.Types
 import StmContainers.Map as H
-import System.Directory (doesPathExist)
+import System.Directory
 import System.Environment (getArgs)
+import TLSServer
 
 newtype AppM a =
     AppM (ReaderT (ServiceEnv AppM ServiceResource ServiceTopic RPCMessage PubNotifyMessage) (LoggingT IO) a)
@@ -73,6 +82,15 @@ newtype AppM a =
 deriving instance MonadBase IO AppM
 
 deriving instance MonadBaseControl IO AppM
+
+instance HasAddressMap AppM where
+    getAddressMap = asks (addressMap)
+
+instance HasXPubInfoMap AppM where
+    getXPubHashMap = asks (xpubInfoMap)
+
+instance HasNodeConfig AppM where
+    getNodeConfig = asks (nodeConfig)
 
 instance HasNetworkEnv AppM where
     getEnv = asks (ariviNetworkEnv . nodeEndpointEnv . p2pEnv)
@@ -123,17 +141,43 @@ defaultConfig path = do
                 3
     Config.makeConfig config (path <> "/config.yaml")
 
-runNode :: Config.Config -> AriviNetworkServiceHandler -> IO ()
-runNode config ariviHandler = do
-    p2pEnv <- mkP2PEnv config globalHandlerRpc globalHandlerPubSub [AriviSecureRPC] []
+runNode :: Config.Config -> NC.NodeConfig -> [FilePath] -> IO ()
+runNode config nodeConfig certPaths = do
+    p2pEnv <- mkP2PEnv config undefined undefined [AriviSecureRPC] []
     que <- atomically $ newTChan
     mmap <- newTVarIO $ M.empty
-    let serviceEnv = ServiceEnv EndPointEnv p2pEnv
-    runFileLoggingT (toS $ Config.logFile config) $
-        runAppM
-            serviceEnv
-            (do initP2P config
-                handleNewConnectionRequest ariviHandler)
+    let net = NC.bitcoinNetwork nodeConfig
+    -- read xpubKeys and build a HashMap
+    allXPubKeys <-
+        fmap (Prelude.map (Data.Text.unpack) . fromMaybe [] . Data.Aeson.decode . BSL.fromStrict) <$> getValue "names" :: IO (Maybe [String])
+    xPubInfoMap <-
+        case allXPubKeys of
+            Just ks -> do
+                res <-
+                    traverse
+                        (\name ->
+                             fmap (fmap (name, ) . parse Prelude.id . decodeXPubInfo net) <$>
+                             (getValue (DTE.encodeUtf8 . Data.Text.pack $ name)))
+                        ks
+                case sequence $ catMaybes res of
+                    Success x -> pure $ M.fromList x
+                    Data.Aeson.Error err -> do
+                        print err
+                        pure M.empty
+            Nothing -> pure M.empty
+    amr <- newTVarIO xPubInfoMap
+    let addressMap =
+            Prelude.foldl
+                (\m (name, XPubInfo {..}) -> M.insert (xPubExport net key) (getAddressList key count) m)
+                M.empty
+                (M.toList xPubInfoMap)
+    amT <- newTVarIO addressMap
+    let serviceEnv = ServiceEnv EndPointEnv p2pEnv nodeConfig amT amr
+    -- start TLS
+    epHandler <- newTLSEndpointServiceHandler
+    async $
+        startTLSEndpoint epHandler (NC.endPointTLSListenIP nodeConfig) (NC.endPointTLSListenPort nodeConfig) certPaths
+    runFileLoggingT (toS $ Config.logFile config) $ runAppM serviceEnv (handleNewConnectionRequest epHandler)
     return ()
 
 main :: IO ()
@@ -143,7 +187,13 @@ main = do
     up <- unless b (defaultConfig path)
     config <- Config.readConfig (path <> "/arivi-config.yaml")
     nodeCnf <- NC.readConfig (path <> "/node-config.yaml")
-    ariviHandler <- newAriviNetworkServiceHandler
-    _ <- async (setupEndPointServer ariviHandler (NC.endPointListenIP nodeCnf) (NC.endPointListenPort nodeCnf))
-    runNode config ariviHandler
+    let certFP = NC.tlsCertificatePath nodeCnf
+        keyFP = NC.tlsKeyfilePath nodeCnf
+        csrFP = NC.tlsCertificateStorePath nodeCnf
+    cfp <- doesFileExist certFP
+    kfp <- doesFileExist keyFP
+    csfp <- doesDirectoryExist csrFP
+    unless (cfp && kfp && csfp) $ Prelude.error "Error: missing TLS certificate or keyfile"
+    -- launch node --
+    runNode config nodeCnf [certFP, keyFP, csrFP]
     return ()

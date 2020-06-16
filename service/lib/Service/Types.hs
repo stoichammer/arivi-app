@@ -5,18 +5,27 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Service.Types where
 
+import Codec.Compression.GZip as GZ
 import Codec.Serialise
+import Control.Applicative
 import Control.Concurrent.MVar
 import Control.Exception
+import Data.Aeson
 import Data.ByteString
+import Data.ByteString.Base64 as B64
+import Data.ByteString.Base64.Lazy as B64L
+import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Lazy.Char8 as C
 import Data.Hashable
 import Data.Int
+import qualified Data.Text.Encoding as T
 import GHC.Generics
 import Network.Xoken.Block
+import Network.Xoken.Crypto.Hash
 
 data EndpointException
     = InvalidMessageTypeException
@@ -36,90 +45,35 @@ instance Exception PeerMessageException
 --
 -- INTERFACE START
 --
-data RPCMessage
-    = RPCRequest
-          { rqMethod :: String
-          , rqParams :: Maybe RPCReqParams
-          }
-    | RPCResponse
-          { rsStatusCode :: Int16
-          , rsStatusMessage :: Maybe String
-          , rsBody :: Maybe RPCResponseBody
-          }
-    deriving (Show, Generic, Hashable, Eq, Serialise)
-
 data RPCReqParams
-    = GetBlockByHeight
-          { gbHeight :: Int
+    = AddXPubKey
+          { xpubKey :: ByteString
+          , addressCount :: Int
+          , name :: String
           }
-    | GetBlocksByHeight
-          { gbHeights :: [Int]
-          }
-    | GetBlockByHash
-          { gbBlockHash :: String
-          }
-    | GetBlocksByHashes
-          { gbBlockHashes :: [String]
-          }
-    | GetTransactionByTxID
-          { gtTxHash :: String
-          }
-    | GetTransactionsByTxIDs
-          { gtTxHashes :: [String]
-          }
-    | GetOutputsByAddress
-          { gaAddrOutputs :: String
-          }
-    | GetOutputsByAddresses
-          { gasAddrOutputs :: [String]
-          }
-    | GetMerkleBranchByTxID
-          { gmbMerkleBranch :: String
-          }
-    | GetAllegoryNameBranch
-          { gaName :: String
-          , gaIsProducer :: Bool
-          }
-    | RelayTx
-          { rTx :: ByteString
+    | GetNextAddress
+          { name :: String
           }
     deriving (Generic, Show, Hashable, Eq, Serialise)
+
+instance FromJSON RPCReqParams where
+    parseJSON (Object o) =
+        (AddXPubKey <$> (T.encodeUtf8 <$> o .: "xpubKey") <*> o .: "addressCount" <*> o .: "name") <|>
+        (GetNextAddress <$> o .: "name")
 
 data RPCResponseBody
-    = RespBlockByHeight
-          { block :: BlockRecord
+    = RespXPubKey
+          { rxpb :: Bool
           }
-    | RespBlocksByHeight
-          { blocks :: [BlockRecord]
-          }
-    | RespBlockByHash
-          { block :: BlockRecord
-          }
-    | RespBlocksByHashes
-          { blocks :: [BlockRecord]
-          }
-    | RespTransactionByTxID
-          { tx :: TxRecord
-          }
-    | RespTransactionsByTxIDs
-          { txs :: [TxRecord]
-          }
-    | RespOutputsByAddress
-          { saddressOutputs :: [AddressOutputs]
-          }
-    | RespOutputsByAddresses
-          { maddressOutputs :: [AddressOutputs]
-          }
-    | RespMerkleBranchByTxID
-          { merkleBranch :: [MerkleBranchNode']
-          }
-    | RespAllegoryNameBranch
-          { nameBranch :: [OutPoint']
-          }
-    | RespRelayTx
-          { rrTx' :: Bool
+    | RespGetNextAddress
+          { address :: ByteString
+          , merklePath :: Hash256
           }
     deriving (Generic, Show, Hashable, Eq, Serialise)
+
+instance ToJSON RPCResponseBody where
+    toJSON (RespXPubKey rxpb) = object ["rxpb" .= rxpb]
+    toJSON (RespGetNextAddress a mp) = object ["address" .= T.decodeUtf8 a, "merklePath" .= mp]
 
 data BlockRecord =
     BlockRecord

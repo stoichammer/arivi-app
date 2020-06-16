@@ -5,6 +5,7 @@
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Service.Env where
 
@@ -21,10 +22,24 @@ import Codec.Serialise
 import Control.Concurrent.MVar
 import Control.Concurrent.STM
 import Control.Monad.Reader
+import Data.Aeson
+import Data.Aeson.Types
+import Data.ByteString
+import qualified Data.ByteString.Lazy as BSL
 import Data.Hashable
+import Data.IORef
 import Data.Map.Strict as M
+import Data.Serialize as S
 import GHC.Generics
 import Network.Simple.TCP as T
+import Network.Xoken.Address
+import Network.Xoken.Address.Base58
+import Network.Xoken.Constants
+import Network.Xoken.Crypto.Hash
+import Network.Xoken.Keys.Extended
+import Network.Xoken.Transaction.Common
+import NodeConfig as NC
+import Service.Data
 import Service.Types
 
 data ServiceResource =
@@ -38,6 +53,26 @@ type ServiceTopic = String
 instance Serialise ServiceResource
 
 instance Hashable ServiceResource
+
+data XPubInfo =
+    XPubInfo
+        { key :: XPubKey
+        , count :: Int
+        , index :: KeyIndex
+        }
+
+decodeXPubInfo :: Network -> ByteString -> Parser XPubInfo
+decodeXPubInfo net bs =
+    case Data.Aeson.eitherDecode $ BSL.fromStrict bs of
+        Right (Object o) -> XPubInfo <$> (xPubFromJSON net =<< o .: "key") <*> o .: "count" <*> o .: "index"
+        _ -> fail "error while decoding xpubInfo"
+
+encodeXPubInfo :: Network -> XPubInfo -> ByteString
+encodeXPubInfo net (XPubInfo k c i) =
+    BSL.toStrict $ Data.Aeson.encode $ Data.Aeson.object ["key" .= xPubToJSON net k, "count" .= c, "index" .= i]
+
+getAddressList :: XPubKey -> Int -> [TxHash]
+getAddressList pubKey count = (TxHash . doubleSHA256 . S.encode . xPubAddr . pubSubKey pubKey) <$> [1 .. (fromIntegral count)]
 
 data EndPointEnv =
     EndPointEnv
@@ -53,14 +88,31 @@ class HasEndPointEnv env where
 instance HasEndPointEnv (ServiceEnv m r t rmsg pmsg) where
     getEndPointEnv = tcpEnv
 
+class HasNodeConfig m where
+    getNodeConfig :: m (NodeConfig)
+
+class HasAddressMap m where
+    getAddressMap :: m (TVar (M.Map Base58 [TxHash]))
+
+class HasXPubInfoMap m where
+    getXPubHashMap :: m (TVar (M.Map String XPubInfo))
+
 data ServiceEnv m r t rmsg pmsg =
     ServiceEnv
         { tcpEnv :: EndPointEnv
         , p2pEnv :: P2PEnv m r t rmsg pmsg
+        , nodeConfig :: NodeConfig
+        , addressMap :: TVar (M.Map Base58 [TxHash])
+        , xpubInfoMap :: TVar (M.Map String XPubInfo)
         }
 
 type HasService env m
-     = (HasP2PEnv env m ServiceResource ServiceTopic RPCMessage PubNotifyMessage, HasEndPointEnv env, MonadReader env m)
+     = ( HasP2PEnv env m ServiceResource ServiceTopic RPCMessage PubNotifyMessage
+       , HasEndPointEnv env
+       , MonadReader env m
+       , HasNodeConfig m
+       , HasAddressMap m
+       , HasXPubInfoMap m)
 
 instance HasNetworkConfig (ServiceEnv m r t rmsg pmsg) NetworkConfig where
     networkConfig f se =

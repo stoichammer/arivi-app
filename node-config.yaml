@@ -1,4 +1,20 @@
 logLevel: Debug
+
 logFileName: ./proxy.log
+
 endPointListenPort: 9090
+
 endPointListenIP: 127.0.0.1
+
+bitcoinNetwork: bsv
+
+endPointTLSListenIP: 127.0.0.1
+
+endPointTLSListenPort: 9090
+
+tlsCertificatePath : ./certificate.cert
+
+tlsKeyfilePath : ./server.key
+
+tlsCertificateStorePath : /opt/certstore
+
