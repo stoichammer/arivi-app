@@ -49,31 +49,31 @@ data RPCReqParams
     = AddXPubKey
           { xpubKey :: ByteString
           , addressCount :: Int
-          , name :: String
+          , allegoryHash :: String
           }
     | GetNextAddress
-          { name :: String
+          { allegoryHash :: String
           }
     deriving (Generic, Show, Hashable, Eq, Serialise)
 
 instance FromJSON RPCReqParams where
     parseJSON (Object o) =
-        (AddXPubKey <$> (T.encodeUtf8 <$> o .: "xpubKey") <*> o .: "addressCount" <*> o .: "name") <|>
-        (GetNextAddress <$> o .: "name")
+        (AddXPubKey <$> (T.encodeUtf8 <$> o .: "xpubKey") <*> o .: "addressCount" <*> o .: "allegoryHash") <|>
+        (GetNextAddress <$> o .: "allegoryHash")
 
 data RPCResponseBody
     = RespXPubKey
           { rxpb :: Bool
           }
     | RespGetNextAddress
-          { address :: ByteString
-          , merklePath :: Hash256
+          { address :: String
+          , merklePath :: PartialMerkleTree
           }
     deriving (Generic, Show, Hashable, Eq, Serialise)
 
 instance ToJSON RPCResponseBody where
     toJSON (RespXPubKey rxpb) = object ["rxpb" .= rxpb]
-    toJSON (RespGetNextAddress a mp) = object ["address" .= T.decodeUtf8 a, "merklePath" .= mp]
+    toJSON (RespGetNextAddress a mp) = object ["address" .= a, "merklePath" .= mp]
 
 data BlockRecord =
     BlockRecord

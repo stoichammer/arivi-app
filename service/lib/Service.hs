@@ -106,8 +106,8 @@ goGetResource msg net = do
                                 atomically $
                                 modifyTVar addressTVar (M.insert (xPubExport net k) (getAddressList k count))
                             names <- liftIO $ M.keys <$> readTVarIO aMapTvar
-                            liftIO $ putValue "names" (BSL.toStrict $ Data.Aeson.encode $ name : names)
-                            liftIO $ putValue (DTE.encodeUtf8 $ DT.pack name) (encodeXPubInfo net $ XPubInfo k count 0)
+                            liftIO $ putValue "names" (BSL.toStrict $ Data.Aeson.encode $ nub $ name : names)
+                            when (isNothing $ M.lookup name xPubInfo) $ liftIO $ putValue (DTE.encodeUtf8 $ DT.pack name) (encodeXPubInfo net $ XPubInfo k count 0)
                             return $ RPCResponse 200 Nothing (Just $ RespXPubKey True)
                         Error err -> do
                             liftIO $ print $ "error occurred while decoding XPubKey: " <> show err
@@ -131,13 +131,14 @@ goGetResource msg net = do
                                     case M.lookup (xPubExport net key) addressMap of
                                         Just hashes -> do
                                             let merkleProof = buildProof hashes index
+                                            liftIO $ putValue (DTE.encodeUtf8 $ DT.pack name) (encodeXPubInfo net $ XPubInfo key count (index+1))
                                             return $
                                                 RPCResponse
                                                     200
                                                     Nothing
                                                     (Just $
                                                      RespGetNextAddress
-                                                         (DTE.encodeUtf8 $ fromJust $ addrToString net addr)
+                                                         (DT.unpack $ fromJust $ addrToString net addr)
                                                          merkleProof)
                                         Nothing -> do
                                             liftIO $ print "no data found in address map"
@@ -149,9 +150,9 @@ goGetResource msg net = do
                 Nothing -> return $ RPCResponse 400 (Just INVALID_PARAMS) Nothing
         _____ -> return $ RPCResponse 400 (Just INVALID_METHOD) Nothing
 
-buildProof :: [TxHash] -> Word32 -> Hash256
+buildProof :: [TxHash] -> Word32 -> PartialMerkleTree
 buildProof hashes index =
-    (snd $
+    snd $
      buildPartialMerkle $
      zipWith
          (\h i ->
@@ -159,5 +160,4 @@ buildProof hashes index =
                   then (h, True)
                   else (h, False))
          hashes
-         [0 ..]) !!
-    (fromIntegral index)
+         [0 ..]

@@ -171,7 +171,6 @@ enqueueRequest epConn req = do
                     Left err -> do
                         print $ "[Error] Deserialize failed: " <> show err
                         return XDataRPCBadRequest
-    print "Encoded request successfully"
     atomically $ writeTQueue (requestQueue epConn) xdReq
 
 handleConnection :: EndPointConnection -> TLS.Context -> IO ()
