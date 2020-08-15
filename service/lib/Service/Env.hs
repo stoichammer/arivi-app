@@ -41,6 +41,7 @@ import Network.Xoken.Transaction.Common
 import NodeConfig as NC
 import Service.Data
 import Service.Types
+import UtxoPool
 
 data ServiceResource =
     AriviSecureRPC
@@ -97,6 +98,9 @@ class HasAddressMap m where
 class HasXPubInfoMap m where
     getXPubHashMap :: m (TVar (M.Map String XPubInfo))
 
+class HasUtxoPool m where
+    getUtxoPool :: m (TVar [ProxyProviderUtxo])
+
 data ServiceEnv m r t rmsg pmsg =
     ServiceEnv
         { tcpEnv :: EndPointEnv
@@ -104,6 +108,7 @@ data ServiceEnv m r t rmsg pmsg =
         , nodeConfig :: NodeConfig
         , addressMap :: TVar (M.Map Base58 [TxHash])
         , xpubInfoMap :: TVar (M.Map String XPubInfo)
+        , utxoPool :: TVar [ProxyProviderUtxo]
         }
 
 type HasService env m
@@ -112,7 +117,8 @@ type HasService env m
        , MonadReader env m
        , HasNodeConfig m
        , HasAddressMap m
-       , HasXPubInfoMap m)
+       , HasXPubInfoMap m
+       , HasUtxoPool m)
 
 instance HasNetworkConfig (ServiceEnv m r t rmsg pmsg) NetworkConfig where
     networkConfig f se =

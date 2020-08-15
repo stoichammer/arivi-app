@@ -76,6 +76,7 @@ import Network.Xoken.Keys.Extended
 import Service.Data
 import Service.Env
 import Service.Types
+import Service.ProxyProviderUtxo
 
 import Service.AllpayTransaction
 

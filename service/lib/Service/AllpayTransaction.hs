@@ -76,6 +76,7 @@ import Network.Xoken.Keys.Extended
 import Service.Data
 import Service.Env
 import Service.Types
+import UtxoPool
 
 getAddressForName :: (HasService env m, MonadIO m) => Network -> String -> m (String, PartialMerkleTree)
 getAddressForName net name = do
