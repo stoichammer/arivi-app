@@ -84,6 +84,8 @@ executable aaproxy
                 , network-simple-tls
                 , zlib
                 , base64-bytestring
+                , process
+                , utf8-string
                 --, extra
                 --, monad-control
 
@@ -98,8 +100,10 @@ executable aaproxy
          Service.Types
          Service.Env
          Service.Data
+         Service.AllpayTransaction
          LevelDB
          TLSServer
+         UtxoPool
 
   default-language:    Haskell2010
   build-tool-depends: hspec-discover:hspec-discover

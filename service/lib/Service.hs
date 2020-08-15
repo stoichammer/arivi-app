@@ -77,6 +77,8 @@ import Service.Data
 import Service.Env
 import Service.Types
 
+import Service.AllpayTransaction
+
 data ServiceException
     = KeyValueDBLookupException
     | GraphDBLookupException

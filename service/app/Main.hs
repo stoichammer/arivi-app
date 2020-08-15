@@ -66,6 +66,11 @@ import StmContainers.Map as H
 import System.Directory
 import System.Environment (getArgs)
 import TLSServer
+import UtxoPool
+
+apiAuthKey = "5ZhMU8nTzQojdEjXKqvkHadR1PdYHpLiyK7KHaXkRhTV2QxHsc5TF7zGzLgbAZL2xS"
+
+poolAddress = "mgm3koJs42K4RshMiVozfLqqmQUMaQNwKa"
 
 newtype AppM a =
     AppM (ReaderT (ServiceEnv AppM ServiceResource ServiceTopic RPCMessage PubNotifyMessage) (LoggingT IO) a)
@@ -141,8 +146,8 @@ defaultConfig path = do
                 3
     Config.makeConfig config (path <> "/config.yaml")
 
-runNode :: Config.Config -> NC.NodeConfig -> [FilePath] -> IO ()
-runNode config nodeConfig certPaths = do
+runNode :: Config.Config -> NC.NodeConfig -> [FilePath] -> [ProxyProviderUtxo] -> IO ()
+runNode config nodeConfig certPaths pool = do
     p2pEnv <- mkP2PEnv config undefined undefined [AriviSecureRPC] []
     que <- atomically $ newTChan
     mmap <- newTVarIO $ M.empty
@@ -194,6 +199,13 @@ main = do
     kfp <- doesFileExist keyFP
     csfp <- doesDirectoryExist csrFP
     unless (cfp && kfp && csfp) $ Prelude.error "Error: missing TLS certificate or keyfile"
-    -- launch node --
-    runNode config nodeCnf [certFP, keyFP, csrFP]
-    return ()
+    print "building proxy-provider utxo pool..."
+    pool <- getPool poolAddress apiAuthKey
+    case pool of
+        Just p' -> do
+            print $ "size of pool: " ++ show (Prelude.length p')
+            -- launch node
+            runNode config nodeCnf [certFP, keyFP, csrFP] p'
+        Nothing -> do
+            print "failed to build utxo pool!"
+            return ()
