@@ -99,18 +99,19 @@ goGetResource msg net = do
                     let res = Data.Aeson.String (DTE.decodeUtf8 pubKey)
                     case parse Prelude.id . xPubFromJSON net $ res of
                         Success k -> do
+                            utxoCommitment <- getFromPool count
                             xPubInfo <- liftIO $ readTVarIO aMapTvar
                             let f x =
                                     case x of
                                         Just v -> Just v
-                                        Nothing -> Just (XPubInfo k count 0)
+                                        Nothing -> Just (XPubInfo k count 0 utxoCommitment)
                             liftIO $ atomically $ writeTVar aMapTvar (M.alter f name xPubInfo)
                             liftIO $
                                 atomically $
                                 modifyTVar addressTVar (M.insert (xPubExport net k) (getAddressList k count))
                             names <- liftIO $ M.keys <$> readTVarIO aMapTvar
                             liftIO $ putValue "names" (BSL.toStrict $ Data.Aeson.encode $ nub $ name : names)
-                            when (isNothing $ M.lookup name xPubInfo) $ liftIO $ putValue (DTE.encodeUtf8 $ DT.pack name) (encodeXPubInfo net $ XPubInfo k count 0)
+                            when (isNothing $ M.lookup name xPubInfo) $ liftIO $ putValue (DTE.encodeUtf8 $ DT.pack name) (encodeXPubInfo net $ XPubInfo k count 0 [])
                             return $ RPCResponse 200 Nothing (Just $ RespXPubKey True)
                         Error err -> do
                             liftIO $ print $ "error occurred while decoding XPubKey: " <> show err
@@ -129,12 +130,12 @@ goGetResource msg net = do
                                         atomically $
                                         writeTVar
                                             aMapTvar
-                                            (M.update (\(XPubInfo k c i) -> Just $ XPubInfo k c (i + 1)) name aMap)
+                                            (M.update (\(XPubInfo k c i u) -> Just $ XPubInfo k c (i + 1) u) name aMap)
                                     addressMap <- liftIO $ readTVarIO addressTVar
                                     case M.lookup (xPubExport net key) addressMap of
                                         Just hashes -> do
                                             let merkleProof = buildProof hashes index
-                                            liftIO $ putValue (DTE.encodeUtf8 $ DT.pack name) (encodeXPubInfo net $ XPubInfo key count (index+1))
+                                            liftIO $ putValue (DTE.encodeUtf8 $ DT.pack name) (encodeXPubInfo net $ XPubInfo key count (index+1) utxoCommitment)
                                             return $
                                                 RPCResponse
                                                     200

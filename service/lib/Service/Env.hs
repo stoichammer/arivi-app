@@ -60,17 +60,18 @@ data XPubInfo =
         { key :: XPubKey
         , count :: Int
         , index :: KeyIndex
+        , utxoCommitment :: [String]
         }
 
 decodeXPubInfo :: Network -> ByteString -> Parser XPubInfo
 decodeXPubInfo net bs =
     case Data.Aeson.eitherDecode $ BSL.fromStrict bs of
-        Right (Object o) -> XPubInfo <$> (xPubFromJSON net =<< o .: "key") <*> o .: "count" <*> o .: "index"
+        Right (Object o) -> XPubInfo <$> (xPubFromJSON net =<< o .: "key") <*> o .: "count" <*> o .: "index" <*> o.: "utxoCommitment"
         _ -> fail "error while decoding xpubInfo"
 
 encodeXPubInfo :: Network -> XPubInfo -> ByteString
-encodeXPubInfo net (XPubInfo k c i) =
-    BSL.toStrict $ Data.Aeson.encode $ Data.Aeson.object ["key" .= xPubToJSON net k, "count" .= c, "index" .= i]
+encodeXPubInfo net (XPubInfo k c i u) =
+    BSL.toStrict $ Data.Aeson.encode $ Data.Aeson.object ["key" .= xPubToJSON net k, "count" .= c, "index" .= i, "utxoCommitment" .= u]
 
 getAddressList :: XPubKey -> Int -> [TxHash]
 getAddressList pubKey count = (TxHash . doubleSHA256 . S.encode . xPubAddr . pubSubKey pubKey) <$> [1 .. (fromIntegral count)]
@@ -99,7 +100,10 @@ class HasXPubInfoMap m where
     getXPubHashMap :: m (TVar (M.Map String XPubInfo))
 
 class HasUtxoPool m where
-    getUtxoPool :: m (TVar [ProxyProviderUtxo])
+    getUtxoPool :: m (TVar (M.Map String ProxyProviderUtxo))
+
+class HasCommittedUtxos m where
+    getCommittedUtxos :: m (TVar (M.Map String ProxyProviderUtxo))
 
 data ServiceEnv m r t rmsg pmsg =
     ServiceEnv
@@ -108,7 +112,8 @@ data ServiceEnv m r t rmsg pmsg =
         , nodeConfig :: NodeConfig
         , addressMap :: TVar (M.Map Base58 [TxHash])
         , xpubInfoMap :: TVar (M.Map String XPubInfo)
-        , utxoPool :: TVar [ProxyProviderUtxo]
+        , utxoPool :: TVar (M.Map String ProxyProviderUtxo)
+        , committedUtxos :: TVar (M.Map String ProxyProviderUtxo)
         }
 
 type HasService env m
@@ -118,7 +123,8 @@ type HasService env m
        , HasNodeConfig m
        , HasAddressMap m
        , HasXPubInfoMap m
-       , HasUtxoPool m)
+       , HasUtxoPool m
+       , HasCommittedUtxos m)
 
 instance HasNetworkConfig (ServiceEnv m r t rmsg pmsg) NetworkConfig where
     networkConfig f se =

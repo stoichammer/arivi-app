@@ -76,10 +76,11 @@ import Network.Xoken.Keys.Extended
 import Service.Data
 import Service.Env
 import Service.Types
+import Service.ProxyProviderUtxo
 import UtxoPool
 
-getAddressForName :: (HasService env m, MonadIO m) => Network -> String -> m (String, PartialMerkleTree)
-getAddressForName net name = do
+getAddressProviderUtxo :: (HasService env m, MonadIO m) => Network -> String -> m (String, Maybe ProxyProviderUtxo, PartialMerkleTree)
+getAddressProviderUtxo net name = do
     aMapTvar <- getXPubHashMap
     addressTvar <- getAddressMap
     aMap <- liftIO $ readTVarIO aMapTvar
@@ -88,9 +89,11 @@ getAddressForName net name = do
             if (count > fromIntegral index)
                 then do
                     let addr = xPubAddr (pubSubKey key (index + 1))
+                    let utxoOp = utxoCommitment !! (fromIntegral index + 1)
+                    pputxo <- getCommittedUtxo utxoOp
                     liftIO $
                         atomically $
-                        writeTVar aMapTvar (M.update (\(XPubInfo k c i) -> Just $ XPubInfo k c (i + 1)) name aMap)
+                        writeTVar aMapTvar (M.update (\(XPubInfo k c i u) -> Just $ XPubInfo k c (i + 1) u) name aMap)
                     addressMap <- liftIO $ readTVarIO addressTvar
                     case M.lookup (xPubExport net key) addressMap of
                         Just hashes -> do
@@ -98,11 +101,11 @@ getAddressForName net name = do
                             liftIO $
                                 putValue
                                     (DTE.encodeUtf8 $ DT.pack name)
-                                    (encodeXPubInfo net $ XPubInfo key count (index + 1))
-                            return (DT.unpack $ fromJust $ addrToString net addr, merkleProof)
+                                    (encodeXPubInfo net $ XPubInfo key count (index + 1) utxoCommitment)
+                            return (DT.unpack $ fromJust $ addrToString net addr, pputxo, merkleProof)
                 else do
                     liftIO $ print "maximum address count reached"
-                    return ("", [])
+                    return ("", Nothing, [])
 
 partiallySignAllpayTransaction ::
        (HasService env m, MonadIO m) => [OutPoint] -> OutPoint -> Int -> BC.ByteString -> m (BC.ByteString)

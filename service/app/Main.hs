@@ -94,6 +94,9 @@ instance HasXPubInfoMap AppM where
 instance HasUtxoPool AppM where
     getUtxoPool = asks (utxoPool)
 
+instance HasCommittedUtxos AppM where
+    getCommittedUtxos = asks (committedUtxos)
+
 instance HasNodeConfig AppM where
     getNodeConfig = asks (nodeConfig)
 
@@ -170,7 +173,11 @@ runNode config nodeConfig certPaths pool = do
                         print err
                         pure M.empty
             Nothing -> pure M.empty
-    pm <- newTVarIO pool
+    -- build utxo pool
+    let utxoPool = M.fromList $ (\utxo -> (txid utxo ++ ":" ++ (show $ outputIndex utxo), utxo)) <$> pool
+    let committedUtxos = M.fromList []
+    up <- newTVarIO utxoPool
+    cu <- newTVarIO committedUtxos
     amr <- newTVarIO xPubInfoMap
     let addressMap =
             Prelude.foldl
@@ -178,7 +185,7 @@ runNode config nodeConfig certPaths pool = do
                 M.empty
                 (M.toList xPubInfoMap)
     amT <- newTVarIO addressMap
-    let serviceEnv = ServiceEnv EndPointEnv p2pEnv nodeConfig amT amr pm
+    let serviceEnv = ServiceEnv EndPointEnv p2pEnv nodeConfig amT amr up cu
     -- start TLS
     epHandler <- newTLSEndpointServiceHandler
     async $
