@@ -18,3 +18,6 @@ tlsKeyfilePath : ./server.key
 
 tlsCertificateStorePath : /opt/certstore
 
+poolAddress : mgm3koJs42K4RshMiVozfLqqmQUMaQNwKa
+
+apiAuthKey : 5ZhMU8nTzQojdEjXKqvkHadR1PdYHpLiyK7KHaXkRhTV2QxHsc5TF7zGzLgbAZL2xS

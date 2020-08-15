@@ -68,9 +68,6 @@ import System.Environment (getArgs)
 import TLSServer
 import UtxoPool
 
-apiAuthKey = "5ZhMU8nTzQojdEjXKqvkHadR1PdYHpLiyK7KHaXkRhTV2QxHsc5TF7zGzLgbAZL2xS"
-
-poolAddress = "mgm3koJs42K4RshMiVozfLqqmQUMaQNwKa"
 
 newtype AppM a =
     AppM (ReaderT (ServiceEnv AppM ServiceResource ServiceTopic RPCMessage PubNotifyMessage) (LoggingT IO) a)
@@ -200,7 +197,7 @@ main = do
     csfp <- doesDirectoryExist csrFP
     unless (cfp && kfp && csfp) $ Prelude.error "Error: missing TLS certificate or keyfile"
     print "building proxy-provider utxo pool..."
-    pool <- getPool poolAddress apiAuthKey
+    pool <- getPool (NC.poolAddress nodeCnf) (NC.apiAuthKey nodeCnf)
     case pool of
         Just p' -> do
             print $ "size of pool: " ++ show (Prelude.length p')

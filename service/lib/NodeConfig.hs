@@ -34,6 +34,8 @@ data NodeConfig =
         , tlsCertificatePath :: FilePath
         , tlsKeyfilePath :: FilePath
         , tlsCertificateStorePath :: FilePath
+        , apiAuthKey :: String
+        , poolAddress :: String
         }
     deriving (Show, Generic)
 
