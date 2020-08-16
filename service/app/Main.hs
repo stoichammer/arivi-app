@@ -47,6 +47,7 @@ import Data.ByteString.Lazy as BSL
 import Data.ByteString.Lazy.Char8 as BSLC (pack, unpack)
 import Data.IORef
 import Data.Int
+import qualified Data.List as L
 import Data.Map.Strict as M
 import Data.Maybe
 import Data.String.Conv
@@ -67,7 +68,6 @@ import System.Directory
 import System.Environment (getArgs)
 import TLSServer
 import UtxoPool
-
 
 newtype AppM a =
     AppM (ReaderT (ServiceEnv AppM ServiceResource ServiceTopic RPCMessage PubNotifyMessage) (LoggingT IO) a)
@@ -174,10 +174,13 @@ runNode config nodeConfig certPaths pool = do
                         pure M.empty
             Nothing -> pure M.empty
     -- build utxo pool
-    let utxoPool = M.fromList $ (\utxo -> (txid utxo ++ ":" ++ (show $ outputIndex utxo), utxo)) <$> pool
-    let committedUtxos = M.fromList []
-    up <- newTVarIO utxoPool
-    cu <- newTVarIO committedUtxos
+    let (utxoPool, committedUtxos) =
+            L.partition
+                (\opu -> (fst opu `L.notElem` (L.concat $ (\xpi -> utxoCommitment xpi) <$> M.elems xPubInfoMap))) $
+            (\utxo -> (txid utxo ++ ":" ++ (show $ outputIndex utxo), utxo)) <$> pool
+    up <- newTVarIO $ M.fromList utxoPool
+    cu <- newTVarIO $ M.fromList committedUtxos
+    --
     amr <- newTVarIO xPubInfoMap
     let addressMap =
             Prelude.foldl

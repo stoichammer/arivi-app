@@ -75,8 +75,8 @@ import Network.Xoken.Constants
 import Network.Xoken.Keys.Extended
 import Service.Data
 import Service.Env
-import Service.Types
 import Service.ProxyProviderUtxo
+import Service.Types
 
 import Service.AllpayTransaction
 
@@ -111,7 +111,9 @@ goGetResource msg net = do
                                 modifyTVar addressTVar (M.insert (xPubExport net k) (getAddressList k count))
                             names <- liftIO $ M.keys <$> readTVarIO aMapTvar
                             liftIO $ putValue "names" (BSL.toStrict $ Data.Aeson.encode $ nub $ name : names)
-                            when (isNothing $ M.lookup name xPubInfo) $ liftIO $ putValue (DTE.encodeUtf8 $ DT.pack name) (encodeXPubInfo net $ XPubInfo k count 0 [])
+                            when (isNothing $ M.lookup name xPubInfo) $
+                                liftIO $
+                                putValue (DTE.encodeUtf8 $ DT.pack name) (encodeXPubInfo net $ XPubInfo k count 0 [])
                             return $ RPCResponse 200 Nothing (Just $ RespXPubKey True)
                         Error err -> do
                             liftIO $ print $ "error occurred while decoding XPubKey: " <> show err
@@ -126,6 +128,7 @@ goGetResource msg net = do
                             if count > fromIntegral index
                                 then do
                                     let addr = xPubAddr (pubSubKey key (index + 1))
+                                    let ppo = utxoCommitment !! (fromIntegral index + 1)
                                     liftIO $
                                         atomically $
                                         writeTVar
@@ -135,7 +138,10 @@ goGetResource msg net = do
                                     case M.lookup (xPubExport net key) addressMap of
                                         Just hashes -> do
                                             let merkleProof = buildProof hashes index
-                                            liftIO $ putValue (DTE.encodeUtf8 $ DT.pack name) (encodeXPubInfo net $ XPubInfo key count (index+1) utxoCommitment)
+                                            liftIO $
+                                                putValue
+                                                    (DTE.encodeUtf8 $ DT.pack name)
+                                                    (encodeXPubInfo net $ XPubInfo key count (index + 1) utxoCommitment)
                                             return $
                                                 RPCResponse
                                                     200
@@ -143,7 +149,8 @@ goGetResource msg net = do
                                                     (Just $
                                                      RespGetNextAddress
                                                          (DT.unpack $ fromJust $ addrToString net addr)
-                                                         merkleProof)
+                                                         merkleProof
+                                                         ppo)
                                         Nothing -> do
                                             liftIO $ print "no data found in address map"
                                             return $ RPCResponse 400 (Just INVALID_REQUEST) Nothing
@@ -157,11 +164,11 @@ goGetResource msg net = do
 buildProof :: [TxHash] -> Word32 -> PartialMerkleTree
 buildProof hashes index =
     snd $
-     buildPartialMerkle $
-     zipWith
-         (\h i ->
-              if i == index
-                  then (h, True)
-                  else (h, False))
-         hashes
-         [0 ..]
+    buildPartialMerkle $
+    zipWith
+        (\h i ->
+             if i == index
+                 then (h, True)
+                 else (h, False))
+        hashes
+        [0 ..]

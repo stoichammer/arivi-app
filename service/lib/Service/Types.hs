@@ -68,12 +68,13 @@ data RPCResponseBody
     | RespGetNextAddress
           { address :: String
           , merklePath :: PartialMerkleTree
+          , ppo :: String
           }
     deriving (Generic, Show, Hashable, Eq, Serialise)
 
 instance ToJSON RPCResponseBody where
     toJSON (RespXPubKey rxpb) = object ["rxpb" .= rxpb]
-    toJSON (RespGetNextAddress a mp) = object ["address" .= a, "merklePath" .= mp]
+    toJSON (RespGetNextAddress a mp ppo) = object ["address" .= a, "merklePath" .= mp, "ppOutpoint" .= ppo]
 
 data BlockRecord =
     BlockRecord

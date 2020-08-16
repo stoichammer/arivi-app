@@ -34,12 +34,12 @@ import GHC.Generics
 import qualified Network.Simple.TCP.TLS as TLS
 import Network.Socket
 import qualified Network.TLS as NTLS
+import NodeConfig as NC
+import Prelude as P
+import Service
 import Service.Data
 import Service.Env as NEnv
-import Prelude as P
 import Text.Printf
-import NodeConfig as NC
-import Service
 
 data EncodingFormat
     = CBOR
@@ -71,13 +71,7 @@ newEndPointConnection context = do
     return $ EndPointConnection reqQueue resLock formatRef
 
 handleRPCReqResp ::
-       (HasService env m, MonadIO m)
-    => MVar TLS.Context
-    -> EncodingFormat
-    -> Int
-    -> Maybe String
-    -> RPCMessage
-    -> m ()
+       (HasService env m, MonadIO m) => MVar TLS.Context -> EncodingFormat -> Int -> Maybe String -> RPCMessage -> m ()
 handleRPCReqResp sockMVar format mid version encReq = do
     nodeCnf <- getNodeConfig
     let net = bitcoinNetwork nodeCnf
