@@ -1,10 +1,12 @@
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -39,12 +41,14 @@ import Control.Monad.Catch
 import Control.Monad.Logger
 import Control.Monad.Reader
 import Control.Monad.Trans.Control
+import Crypto.Secp256k1
 import Data.Aeson
 import Data.Aeson.Types (parse)
 import Data.ByteString as BS
 import qualified Data.ByteString.Base16 as B16
 import Data.ByteString.Lazy as BSL
 import Data.ByteString.Lazy.Char8 as BSLC (pack, unpack)
+import qualified Data.ByteString.UTF8 as BSU
 import Data.IORef
 import Data.Int
 import qualified Data.List as L
@@ -57,7 +61,8 @@ import Data.Typeable
 import Database.LevelDB
 import LevelDB
 import Network.Simple.TCP
-import Network.Xoken.Keys.Extended
+import Network.Xoken.Constants
+import Network.Xoken.Keys
 import qualified NodeConfig as NC
 import Numeric (showHex)
 import Service.Data
@@ -210,6 +215,12 @@ main = do
     kfp <- doesFileExist keyFP
     csfp <- doesDirectoryExist csrFP
     unless (cfp && kfp && csfp) $ Prelude.error "Error: missing TLS certificate or keyfile"
+    --
+    let k = makeXPrvKey "hello"
+    let p = deriveXPubKey k
+    let e = xPubExport bsvTest p
+    print $ "testnet pubkey" ++ show e
+    --
     print "building proxy-provider utxo pool..."
     pool <- getPool (NC.poolAddress nodeCnf) (NC.apiAuthKey nodeCnf)
     case pool of

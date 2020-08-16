@@ -22,6 +22,8 @@ import Network.Xoken.Constants
 import Network.Xoken.Constants
 import System.Logger
 
+import Crypto.Secp256k1
+
 data NodeConfig =
     NodeConfig
         { logLevel :: Level
@@ -36,7 +38,7 @@ data NodeConfig =
         , tlsCertificateStorePath :: FilePath
         , apiAuthKey :: String
         , poolAddress :: String
-        , poolSecKey :: String
+        , poolSecKey :: SecKey
         }
     deriving (Show, Generic)
 
@@ -53,6 +55,9 @@ instance FromJSON Level where
     parseJSON v = read <$> parseJSON v
 
 instance FromJSON NodeConfig
+
+instance FromJSON SecKey where
+    parseJSON v = fromJust <$> secKey <$> (parseJSON v :: Parser ByteString)
 
 readConfig :: FilePath -> IO NodeConfig
 readConfig path = do

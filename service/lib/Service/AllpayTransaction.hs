@@ -158,14 +158,11 @@ getPartiallySignedAllpayTransaction net inputs amount receiverName changeAddr = 
                         Left err -> return $ Left $ "failed to decode proxy-provider utxo script: " ++ err
                         Right so -> do
                             let si = SigInput so (fromIntegral $ value pputxo) ppOutPoint sigHashAll Nothing
-                            case secKey $ BSU.fromString poolSecKey of
-                                Nothing -> return $ Left ""
-                                Just sk -> do
-                                    case signTx net tx [si] [sk] of
-                                        Left err -> return $ Left $ "failed to partially sign transaction: " ++ err
-                                        Right psaTx -> do
-                                            let serializedTx = BSL.toStrict $ A.encode $ psaTx
-                                            return $ Right (serializedTx, addrProof, utxoProof)
+                            case signTx net tx [si] [poolSecKey] of
+                                Left err -> return $ Left $ "failed to partially sign transaction: " ++ err
+                                Right psaTx -> do
+                                    let serializedTx = BSL.toStrict $ A.encode $ psaTx
+                                    return $ Right (serializedTx, addrProof, utxoProof)
 
 buildProof' :: [TxHash] -> Word32 -> PartialMerkleTree
 buildProof' hashes index =

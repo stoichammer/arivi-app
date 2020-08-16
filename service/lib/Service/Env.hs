@@ -22,6 +22,7 @@ import Codec.Serialise
 import Control.Concurrent.MVar
 import Control.Concurrent.STM
 import Control.Monad.Reader
+import Crypto.Secp256k1
 import Data.Aeson
 import Data.Aeson.Types
 import Data.ByteString
@@ -66,15 +67,18 @@ data XPubInfo =
 decodeXPubInfo :: Network -> ByteString -> Parser XPubInfo
 decodeXPubInfo net bs =
     case Data.Aeson.eitherDecode $ BSL.fromStrict bs of
-        Right (Object o) -> XPubInfo <$> (xPubFromJSON net =<< o .: "key") <*> o .: "count" <*> o .: "index" <*> o.: "utxoCommitment"
+        Right (Object o) ->
+            XPubInfo <$> (xPubFromJSON net =<< o .: "key") <*> o .: "count" <*> o .: "index" <*> o .: "utxoCommitment"
         _ -> fail "error while decoding xpubInfo"
 
 encodeXPubInfo :: Network -> XPubInfo -> ByteString
 encodeXPubInfo net (XPubInfo k c i u) =
-    BSL.toStrict $ Data.Aeson.encode $ Data.Aeson.object ["key" .= xPubToJSON net k, "count" .= c, "index" .= i, "utxoCommitment" .= u]
+    BSL.toStrict $
+    Data.Aeson.encode $ Data.Aeson.object ["key" .= xPubToJSON net k, "count" .= c, "index" .= i, "utxoCommitment" .= u]
 
 getAddressList :: XPubKey -> Int -> [TxHash]
-getAddressList pubKey count = (TxHash . doubleSHA256 . S.encode . xPubAddr . pubSubKey pubKey) <$> [1 .. (fromIntegral count)]
+getAddressList pubKey count =
+    (TxHash . doubleSHA256 . S.encode . xPubAddr . pubSubKey pubKey) <$> [1 .. (fromIntegral count)]
 
 outpointHashes :: [String] -> [TxHash]
 outpointHashes outpoints = (TxHash . doubleSHA256 . S.encode) <$> outpoints
