@@ -3,7 +3,6 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -26,6 +25,7 @@ import qualified Data.Text.Encoding as T
 import GHC.Generics
 import Network.Xoken.Block
 import Network.Xoken.Crypto.Hash
+import UtxoPool
 
 data EndpointException
     = InvalidMessageTypeException
@@ -68,7 +68,7 @@ data RPCResponseBody
     | RespGetNextAddress
           { address :: String
           , merklePath :: PartialMerkleTree
-          , ppo :: String
+          , ppo :: ProxyProviderUtxo
           }
     deriving (Generic, Show, Hashable, Eq, Serialise)
 

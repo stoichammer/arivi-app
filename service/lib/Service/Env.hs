@@ -76,6 +76,9 @@ encodeXPubInfo net (XPubInfo k c i u) =
 getAddressList :: XPubKey -> Int -> [TxHash]
 getAddressList pubKey count = (TxHash . doubleSHA256 . S.encode . xPubAddr . pubSubKey pubKey) <$> [1 .. (fromIntegral count)]
 
+outpointHashes :: [String] -> [TxHash]
+outpointHashes outpoints = (TxHash . doubleSHA256 . S.encode) <$> outpoints
+
 data EndPointEnv =
     EndPointEnv
         -- tcpConn :: (Socket, SockAddr)

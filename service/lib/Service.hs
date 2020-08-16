@@ -99,12 +99,13 @@ goGetResource msg net = do
                     let res = Data.Aeson.String (DTE.decodeUtf8 pubKey)
                     case parse Prelude.id . xPubFromJSON net $ res of
                         Success k -> do
-                            utxoCommitment <- getFromPool count
+                            committedOutpoints <- getFromPool count
+                            let root = buildMerkleRoot $ outpointHashes committedOutpoints
                             xPubInfo <- liftIO $ readTVarIO aMapTvar
                             let f x =
                                     case x of
                                         Just v -> Just v
-                                        Nothing -> Just (XPubInfo k count 0 utxoCommitment)
+                                        Nothing -> Just (XPubInfo k count 0 committedOutpoints)
                             liftIO $ atomically $ writeTVar aMapTvar (M.alter f name xPubInfo)
                             liftIO $
                                 atomically $
@@ -129,6 +130,7 @@ goGetResource msg net = do
                                 then do
                                     let addr = xPubAddr (pubSubKey key (index + 1))
                                     let ppo = utxoCommitment !! (fromIntegral index + 1)
+                                    pputxo <- getCommittedUtxo ppo 
                                     liftIO $
                                         atomically $
                                         writeTVar
@@ -150,7 +152,7 @@ goGetResource msg net = do
                                                      RespGetNextAddress
                                                          (DT.unpack $ fromJust $ addrToString net addr)
                                                          merkleProof
-                                                         ppo)
+                                                         (fromJust pputxo))
                                         Nothing -> do
                                             liftIO $ print "no data found in address map"
                                             return $ RPCResponse 400 (Just INVALID_REQUEST) Nothing

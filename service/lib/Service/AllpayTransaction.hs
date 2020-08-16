@@ -75,11 +75,16 @@ import Network.Xoken.Constants
 import Network.Xoken.Keys.Extended
 import Service.Data
 import Service.Env
-import Service.Types
 import Service.ProxyProviderUtxo
+import Service.Types
 import UtxoPool
 
-getAddressProviderUtxo :: (HasService env m, MonadIO m) => Network -> String -> m (String, Maybe ProxyProviderUtxo, PartialMerkleTree)
+-- get address, pptuxo and Merkle proofs for address and pputxo
+getAddressProviderUtxo ::
+       (HasService env m, MonadIO m)
+    => Network
+    -> String
+    -> m (String, Maybe ProxyProviderUtxo, PartialMerkleTree, PartialMerkleTree)
 getAddressProviderUtxo net name = do
     aMapTvar <- getXPubHashMap
     addressTvar <- getAddressMap
@@ -97,15 +102,16 @@ getAddressProviderUtxo net name = do
                     addressMap <- liftIO $ readTVarIO addressTvar
                     case M.lookup (xPubExport net key) addressMap of
                         Just hashes -> do
-                            let merkleProof = buildProof' hashes index
+                            let addrProof = buildProof' hashes index
+                            let utxoProof = buildProof' (outpointHashes utxoCommitment) index
                             liftIO $
                                 putValue
                                     (DTE.encodeUtf8 $ DT.pack name)
                                     (encodeXPubInfo net $ XPubInfo key count (index + 1) utxoCommitment)
-                            return (DT.unpack $ fromJust $ addrToString net addr, pputxo, merkleProof)
+                            return (DT.unpack $ fromJust $ addrToString net addr, pputxo, addrProof, utxoProof)
                 else do
                     liftIO $ print "maximum address count reached"
-                    return ("", Nothing, [])
+                    return ("", Nothing, [], [])
 
 partiallySignAllpayTransaction ::
        (HasService env m, MonadIO m) => [OutPoint] -> OutPoint -> Int -> BC.ByteString -> m (BC.ByteString)
