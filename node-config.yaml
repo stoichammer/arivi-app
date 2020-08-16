@@ -12,12 +12,14 @@ endPointTLSListenIP: 127.0.0.1
 
 endPointTLSListenPort: 9090
 
-tlsCertificatePath : ./certificate.cert
+tlsCertificatePath : ./example.crt
 
-tlsKeyfilePath : ./server.key
+tlsKeyfilePath : ./example.key
 
-tlsCertificateStorePath : /opt/certstore
+tlsCertificateStorePath : .
 
 poolAddress : mgm3koJs42K4RshMiVozfLqqmQUMaQNwKa
 
 apiAuthKey : 
+
+poolSecKey : 

@@ -31,6 +31,8 @@ import Network.Xoken.Crypto.Hash
 import Network.Xoken.Transaction
 import Network.Xoken.Transaction.Common
 
+import Crypto.Secp256k1
+
 --import qualified Control.Error.Util as Extra
 import Control.Exception
 
@@ -132,6 +134,7 @@ getPartiallySignedAllpayTransaction ::
     -> m (Either String (BC.ByteString, PartialMerkleTree, PartialMerkleTree)) -- serialized transaction
 getPartiallySignedAllpayTransaction net inputs amount receiverName changeAddr = do
     poolAddr <- poolAddress <$> getNodeConfig
+    poolSecKey <- poolSecKey <$> getNodeConfig
     res <- getAddressAndProxyUtxo net receiverName
     case res of
         Left err -> return $ Left $ "failed to get address or proxy-provider utxo: " ++ err
@@ -148,14 +151,21 @@ getPartiallySignedAllpayTransaction net inputs amount receiverName changeAddr = 
                     , (DT.pack addr, fromIntegral amount)
                     , (DT.pack changeAddr, fromIntegral change)
                     ]
-            let tx = buildAddrTx net inputs' outputs
-            -- TODO sign transaction
-            case decodeOutputBS (BSU.fromString $ scriptPubKey pputxo) of
-                Left err -> return $ Left $ "failed to decode proxy-provider utxo script: " ++ err
-                Right so -> do
-                    let si = SigInput so (fromIntegral $ value pputxo) ppOutPoint sigHashAll Nothing
-                    let serializedTx = BSL.toStrict $ A.encode $ tx
-                    return $ Right (serializedTx, addrProof, utxoProof)
+            case buildAddrTx net inputs' outputs of
+                Left err -> return $ Left $ "failed to build transaction: " ++ err
+                Right tx -> do
+                    case decodeOutputBS (BSU.fromString $ scriptPubKey pputxo) of
+                        Left err -> return $ Left $ "failed to decode proxy-provider utxo script: " ++ err
+                        Right so -> do
+                            let si = SigInput so (fromIntegral $ value pputxo) ppOutPoint sigHashAll Nothing
+                            case secKey $ BSU.fromString poolSecKey of
+                                Nothing -> return $ Left ""
+                                Just sk -> do
+                                    case signTx net tx [si] [sk] of
+                                        Left err -> return $ Left $ "failed to partially sign transaction: " ++ err
+                                        Right psaTx -> do
+                                            let serializedTx = BSL.toStrict $ A.encode $ psaTx
+                                            return $ Right (serializedTx, addrProof, utxoProof)
 
 buildProof' :: [TxHash] -> Word32 -> PartialMerkleTree
 buildProof' hashes index =

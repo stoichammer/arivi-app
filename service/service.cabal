@@ -86,6 +86,7 @@ executable aaproxy
                 , base64-bytestring
                 , process
                 , utf8-string
+                , secp256k1-haskell
                 --, extra
                 --, monad-control
 
