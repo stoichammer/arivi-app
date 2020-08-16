@@ -51,7 +51,7 @@ import qualified Data.ByteString.Short as BSS
 
 --import Control.Monad.Extra
 import Network.Xoken.Crypto.Hash
-import Network.Xoken.Keys.Extended
+import Network.Xoken.Keys
 
 --import qualified Data.ByteString.UTF8 as BSU (toString)
 import Data.Aeson
@@ -72,7 +72,7 @@ import qualified Data.Text.Encoding as DTE
 import qualified Data.Text.Encoding as E
 import LevelDB
 import Network.Xoken.Constants
-import Network.Xoken.Keys.Extended
+import Network.Xoken.Keys
 import Service.Data
 import Service.Env
 import Service.ProxyProviderUtxo

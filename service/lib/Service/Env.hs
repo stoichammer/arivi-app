@@ -36,7 +36,7 @@ import Network.Xoken.Address
 import Network.Xoken.Address.Base58
 import Network.Xoken.Constants
 import Network.Xoken.Crypto.Hash
-import Network.Xoken.Keys.Extended
+import Network.Xoken.Keys
 import Network.Xoken.Transaction.Common
 import NodeConfig as NC
 import Service.Data

@@ -24,9 +24,11 @@ import Control.Concurrent.Async (AsyncCancelled, mapConcurrently, mapConcurrentl
 import Control.Concurrent.Async.Lifted (async, wait)
 import Control.Concurrent.STM.TVar
 import Control.Monad.STM
-import Data.Word (Word32, Word8)
+import Data.Word (Word32, Word64, Word8)
 import Network.Xoken.Address
 import Network.Xoken.Block.Merkle
+import Network.Xoken.Crypto.Hash
+import Network.Xoken.Transaction
 import Network.Xoken.Transaction.Common
 
 --import qualified Control.Error.Util as Extra
@@ -51,7 +53,7 @@ import qualified Data.ByteString.Short as BSS
 
 --import Control.Monad.Extra
 import Network.Xoken.Crypto.Hash
-import Network.Xoken.Keys.Extended
+import Network.Xoken.Keys
 
 --import qualified Data.ByteString.UTF8 as BSU (toString)
 import Data.Aeson
@@ -72,7 +74,6 @@ import qualified Data.Text.Encoding as DTE
 import qualified Data.Text.Encoding as E
 import LevelDB
 import Network.Xoken.Constants
-import Network.Xoken.Keys.Extended
 import Service.Data
 import Service.Env
 import Service.ProxyProviderUtxo
@@ -80,12 +81,12 @@ import Service.Types
 import UtxoPool
 
 -- get address, pptuxo and Merkle proofs for address and pputxo
-getAddressProviderUtxo ::
+getAddressAndProxyUtxo ::
        (HasService env m, MonadIO m)
     => Network
     -> String
-    -> m (String, Maybe ProxyProviderUtxo, PartialMerkleTree, PartialMerkleTree)
-getAddressProviderUtxo net name = do
+    -> m (Either String (String, ProxyProviderUtxo, PartialMerkleTree, PartialMerkleTree))
+getAddressAndProxyUtxo net name = do
     aMapTvar <- getXPubHashMap
     addressTvar <- getAddressMap
     aMap <- liftIO $ readTVarIO aMapTvar
@@ -95,27 +96,71 @@ getAddressProviderUtxo net name = do
                 then do
                     let addr = xPubAddr (pubSubKey key (index + 1))
                     let utxoOp = utxoCommitment !! (fromIntegral index + 1)
-                    pputxo <- getCommittedUtxo utxoOp
-                    liftIO $
-                        atomically $
-                        writeTVar aMapTvar (M.update (\(XPubInfo k c i u) -> Just $ XPubInfo k c (i + 1) u) name aMap)
-                    addressMap <- liftIO $ readTVarIO addressTvar
-                    case M.lookup (xPubExport net key) addressMap of
-                        Just hashes -> do
-                            let addrProof = buildProof' hashes index
-                            let utxoProof = buildProof' (outpointHashes utxoCommitment) index
+                    mbpputxo <- getCommittedUtxo utxoOp
+                    case mbpputxo of
+                        Nothing -> return $ Left "failed to fetch proxy-provider utxo; commitment set incomplete?"
+                        Just pputxo -> do
                             liftIO $
-                                putValue
-                                    (DTE.encodeUtf8 $ DT.pack name)
-                                    (encodeXPubInfo net $ XPubInfo key count (index + 1) utxoCommitment)
-                            return (DT.unpack $ fromJust $ addrToString net addr, pputxo, addrProof, utxoProof)
+                                atomically $
+                                writeTVar
+                                    aMapTvar
+                                    (M.update (\(XPubInfo k c i u) -> Just $ XPubInfo k c (i + 1) u) name aMap)
+                            addressMap <- liftIO $ readTVarIO addressTvar
+                            case M.lookup (xPubExport net key) addressMap of
+                                Just hashes -> do
+                                    let addrProof = buildProof' hashes index
+                                    let utxoProof = buildProof' (outpointHashes utxoCommitment) index
+                                    liftIO $
+                                        putValue
+                                            (DTE.encodeUtf8 $ DT.pack name)
+                                            (encodeXPubInfo net $ XPubInfo key count (index + 1) utxoCommitment)
+                                    return $
+                                        Right
+                                            (DT.unpack $ fromJust $ addrToString net addr, pputxo, addrProof, utxoProof)
                 else do
-                    liftIO $ print "maximum address count reached"
-                    return ("", Nothing, [], [])
+                    return $ Left "maximum address count reached"
 
 partiallySignAllpayTransaction ::
-       (HasService env m, MonadIO m) => [OutPoint] -> OutPoint -> Int -> BC.ByteString -> m (BC.ByteString)
-partiallySignAllpayTransaction inputs pputxo val change = return $ BC.pack ""
+       (HasService env m, MonadIO m)
+    => Network
+    -> [OutPoint]
+    -> ProxyProviderUtxo
+    -> Word64
+    -> String
+    -> String
+    -> m (BC.ByteString)
+partiallySignAllpayTransaction net inputs pputxo val change dest = do
+    let tx = buildAddrTx net inputs [(DT.pack dest, val)]
+    return $ BC.pack ""
+
+getPartiallySignedAllpayTransaction ::
+       (HasService env m, MonadIO m)
+    => Network
+    -> [(OutPoint, Int64)] -- standard inputs, corresponding input value
+    -> Int64 -- value
+    -> String -- receiver
+    -> String -- change address
+    -> m (Either String (BC.ByteString, PartialMerkleTree, PartialMerkleTree)) -- serialized transaction
+getPartiallySignedAllpayTransaction net inputs amount receiverName changeAddr = do
+    res <- getAddressAndProxyUtxo net receiverName
+    case res of
+        Left err -> return $ Left $ "failed to get address or proxy-provider utxo: " ++ err
+        Right (addr, pputxo, addrProof, utxoProof)
+            -- add proxy-provider utxo input to list of inputs
+         -> do
+            let inputs' =
+                    (OutPoint (TxHash $ fromString $ txid $ pputxo) (fromIntegral $ outputIndex $ pputxo)) :
+                    ((\(outpoint, _) -> outpoint) <$> inputs)
+            -- compute change
+            let totalInput = L.foldl (+) 0 $ (\(_, val) -> val) <$> inputs
+            let change = totalInput - amount
+            -- add proxy-provider utxo output
+            let output =
+                    [ (DT.pack "", value $ pputxo)
+                    , (DT.pack addr, fromIntegral amount)
+                    , (DT.pack changeAddr, fromIntegral change)
+                    ]
+            return $ Right (BC.pack "", addrProof, utxoProof)
 
 buildProof' :: [TxHash] -> Word32 -> PartialMerkleTree
 buildProof' hashes index =
