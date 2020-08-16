@@ -54,10 +54,11 @@ import qualified Data.ByteString.Short as BSS
 --import Control.Monad.Extra
 import Network.Xoken.Crypto.Hash
 import Network.Xoken.Keys
+import Network.Xoken.Script
 
---import qualified Data.ByteString.UTF8 as BSU (toString)
 import Data.Aeson
 import Data.Aeson.Types
+import qualified Data.ByteString.UTF8 as BSU
 import Data.Char
 import Data.Default
 import Data.Hashable
@@ -74,6 +75,7 @@ import qualified Data.Text.Encoding as DTE
 import qualified Data.Text.Encoding as E
 import LevelDB
 import Network.Xoken.Constants
+import NodeConfig
 import Service.Data
 import Service.Env
 import Service.ProxyProviderUtxo
@@ -120,19 +122,6 @@ getAddressAndProxyUtxo net name = do
                 else do
                     return $ Left "maximum address count reached"
 
-partiallySignAllpayTransaction ::
-       (HasService env m, MonadIO m)
-    => Network
-    -> [OutPoint]
-    -> ProxyProviderUtxo
-    -> Word64
-    -> String
-    -> String
-    -> m (BC.ByteString)
-partiallySignAllpayTransaction net inputs pputxo val change dest = do
-    let tx = buildAddrTx net inputs [(DT.pack dest, val)]
-    return $ BC.pack ""
-
 getPartiallySignedAllpayTransaction ::
        (HasService env m, MonadIO m)
     => Network
@@ -142,25 +131,31 @@ getPartiallySignedAllpayTransaction ::
     -> String -- change address
     -> m (Either String (BC.ByteString, PartialMerkleTree, PartialMerkleTree)) -- serialized transaction
 getPartiallySignedAllpayTransaction net inputs amount receiverName changeAddr = do
+    poolAddr <- poolAddress <$> getNodeConfig
     res <- getAddressAndProxyUtxo net receiverName
     case res of
         Left err -> return $ Left $ "failed to get address or proxy-provider utxo: " ++ err
-        Right (addr, pputxo, addrProof, utxoProof)
-            -- add proxy-provider utxo input to list of inputs
-         -> do
-            let inputs' =
-                    (OutPoint (TxHash $ fromString $ txid $ pputxo) (fromIntegral $ outputIndex $ pputxo)) :
-                    ((\(outpoint, _) -> outpoint) <$> inputs)
+        Right (addr, pputxo, addrProof, utxoProof) -> do
+            let ppOutPoint = OutPoint (TxHash $ fromString $ txid $ pputxo) (fromIntegral $ outputIndex $ pputxo)
+            let inputs' = ppOutPoint : ((\(outpoint, _) -> outpoint) <$> inputs)
+            -- TODO compute fee
             -- compute change
             let totalInput = L.foldl (+) 0 $ (\(_, val) -> val) <$> inputs
             let change = totalInput - amount
             -- add proxy-provider utxo output
-            let output =
-                    [ (DT.pack "", value $ pputxo)
+            let outputs =
+                    [ (DT.pack poolAddr, fromIntegral $ value $ pputxo)
                     , (DT.pack addr, fromIntegral amount)
                     , (DT.pack changeAddr, fromIntegral change)
                     ]
-            return $ Right (BC.pack "", addrProof, utxoProof)
+            let tx = buildAddrTx net inputs' outputs
+            -- TODO sign transaction
+            case decodeOutputBS (BSU.fromString $ scriptPubKey pputxo) of
+                Left err -> return $ Left $ "failed to decode proxy-provider utxo script: " ++ err
+                Right so -> do
+                    let si = SigInput so (fromIntegral $ value pputxo) ppOutPoint sigHashAll Nothing
+                    let serializedTx = BSL.toStrict $ A.encode $ tx
+                    return $ Right (serializedTx, addrProof, utxoProof)
 
 buildProof' :: [TxHash] -> Word32 -> PartialMerkleTree
 buildProof' hashes index =
