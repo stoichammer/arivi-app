@@ -25,7 +25,6 @@ import qualified Data.Text.Encoding as T
 import GHC.Generics
 import Network.Xoken.Block
 import Network.Xoken.Crypto.Hash
-import UtxoPool
 
 data EndpointException
     = InvalidMessageTypeException
@@ -51,9 +50,6 @@ data RPCReqParams
           , addressCount :: Int
           , allegoryHash :: String
           }
-    | GetNextAddress
-          { allegoryHash :: String
-          }
     | PSAllpayTransaction
           { inputs :: [(OutPoint', Int64)]
           , recipient :: String
@@ -65,17 +61,13 @@ data RPCReqParams
 instance FromJSON RPCReqParams where
     parseJSON (Object o) =
         (AddXPubKey <$> (T.encodeUtf8 <$> o .: "xpubKey") <*> o .: "addressCount" <*> o .: "allegoryHash") <|>
-        (GetNextAddress <$> o .: "allegoryHash") <|>
         (PSAllpayTransaction <$> o .: "inputs" <*> o .: "recipient" <*> o .: "amount" <*> o .: "change")
 
 data RPCResponseBody
     = RespXPubKey
           { rxpb :: Bool
-          }
-    | RespGetNextAddress
-          { address :: String
-          , merklePath :: PartialMerkleTree
-          , ppo :: ProxyProviderUtxo
+          , addressCommitment :: String
+          , ppUtxoCommitment :: String
           }
     | RespPSAllpayTransaction
           { serialisedTx :: ByteString
@@ -85,8 +77,7 @@ data RPCResponseBody
     deriving (Generic, Show, Hashable, Eq, Serialise)
 
 instance ToJSON RPCResponseBody where
-    toJSON (RespXPubKey rxpb) = object ["rxpb" .= rxpb]
-    toJSON (RespGetNextAddress a mp ppo) = object ["address" .= a, "merklePath" .= mp, "ppOutpoint" .= ppo]
+    toJSON (RespXPubKey rxpb ac uc) = object ["registered" .= rxpb, "addressCommitment" .= ac, "utxoCommitment" .= uc]
     toJSON (RespPSAllpayTransaction stx ap up) = object ["tx" .= stx, "addressProof" .= ap, "utxoProof" .= up]
 
 data BlockRecord =

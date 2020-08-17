@@ -100,7 +100,8 @@ goGetResource msg net = do
                     case parse Prelude.id . xPubFromJSON net $ res of
                         Success k -> do
                             committedOutpoints <- getFromPool count
-                            let root = buildMerkleRoot $ outpointHashes committedOutpoints
+                            let utxoRoot = buildMerkleRoot $ outpointHashes committedOutpoints
+                            let addrRoot = buildMerkleRoot $ (getAddressList k count)
                             xPubInfo <- liftIO $ readTVarIO aMapTvar
                             let f x =
                                     case x of
@@ -115,7 +116,7 @@ goGetResource msg net = do
                             when (isNothing $ M.lookup name xPubInfo) $
                                 liftIO $
                                 putValue (DTE.encodeUtf8 $ DT.pack name) (encodeXPubInfo net $ XPubInfo k count 0 [])
-                            return $ RPCResponse 200 Nothing (Just $ RespXPubKey True)
+                            return $ RPCResponse 200 Nothing (Just $ RespXPubKey True (show utxoRoot) (show addrRoot))
                         Error err -> do
                             liftIO $ print $ "error occurred while decoding XPubKey: " <> show err
                             return $ RPCResponse 400 (Just INVALID_REQUEST) Nothing

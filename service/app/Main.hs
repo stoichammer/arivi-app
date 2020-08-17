@@ -160,6 +160,7 @@ runNode config nodeConfig certPaths pool = do
     que <- atomically $ newTChan
     mmap <- newTVarIO $ M.empty
     let net = NC.bitcoinNetwork nodeConfig
+    print $ "sec key: " ++ show (NC.poolSecKey nodeConfig)
     -- read xpubKeys and build a HashMap
     allXPubKeys <-
         fmap (Prelude.map (Data.Text.unpack) . fromMaybe [] . Data.Aeson.decode . BSL.fromStrict) <$> getValue "names" :: IO (Maybe [String])
@@ -211,18 +212,19 @@ main = do
     let certFP = NC.tlsCertificatePath nodeCnf
         keyFP = NC.tlsKeyfilePath nodeCnf
         csrFP = NC.tlsCertificateStorePath nodeCnf
+        poolFP = NC.poolTxJsonFile nodeCnf
     cfp <- doesFileExist certFP
     kfp <- doesFileExist keyFP
     csfp <- doesDirectoryExist csrFP
-    unless (cfp && kfp && csfp) $ Prelude.error "Error: missing TLS certificate or keyfile"
+    pfp <- doesFileExist poolFP
+    unless (cfp && kfp && csfp && pfp) $ Prelude.error "Error: missing TLS certificate, keyfile or pool tx file"
     --
     let k = makeXPrvKey "hello"
     let p = deriveXPubKey k
     let e = xPubExport bsvTest p
     print $ "testnet pubkey" ++ show e
     --
-    print "building proxy-provider utxo pool..."
-    pool <- getPool (NC.poolAddress nodeCnf) (NC.apiAuthKey nodeCnf)
+    pool <- getPool poolFP
     case pool of
         Just p' -> do
             print $ "size of pool: " ++ show (Prelude.length p')

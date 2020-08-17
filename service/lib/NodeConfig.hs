@@ -39,6 +39,7 @@ data NodeConfig =
         , apiAuthKey :: String
         , poolAddress :: String
         , poolSecKey :: SecKey
+        , poolTxJsonFile :: FilePath
         }
     deriving (Show, Generic)
 
