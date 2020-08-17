@@ -130,7 +130,7 @@ goGetResource msg net = do
                                 then do
                                     let addr = xPubAddr (pubSubKey key (index + 1))
                                     let ppo = utxoCommitment !! (fromIntegral index + 1)
-                                    pputxo <- getCommittedUtxo ppo 
+                                    pputxo <- getCommittedUtxo ppo
                                     liftIO $
                                         atomically $
                                         writeTVar
@@ -160,6 +160,16 @@ goGetResource msg net = do
                                     liftIO $ print "maximum address count reached"
                                     return $ RPCResponse 400 (Just INVALID_REQUEST) Nothing
                         Nothing -> return $ RPCResponse 400 (Just INVALID_REQUEST) Nothing
+                Nothing -> return $ RPCResponse 400 (Just INVALID_PARAMS) Nothing
+        "PS_ALLPAY_TX" ->
+            case rqParams msg of
+                Just (PSAllpayTransaction inputs recipient amount change) -> do
+                    liftIO $ print $ "PS_ALLPAY_TX request received!"
+                    liftIO $ print $ "params: inputs: " ++ (show inputs) ++ ", recipient: " ++ (show recipient)
+                    liftIO $ print $ "amount: " ++ (show amount) ++ ", change address: " ++ (show change)
+                    res <- getPartiallySignedAllpayTransaction net inputs amount recipient change
+                    liftIO $ print $ show res
+                    return $ RPCResponse 200 Nothing Nothing
                 Nothing -> return $ RPCResponse 400 (Just INVALID_PARAMS) Nothing
         _____ -> return $ RPCResponse 400 (Just INVALID_METHOD) Nothing
 

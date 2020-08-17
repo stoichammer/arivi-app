@@ -54,12 +54,19 @@ data RPCReqParams
     | GetNextAddress
           { allegoryHash :: String
           }
+    | PSAllpayTransaction
+          { inputs :: [(OutPoint', Int64)]
+          , recipient :: String
+          , amount :: Int64
+          , change :: String
+          }
     deriving (Generic, Show, Hashable, Eq, Serialise)
 
 instance FromJSON RPCReqParams where
     parseJSON (Object o) =
         (AddXPubKey <$> (T.encodeUtf8 <$> o .: "xpubKey") <*> o .: "addressCount" <*> o .: "allegoryHash") <|>
-        (GetNextAddress <$> o .: "allegoryHash")
+        (GetNextAddress <$> o .: "allegoryHash") <|>
+        (PSAllpayTransaction <$> o .: "inputs" <*> o .: "recipient" <*> o .: "amount" <*> o .: "change")
 
 data RPCResponseBody
     = RespXPubKey
@@ -112,6 +119,9 @@ data OutPoint' =
         , opIndex :: Int
         }
     deriving (Show, Generic, Hashable, Eq, Serialise)
+
+instance FromJSON OutPoint' where
+    parseJSON (Object o) = (OutPoint' <$> o .: "txid" <*> o .: "index")
 
 data BlockInfo' =
     BlockInfo'
