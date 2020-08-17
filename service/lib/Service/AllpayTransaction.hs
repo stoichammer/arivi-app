@@ -127,7 +127,7 @@ getAddressAndProxyUtxo net name = do
 getPartiallySignedAllpayTransaction ::
        (HasService env m, MonadIO m)
     => Network
-    -> [(OutPoint, Int64)] -- standard inputs, corresponding input value
+    -> [(OutPoint', Int64)] -- standard inputs, corresponding input value
     -> Int64 -- value
     -> String -- receiver
     -> String -- change address
@@ -136,14 +136,17 @@ getPartiallySignedAllpayTransaction net inputs amount receiverName changeAddr = 
     poolAddr <- poolAddress <$> getNodeConfig
     poolSecKey <- poolSecKey <$> getNodeConfig
     res <- getAddressAndProxyUtxo net receiverName
+    let inputsOp =
+            (\(op', val) -> (OutPoint (TxHash $ fromString $ opTxHash op') (fromIntegral $ opIndex op'), val)) <$>
+            inputs
     case res of
         Left err -> return $ Left $ "failed to get address or proxy-provider utxo: " ++ err
         Right (addr, pputxo, addrProof, utxoProof) -> do
             let ppOutPoint = OutPoint (TxHash $ fromString $ txid $ pputxo) (fromIntegral $ outputIndex $ pputxo)
-            let inputs' = ppOutPoint : ((\(outpoint, _) -> outpoint) <$> inputs)
+            let inputs' = ppOutPoint : ((\(outpoint, _) -> outpoint) <$> inputsOp)
             -- TODO compute fee
             -- compute change
-            let totalInput = L.foldl (+) 0 $ (\(_, val) -> val) <$> inputs
+            let totalInput = L.foldl (+) 0 $ (\(_, val) -> val) <$> inputsOp
             let change = totalInput - amount
             -- add proxy-provider utxo output
             let outputs =
@@ -154,7 +157,8 @@ getPartiallySignedAllpayTransaction net inputs amount receiverName changeAddr = 
             case buildAddrTx net inputs' outputs of
                 Left err -> return $ Left $ "failed to build transaction: " ++ err
                 Right tx -> do
-                    case decodeOutputBS (BSU.fromString $ scriptPubKey pputxo) of
+                    liftIO $ print $ "script: " ++ (show $ BSU.fromString $ scriptPubKey pputxo)
+                    case decodeOutputBS ((fst . B16.decode) (E.encodeUtf8 $ DT.pack $ scriptPubKey pputxo)) of
                         Left err -> return $ Left $ "failed to decode proxy-provider utxo script: " ++ err
                         Right so -> do
                             let si = SigInput so (fromIntegral $ value pputxo) ppOutPoint sigHashAll Nothing
