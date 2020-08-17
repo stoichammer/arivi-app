@@ -77,11 +77,17 @@ data RPCResponseBody
           , merklePath :: PartialMerkleTree
           , ppo :: ProxyProviderUtxo
           }
+    | RespPSAllpayTransaction
+          { serialisedTx :: ByteString
+          , addressProof :: PartialMerkleTree
+          , utxoProof :: PartialMerkleTree
+          }
     deriving (Generic, Show, Hashable, Eq, Serialise)
 
 instance ToJSON RPCResponseBody where
     toJSON (RespXPubKey rxpb) = object ["rxpb" .= rxpb]
     toJSON (RespGetNextAddress a mp ppo) = object ["address" .= a, "merklePath" .= mp, "ppOutpoint" .= ppo]
+    toJSON (RespPSAllpayTransaction stx ap up) = object ["tx" .= stx, "addressProof" .= ap, "utxoProof" .= up]
 
 data BlockRecord =
     BlockRecord

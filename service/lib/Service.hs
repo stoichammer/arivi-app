@@ -120,56 +120,15 @@ goGetResource msg net = do
                             liftIO $ print $ "error occurred while decoding XPubKey: " <> show err
                             return $ RPCResponse 400 (Just INVALID_REQUEST) Nothing
                 Nothing -> return $ RPCResponse 400 (Just INVALID_PARAMS) Nothing
-        "NAME->ADDR" ->
-            case rqParams msg of
-                Just (GetNextAddress name) -> do
-                    aMap <- liftIO $ readTVarIO aMapTvar
-                    case M.lookup name aMap of
-                        Just XPubInfo {..} -> do
-                            if count > fromIntegral index
-                                then do
-                                    let addr = xPubAddr (pubSubKey key (index + 1))
-                                    let ppo = utxoCommitment !! (fromIntegral index + 1)
-                                    pputxo <- getCommittedUtxo ppo
-                                    liftIO $
-                                        atomically $
-                                        writeTVar
-                                            aMapTvar
-                                            (M.update (\(XPubInfo k c i u) -> Just $ XPubInfo k c (i + 1) u) name aMap)
-                                    addressMap <- liftIO $ readTVarIO addressTVar
-                                    case M.lookup (xPubExport net key) addressMap of
-                                        Just hashes -> do
-                                            let merkleProof = buildProof hashes index
-                                            liftIO $
-                                                putValue
-                                                    (DTE.encodeUtf8 $ DT.pack name)
-                                                    (encodeXPubInfo net $ XPubInfo key count (index + 1) utxoCommitment)
-                                            return $
-                                                RPCResponse
-                                                    200
-                                                    Nothing
-                                                    (Just $
-                                                     RespGetNextAddress
-                                                         (DT.unpack $ fromJust $ addrToString net addr)
-                                                         merkleProof
-                                                         (fromJust pputxo))
-                                        Nothing -> do
-                                            liftIO $ print "no data found in address map"
-                                            return $ RPCResponse 400 (Just INVALID_REQUEST) Nothing
-                                else do
-                                    liftIO $ print "maximum address count reached"
-                                    return $ RPCResponse 400 (Just INVALID_REQUEST) Nothing
-                        Nothing -> return $ RPCResponse 400 (Just INVALID_REQUEST) Nothing
-                Nothing -> return $ RPCResponse 400 (Just INVALID_PARAMS) Nothing
         "PS_ALLPAY_TX" ->
             case rqParams msg of
                 Just (PSAllpayTransaction inputs recipient amount change) -> do
-                    liftIO $ print $ "PS_ALLPAY_TX request received!"
-                    liftIO $ print $ "params: inputs: " ++ (show inputs) ++ ", recipient: " ++ (show recipient)
-                    liftIO $ print $ "amount: " ++ (show amount) ++ ", change address: " ++ (show change)
                     res <- getPartiallySignedAllpayTransaction net inputs amount recipient change
-                    liftIO $ print $ show res
-                    return $ RPCResponse 200 Nothing Nothing
+                    case res of
+                        Left err -> return $ RPCResponse 500 (Just INTERNAL_ERROR) Nothing
+                        Right (stx, addrProof, utxoProof) -> do
+                            liftIO $ print $ show res
+                            return $ RPCResponse 200 Nothing (Just $ RespPSAllpayTransaction stx addrProof utxoProof)
                 Nothing -> return $ RPCResponse 400 (Just INVALID_PARAMS) Nothing
         _____ -> return $ RPCResponse 400 (Just INVALID_METHOD) Nothing
 
