@@ -212,19 +212,17 @@ main = do
     let certFP = NC.tlsCertificatePath nodeCnf
         keyFP = NC.tlsKeyfilePath nodeCnf
         csrFP = NC.tlsCertificateStorePath nodeCnf
-        poolFP = NC.poolTxJsonFile nodeCnf
     cfp <- doesFileExist certFP
     kfp <- doesFileExist keyFP
     csfp <- doesDirectoryExist csrFP
-    pfp <- doesFileExist poolFP
-    unless (cfp && kfp && csfp && pfp) $ Prelude.error "Error: missing TLS certificate, keyfile or pool tx file"
+    unless (cfp && kfp && csfp) $ Prelude.error "Error: missing TLS certificate or keyfile"
     --
     let k = makeXPrvKey "hello"
     let p = deriveXPubKey k
     let e = xPubExport bsvTest p
     print $ "testnet pubkey" ++ show e
     --
-    pool <- getPool poolFP
+    pool <- getPool (NC.poolTransaction nodeCnf) (NC.nexaSessionKey nodeCnf)
     case pool of
         Just p' -> do
             print $ "size of pool: " ++ show (Prelude.length p')

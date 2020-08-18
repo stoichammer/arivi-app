@@ -36,10 +36,10 @@ data NodeConfig =
         , tlsCertificatePath :: FilePath
         , tlsKeyfilePath :: FilePath
         , tlsCertificateStorePath :: FilePath
-        , apiAuthKey :: String
+        , nexaSessionKey :: String
+        , poolTransaction :: String
         , poolAddress :: String
         , poolSecKey :: SecKey
-        , poolTxJsonFile :: FilePath
         }
     deriving (Show, Generic)
 

@@ -6,6 +6,7 @@ module UtxoPool where
 
 import Codec.Serialise
 import Data.Aeson as A
+import qualified Data.ByteString.Char8 as B
 import Data.ByteString.Lazy.UTF8 as BL
 import Data.Hashable
 import Data.Int
@@ -14,7 +15,11 @@ import GHC.IO.Handle
 import System.IO
 import System.Process
 
---
+import Network.Connection
+import Network.HTTP.Client.TLS
+import Network.HTTP.Conduit
+import Network.HTTP.Simple
+
 data ProxyProviderUtxo =
     Unspent
         { address :: String
@@ -33,7 +38,6 @@ instance ToJSON ProxyProviderUtxo where
     toJSON (Unspent a t o v s) =
         object ["address" .= a, "txid" .= t, "outputIndex" .= o, "value" .= v, "scriptPubKey" .= s]
 
---
 data NexaTx =
     NexaTx
         { innerTx :: NexaInnerTx
@@ -75,13 +79,18 @@ instance FromJSON NexaTxOut where
     parseJSON (Object o) =
         (NexaTxOut <$> o .: "lockingScript" <*> o .: "value" <*> o .: "address" <*> o .: "outputIndex")
 
---
-getPool :: FilePath -> IO (Maybe [ProxyProviderUtxo])
-getPool txFile = do
-    fh <- openFile txFile ReadMode
-    txJson <- hGetContents fh
-    let r = A.decode (BL.fromString txJson) :: (Maybe NexaTx)
-    case r of
+getPool :: String -> String -> IO (Maybe [ProxyProviderUtxo])
+getPool poolTxId sessionKey
+    --
+ = do
+    manager <- newManager $ mkManagerSettings (TLSSettingsSimple True False False) Nothing
+    endpoint <- parseRequest $ "https://sb1.xoken.org:9091/v1/transaction/" ++ poolTxId
+    let request =
+            setRequestHeader "Authorization" [B.pack $ "Bearer " ++ sessionKey] $
+            setRequestManager manager $ setRequestMethod "GET" $ endpoint
+    response <- httpLBS request
+    --
+    case A.decode (getResponseBody response) :: Maybe NexaTx of
         Nothing -> return $ Nothing
         (Just dTx) -> do
             return $

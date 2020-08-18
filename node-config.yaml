@@ -18,10 +18,10 @@ tlsKeyfilePath : ./example.key
 
 tlsCertificateStorePath : .
 
-poolAddress : mgm3koJs42K4RshMiVozfLqqmQUMaQNwKa
+poolTransaction : 
 
-apiAuthKey : 
+poolAddress :
+
+nexaSessionKey : 
 
 poolSecKey : 
-
-poolTxJsonFile :

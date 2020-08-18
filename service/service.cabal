@@ -87,6 +87,10 @@ executable aaproxy
                 , process
                 , utf8-string
                 , secp256k1-haskell
+                , http-client
+                , http-client-tls
+                , http-conduit
+                , connection
                 --, extra
                 --, monad-control
 
