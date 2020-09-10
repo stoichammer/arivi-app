@@ -144,10 +144,11 @@ getPartiallySignedAllpayTransaction net inputs amount receiverName changeAddr = 
         Right (addr, pputxo, addrProof, utxoProof) -> do
             let ppOutPoint = OutPoint (TxHash $ fromString $ txid $ pputxo) (fromIntegral $ outputIndex $ pputxo)
             let inputs' = ppOutPoint : ((\(outpoint, _) -> outpoint) <$> inputsOp)
-            -- TODO compute fee
+            -- compute fee at 5 sat/byte
+            let fee = guessTxFee (fromIntegral 5) (1 + length inputs) 2
             -- compute change
             let totalInput = L.foldl (+) 0 $ (\(_, val) -> val) <$> inputsOp
-            let change = totalInput - amount
+            let change = totalInput - (amount + fromIntegral fee)
             -- add proxy-provider utxo output
             let outputs =
                     [ (DT.pack poolAddr, fromIntegral $ value $ pputxo)
@@ -157,7 +158,6 @@ getPartiallySignedAllpayTransaction net inputs amount receiverName changeAddr = 
             case buildAddrTx net inputs' outputs of
                 Left err -> return $ Left $ "failed to build transaction: " ++ err
                 Right tx -> do
-                    liftIO $ print $ "script: " ++ (show $ BSU.fromString $ scriptPubKey pputxo)
                     case decodeOutputBS ((fst . B16.decode) (E.encodeUtf8 $ DT.pack $ scriptPubKey pputxo)) of
                         Left err -> return $ Left $ "failed to decode proxy-provider utxo script: " ++ err
                         Right so -> do

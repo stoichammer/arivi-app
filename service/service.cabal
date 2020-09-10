@@ -107,6 +107,8 @@ executable aaproxy
          Service.Data
          Service.AllpayTransaction
          Service.ProxyProviderUtxo
+         Service.Data.Allegory
+         Service.Registration
          LevelDB
          TLSServer
          UtxoPool

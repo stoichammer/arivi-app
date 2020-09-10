@@ -74,11 +74,13 @@ import LevelDB
 import Network.Xoken.Constants
 import Network.Xoken.Keys
 import Service.Data
+import Service.Data.Allegory
 import Service.Env
 import Service.ProxyProviderUtxo
 import Service.Types
 
 import Service.AllpayTransaction
+import Service.Registration
 
 data ServiceException
     = KeyValueDBLookupException
@@ -130,6 +132,16 @@ goGetResource msg net = do
                         Right (stx, addrProof, utxoProof) -> do
                             liftIO $ print $ show res
                             return $ RPCResponse 200 Nothing (Just $ RespPSAllpayTransaction stx addrProof utxoProof)
+                Nothing -> return $ RPCResponse 400 (Just INVALID_PARAMS) Nothing
+        "REGISTER" ->
+            case rqParams msg of
+                Just (Register rname xpk nutxo retaddr count) -> do
+                    res <- registerNewUser net rname xpk count nutxo retaddr
+                    case res of
+                        Left err -> return $ RPCResponse 500 (Just INTERNAL_ERROR) Nothing
+                        Right stx -> do
+                            liftIO $ print $ show res
+                            return $ RPCResponse 200 Nothing (Just $ RespRegister stx)
                 Nothing -> return $ RPCResponse 400 (Just INVALID_PARAMS) Nothing
         _____ -> return $ RPCResponse 400 (Just INVALID_METHOD) Nothing
 
