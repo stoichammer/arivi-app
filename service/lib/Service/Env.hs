@@ -41,6 +41,7 @@ import Network.Xoken.Keys
 import Network.Xoken.Transaction.Common
 import NodeConfig as NC
 import Service.Data
+import Service.Data.Utxo
 import Service.Types
 import UtxoPool
 

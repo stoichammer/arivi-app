@@ -40,6 +40,9 @@ data NodeConfig =
         , poolTransaction :: String
         , poolAddress :: String
         , poolSecKey :: SecKey
+        , nexaUsername :: String
+        , nexaPassword :: String
+        , nexaHost :: String
         }
     deriving (Show, Generic)
 

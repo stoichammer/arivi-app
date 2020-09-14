@@ -161,7 +161,13 @@ getPartiallySignedAllpayTransaction net inputs amount receiverName changeAddr = 
                     case decodeOutputBS ((fst . B16.decode) (E.encodeUtf8 $ DT.pack $ scriptPubKey pputxo)) of
                         Left err -> return $ Left $ "failed to decode proxy-provider utxo script: " ++ err
                         Right so -> do
-                            let si = SigInput so (fromIntegral $ value pputxo) ppOutPoint sigHashAll Nothing
+                            let si =
+                                    SigInput
+                                        so
+                                        (fromIntegral $ value pputxo)
+                                        ppOutPoint
+                                        (setForkIdFlag sigHashAll)
+                                        Nothing
                             case signTx net tx [si] [poolSecKey] of
                                 Left err -> return $ Left $ "failed to partially sign transaction: " ++ err
                                 Right psaTx -> do

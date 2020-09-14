@@ -80,16 +80,13 @@ instance FromJSON NexaTxOut where
         (NexaTxOut <$> o .: "lockingScript" <*> o .: "value" <*> o .: "address" <*> o .: "outputIndex")
 
 getPool :: String -> String -> IO (Maybe [ProxyProviderUtxo])
-getPool poolTxId sessionKey
-    --
- = do
+getPool poolTxId sessionKey = do
     manager <- newManager $ mkManagerSettings (TLSSettingsSimple True False False) Nothing
     endpoint <- parseRequest $ "https://sb1.xoken.org:9091/v1/transaction/" ++ poolTxId
     let request =
             setRequestHeader "Authorization" [B.pack $ "Bearer " ++ sessionKey] $
             setRequestManager manager $ setRequestMethod "GET" $ endpoint
     response <- httpLBS request
-    --
     case A.decode (getResponseBody response) :: Maybe NexaTx of
         Nothing -> return $ Nothing
         (Just dTx) -> do
@@ -97,3 +94,4 @@ getPool poolTxId sessionKey
                 Just $
                 (\(NexaTxOut scr val addr index) -> (Unspent addr (txId $ innerTx dTx) index val scr)) <$>
                 (txOuts $ txInsOuts $ innerTx dTx)
+
