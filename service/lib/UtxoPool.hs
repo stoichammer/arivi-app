@@ -82,7 +82,7 @@ instance FromJSON NexaTxOut where
 getPool :: String -> String -> IO (Maybe [ProxyProviderUtxo])
 getPool poolTxId sessionKey = do
     manager <- newManager $ mkManagerSettings (TLSSettingsSimple True False False) Nothing
-    endpoint <- parseRequest $ "https://sb1.xoken.org:9091/v1/transaction/" ++ poolTxId
+    endpoint <- parseRequest $ "https://127.0.0.1:9091/v1/transaction/" ++ poolTxId
     let request =
             setRequestHeader "Authorization" [B.pack $ "Bearer " ++ sessionKey] $
             setRequestManager manager $ setRequestMethod "GET" $ endpoint

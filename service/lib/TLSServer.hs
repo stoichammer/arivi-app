@@ -139,6 +139,7 @@ handleRequest epConn = do
 enqueueRequest :: EndPointConnection -> LBS.ByteString -> IO ()
 enqueueRequest epConn req = do
     format <- readIORef (encodingFormat epConn)
+    print req
     xdReq <-
         case format of
             DEFAULT -> do

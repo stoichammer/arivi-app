@@ -149,7 +149,7 @@ makeRegistrationTx net nutxoInput allegoryName retAddr reg = do
     case stringToAddr net (DT.pack retAddr) of
         Nothing -> return $ Left "failed to decode return address"
         (Just addr) -> do
-            let nUtxoIp = (\(op', val) -> (TxIn (OutPoint (TxHash $ fromString $ opTxHash op') (fromIntegral $ opIndex op')) "" 0)) nutxoInput
+            let nUtxoIp = (\(op', val) -> (TxIn (OutPoint (fromJust $ hexToTxHash $ DT.pack $ opTxHash op') (fromIntegral $ opIndex op')) "" 0)) nutxoInput
             let nUtxoOp = (TxOut (fromIntegral $ snd nutxoInput) (addressToScriptBS $ addr))
             let al =
                     Allegory

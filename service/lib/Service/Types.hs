@@ -89,8 +89,8 @@ data RPCResponseBody
 
 instance ToJSON RPCResponseBody where
     toJSON (RespXPubKey rxpb ac uc) = object ["registered" .= rxpb, "addressCommitment" .= ac, "utxoCommitment" .= uc]
-    toJSON (RespPSAllpayTransaction stx ap up) = object ["tx" .= stx, "addressProof" .= ap, "utxoProof" .= up]
-    toJSON (RespRegister stx) = object ["tx" .= stx]
+    toJSON (RespPSAllpayTransaction stx ap up) = object ["tx" .= (T.decodeUtf8 . B64.encode $ stx), "addressProof" .= ap, "utxoProof" .= up]
+    toJSON (RespRegister stx) = object ["tx" .= (T.decodeUtf8 . B64.encode $ stx)]
 
 data BlockRecord =
     BlockRecord
