@@ -40,6 +40,7 @@ import Network.Xoken.Crypto.Hash
 import Network.Xoken.Keys
 import Network.Xoken.Transaction.Common
 import Network.Xoken.Address
+import Network.Xoken.Util
 
 import Control.Concurrent.STM
 import Control.Monad
@@ -99,18 +100,20 @@ registerNewUser net allegoryName pubKey count (nutxo, value) returnAddr = do
             case mkTxRes of
                 Left err -> return $ Left $ "error while making registration transaction: " <> err
                 Right (stx, opRetHash) -> do
+                    -- let opRetScript = frameOpReturn $ LC.toStrict $ serialise al
+                    let opRetHashRev = txHashToHex $ TxHash opRetHash
                     xPubInfo <- liftIO $ readTVarIO aMapTvar
                     let f x =
                             case x of
                                 Just v -> Just v
                                 Nothing -> Just (XPubInfo k count 0 committedOps)
-                    liftIO $ atomically $ writeTVar aMapTvar (M.alter f (show opRetHash) xPubInfo)
+                    liftIO $ atomically $ writeTVar aMapTvar (M.alter f (show opRetHashRev) xPubInfo)
                     liftIO $ atomically $ modifyTVar addressTVar (M.insert (xPubExport net k) addrHashes)
                     names <- liftIO $ M.keys <$> readTVarIO aMapTvar
-                    liftIO $ putValue "names" (BSL.toStrict $ Data.Aeson.encode $ nub $ (show opRetHash) : names)
-                    when (isNothing $ M.lookup (show opRetHash) xPubInfo) $
-                        liftIO $ putValue (DTE.encodeUtf8 $ DT.pack (show opRetHash)) (encodeXPubInfo net $ XPubInfo k count 0 [])
-                    liftIO $ print $ "HASH TO USE***: " <> (show opRetHash)
+                    liftIO $ putValue "names" (BSL.toStrict $ Data.Aeson.encode $ nub $ (show opRetHashRev) : names)
+                    when (isNothing $ M.lookup (show opRetHashRev) xPubInfo) $
+                        liftIO $ putValue (DTE.encodeUtf8 $ DT.pack (show opRetHashRev)) (encodeXPubInfo net $ XPubInfo k count 0 [])
+                    liftIO $ print $ "HASH TO USE***: " <> (show opRetHashRev)
                     return $ Right $ stx
 
 ref12345 net pubKey count name = do
@@ -165,7 +168,10 @@ makeRegistrationTx net nutxoInput allegoryName retAddr reg = do
                                 (Registration (addrCom reg) (utxoCom reg) "" (fromIntegral $ exp' reg))
                             ])
             let opRetScript = frameOpReturn $ LC.toStrict $ serialise al
-            let opRetHash = sha256 opRetScript
+            let opRetHex = DTE.encodeUtf8 $ encodeHex opRetScript
+            liftIO $ print "HASHED***: "
+            liftIO $ print opRetHex
+            let opRetHash = sha256 opRetHex
             let inputs = [nUtxoIp]
             let outputs = (TxOut 0 opRetScript) : nUtxoOp : []
             let tx = Tx 1 inputs outputs 0
