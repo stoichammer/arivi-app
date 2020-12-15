@@ -26,11 +26,13 @@ import Crypto.Secp256k1
 import Data.Aeson
 import Data.Aeson.Types
 import Data.ByteString
+-- import Data.ByteString.Char8
 import qualified Data.ByteString.Lazy as BSL
 import Data.Hashable
 import Data.IORef
 import Data.Map.Strict as M
 import Data.Serialize as S
+-- import Data.Text
 import GHC.Generics
 import Network.Simple.TCP as T
 import Network.Xoken.Address
@@ -79,7 +81,8 @@ encodeXPubInfo net (XPubInfo k c i u) =
 
 getAddressList :: XPubKey -> Int -> [TxHash]
 getAddressList pubKey count =
-    (TxHash . doubleSHA256 . S.encode . xPubAddr . pubSubKey pubKey) <$> [1 .. (fromIntegral count)]
+    (TxHash . doubleSHA256 . S.encode . fst . (deriveAddr $ pubKey) ) <$> [1 .. (fromIntegral count)]
+    -- (TxHash . doubleSHA256 . S.encode . xPubAddr . pubSubKey pubKey) <$> [1 .. (fromIntegral count)]
 
 outpointHashes :: [String] -> [TxHash]
 outpointHashes outpoints = (TxHash . doubleSHA256 . S.encode) <$> outpoints

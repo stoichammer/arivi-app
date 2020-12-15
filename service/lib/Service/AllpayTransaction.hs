@@ -98,7 +98,7 @@ getAddressAndProxyUtxo net name = do
         Just XPubInfo {..} -> do
             if (count > fromIntegral index)
                 then do
-                    let addr = xPubAddr (pubSubKey key (index + 1))
+                    let addr = fst ((deriveAddr key) (index + 1))
                     let utxoOp = utxoCommitment !! (fromIntegral index + 1)
                     mbpputxo <- getCommittedUtxo utxoOp
                     case mbpputxo of
@@ -123,6 +123,9 @@ getAddressAndProxyUtxo net name = do
                                             (DT.unpack $ fromJust $ addrToString net addr, pputxo, addrProof, utxoProof)
                 else do
                     return $ Left "maximum address count reached"
+        Nothing -> do
+            liftIO $ print $ "Name lookup failed"
+            return undefined
 
 getPartiallySignedAllpayTransaction ::
        (HasService env m, MonadIO m)
@@ -137,12 +140,14 @@ getPartiallySignedAllpayTransaction net inputs amount receiverName changeAddr = 
     poolSecKey <- poolSecKey <$> getNodeConfig
     res <- getAddressAndProxyUtxo net receiverName
     let inputsOp =
-            (\(op', val) -> (OutPoint (TxHash $ fromString $ opTxHash op') (fromIntegral $ opIndex op'), val)) <$>
+            -- (\(op', val) -> (OutPoint (TxHash $ fromString $ opTxHash op') (fromIntegral $ opIndex op'), val)) <$>
+            (\(op', val) -> (OutPoint (fromJust $ hexToTxHash $ DT.pack $ opTxHash op') (fromIntegral $ opIndex op'), val)) <$>
             inputs
     case res of
         Left err -> return $ Left $ "failed to get address or proxy-provider utxo: " ++ err
         Right (addr, pputxo, addrProof, utxoProof) -> do
-            let ppOutPoint = OutPoint (TxHash $ fromString $ txid $ pputxo) (fromIntegral $ outputIndex $ pputxo)
+            -- let ppOutPoint = OutPoint (TxHash $ fromString $ txid $ pputxo) (fromIntegral $ outputIndex $ pputxo)
+            let ppOutPoint = OutPoint (fromJust $ hexToTxHash $ DT.pack $ txid $ pputxo) (fromIntegral $ outputIndex $ pputxo)
             let inputs' = ppOutPoint : ((\(outpoint, _) -> outpoint) <$> inputsOp)
             -- compute fee at 5 sat/byte
             let fee = guessTxFee (fromIntegral 5) (1 + length inputs) 2
