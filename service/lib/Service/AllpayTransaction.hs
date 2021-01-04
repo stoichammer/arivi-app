@@ -1,5 +1,6 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MonoLocalBinds #-}
@@ -82,19 +83,25 @@ import Service.Data
 import Service.Env
 import Service.ProxyProviderUtxo
 import Service.Types
-import UtxoPool
+import qualified UtxoPool as U
 
 -- get address, pptuxo and Merkle proofs for address and pputxo
 getAddressAndProxyUtxo ::
        (HasService env m, MonadIO m)
     => Network
     -> String
-    -> m (Either String (String, ProxyProviderUtxo, PartialMerkleTree, PartialMerkleTree))
+    -> m (Either String (String, U.ProxyProviderUtxo, PartialMerkleTree, PartialMerkleTree))
 getAddressAndProxyUtxo net name = do
     aMapTvar <- getXPubHashMap
     addressTvar <- getAddressMap
     aMap <- liftIO $ readTVarIO aMapTvar
-    case M.lookup name aMap of
+    -- liftIO $ print name
+    -- liftIO $ print aMap
+    let lookupRes = M.lookup (show name) aMap
+    liftIO $ print "Debug"
+    liftIO $ print lookupRes
+    -- case M.lookup name aMap of
+    case lookupRes of
         Just XPubInfo {..} -> do
             if (count > fromIntegral index)
                 then do
@@ -129,13 +136,14 @@ getAddressAndProxyUtxo net name = do
 
 getPartiallySignedAllpayTransaction ::
        (HasService env m, MonadIO m)
-    => Network
-    -> [(OutPoint', Int64)] -- standard inputs, corresponding input value
+    => [(OutPoint', Int64)] -- standard inputs, corresponding input value
     -> Int64 -- value
     -> String -- receiver
     -> String -- change address
     -> m (Either String (BC.ByteString, PartialMerkleTree, PartialMerkleTree)) -- serialized transaction
-getPartiallySignedAllpayTransaction net inputs amount receiverName changeAddr = do
+getPartiallySignedAllpayTransaction inputs amount receiverName changeAddr = do
+    nodeCnf <- getNodeConfig
+    let net = bitcoinNetwork nodeCnf
     poolAddr <- poolAddress <$> getNodeConfig
     poolSecKey <- poolSecKey <$> getNodeConfig
     res <- getAddressAndProxyUtxo net receiverName
@@ -147,36 +155,37 @@ getPartiallySignedAllpayTransaction net inputs amount receiverName changeAddr = 
         Left err -> return $ Left $ "failed to get address or proxy-provider utxo: " ++ err
         Right (addr, pputxo, addrProof, utxoProof) -> do
             -- let ppOutPoint = OutPoint (TxHash $ fromString $ txid $ pputxo) (fromIntegral $ outputIndex $ pputxo)
-            let ppOutPoint = OutPoint (fromJust $ hexToTxHash $ DT.pack $ txid $ pputxo) (fromIntegral $ outputIndex $ pputxo)
+            let ppOutPoint = OutPoint (fromJust $ hexToTxHash $ DT.pack $ U.txid $ pputxo) (fromIntegral $ U.outputIndex $ pputxo)
             let inputs' = ppOutPoint : ((\(outpoint, _) -> outpoint) <$> inputsOp)
             -- compute fee at 5 sat/byte
             let fee = guessTxFee (fromIntegral 5) (1 + length inputs) 2
             -- compute change
             let totalInput = L.foldl (+) 0 $ (\(_, val) -> val) <$> inputsOp
+            let values = [500]
             let change = totalInput - (amount + fromIntegral fee)
             -- add proxy-provider utxo output
             let outputs =
-                    [ (DT.pack poolAddr, fromIntegral $ value $ pputxo)
+                    [ (DT.pack poolAddr, fromIntegral $ U.value $ pputxo)
                     , (DT.pack addr, fromIntegral amount)
                     , (DT.pack changeAddr, fromIntegral change)
                     ]
             case buildAddrTx net inputs' outputs of
                 Left err -> return $ Left $ "failed to build transaction: " ++ err
                 Right tx -> do
-                    case decodeOutputBS ((fst . B16.decode) (E.encodeUtf8 $ DT.pack $ scriptPubKey pputxo)) of
+                    case decodeOutputBS ((fst . B16.decode) (E.encodeUtf8 $ DT.pack $ U.scriptPubKey pputxo)) of
                         Left err -> return $ Left $ "failed to decode proxy-provider utxo script: " ++ err
                         Right so -> do
                             let si =
                                     SigInput
                                         so
-                                        (fromIntegral $ value pputxo)
+                                        (fromIntegral $ U.value pputxo)
                                         ppOutPoint
                                         (setForkIdFlag sigHashAll)
                                         Nothing
                             case signTx net tx [si] [poolSecKey] of
                                 Left err -> return $ Left $ "failed to partially sign transaction: " ++ err
                                 Right psaTx -> do
-                                    let serializedTx = BSL.toStrict $ A.encode $ psaTx
+                                    let serializedTx = BSL.toStrict $ A.encode $ createTx' psaTx values
                                     return $ Right (serializedTx, addrProof, utxoProof)
 
 buildProof' :: [TxHash] -> Word32 -> PartialMerkleTree
@@ -190,3 +199,18 @@ buildProof' hashes index =
                  else (h, False))
         hashes
         [0 ..]
+
+createTx' :: Tx -> [Int] -> Tx'
+createTx' (Tx version inputs outs locktime) values = Tx'
+        { txVersion = version
+        , txIn = fmap func $ Prelude.zip inputs values
+        , txOut = outs
+        , txLockTime = locktime
+        }
+    where
+        func (TxIn prevOut scriptIn txInSeq, val) = TxIn'
+         { prevOutput   = prevOut
+         , scriptInput  = scriptIn
+         , txInSequence = txInSeq
+         , value        = fromIntegral val
+         }

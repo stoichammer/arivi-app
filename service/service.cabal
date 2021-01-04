@@ -41,8 +41,8 @@ executable aaproxy
                 , arivi-crypto
                 , memory
                 , time
-                ,  cborg <=0.2.0.0
-                ,  serialise <=0.2.0.0
+                , cborg <=0.2.0.0
+                , serialise <=0.2.0.0
                 , string-conv
                 , directory
                 , mtl
@@ -66,6 +66,7 @@ executable aaproxy
                 , exceptions
                 , network-simple
                 , aeson >= 1.4.0.0
+                , aeson-pretty
                 , cereal
                 , stm-containers
                 , random
@@ -91,6 +92,12 @@ executable aaproxy
                 , http-client-tls
                 , http-conduit
                 , connection
+                , snap
+                , lifted-base
+                , errors
+                , hashtables
+                , lens
+                , req
                 --, extra
                 --, monad-control
 
@@ -101,6 +108,9 @@ executable aaproxy
 
   other-modules:
          NodeConfig
+         HTTP.Handler
+         HTTP.Server
+         HTTP.Types
          Service
          Service.Types
          Service.Env

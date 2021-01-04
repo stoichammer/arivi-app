@@ -21,10 +21,12 @@ import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Lazy.Char8 as C
 import Data.Hashable
 import Data.Int
+import Data.Word
 import qualified Data.Text.Encoding as T
 import GHC.Generics
 import Network.Xoken.Block
 import Network.Xoken.Crypto.Hash
+import Network.Xoken.Transaction
 
 data EndpointException
     = InvalidMessageTypeException
@@ -92,35 +94,35 @@ instance ToJSON RPCResponseBody where
     toJSON (RespPSAllpayTransaction stx ap up) = object ["tx" .= (T.decodeUtf8 . B64.encode $ stx), "addressProof" .= ap, "utxoProof" .= up]
     toJSON (RespRegister stx) = object ["tx" .= (T.decodeUtf8 . B64.encode $ stx)]
 
-data BlockRecord =
-    BlockRecord
-        { rbHeight :: Int
-        , rbHash :: String
-        , rbHeader :: String
-        }
-    deriving (Generic, Show, Hashable, Eq, Serialise)
+-- data BlockRecord =
+--     BlockRecord
+--         { rbHeight :: Int
+--         , rbHash :: String
+--         , rbHeader :: String
+--         }
+--     deriving (Generic, Show, Hashable, Eq, Serialise)
 
-data TxRecord =
-    TxRecord
-        { txId :: String
-        , txBlockInfo :: BlockInfo'
-        , txSerialized :: C.ByteString
-        }
-    deriving (Show, Generic, Hashable, Eq, Serialise)
+-- data TxRecord =
+--     TxRecord
+--         { txId :: String
+--         , txBlockInfo :: BlockInfo'
+--         , txSerialized :: C.ByteString
+--         }
+--     deriving (Show, Generic, Hashable, Eq, Serialise)
 
-data AddressOutputs =
-    AddressOutputs
-        { aoAddress :: String
-        , aoOutput :: OutPoint'
-        , aoBlockInfo :: BlockInfo'
-        , aoIsBlockConfirmed :: Bool
-        , aoIsOutputSpent :: Bool
-        , aoIsTypeReceive :: Bool
-        , aoOtherAddress :: String
-        , aoPrevOutpoint :: OutPoint'
-        , aoValue :: Int64
-        }
-    deriving (Show, Generic, Hashable, Eq, Serialise)
+-- data AddressOutputs =
+--     AddressOutputs
+--         { aoAddress :: String
+--         , aoOutput :: OutPoint'
+--         , aoBlockInfo :: BlockInfo'
+--         , aoIsBlockConfirmed :: Bool
+--         , aoIsOutputSpent :: Bool
+--         , aoIsTypeReceive :: Bool
+--         , aoOtherAddress :: String
+--         , aoPrevOutpoint :: OutPoint'
+--         , aoValue :: Int64
+--         }
+--     deriving (Show, Generic, Hashable, Eq, Serialise)
 
 data OutPoint' =
     OutPoint'
@@ -132,20 +134,22 @@ data OutPoint' =
 instance FromJSON OutPoint' where
     parseJSON (Object o) = (OutPoint' <$> o .: "txid" <*> o .: "index")
 
-data BlockInfo' =
-    BlockInfo'
-        { binfBlockHash :: String
-        , binfTxIndex :: Int
-        , binfBlockHeight :: Int
-        }
-    deriving (Show, Generic, Hashable, Eq, Serialise)
+instance ToJSON OutPoint'
 
-data MerkleBranchNode' =
-    MerkleBranchNode'
-        { nodeValue :: String
-        , isLeftNode :: Bool
-        }
-    deriving (Show, Generic, Hashable, Eq, Serialise)
+-- data BlockInfo' =
+--     BlockInfo'
+--         { binfBlockHash :: String
+--         , binfTxIndex :: Int
+--         , binfBlockHeight :: Int
+--         }
+--     deriving (Show, Generic, Hashable, Eq, Serialise)
+
+-- data MerkleBranchNode' =
+--     MerkleBranchNode'
+--         { nodeValue :: String
+--         , isLeftNode :: Bool
+--         }
+--     deriving (Show, Generic, Hashable, Eq, Serialise)
 
 data PubNotifyMessage =
     PubNotifyMessage
@@ -153,18 +157,40 @@ data PubNotifyMessage =
         }
     deriving (Show, Generic, Eq, Serialise)
 
---
---
-data PubSubMsg
-    = Subscribe'
-          { topic :: String
-          }
-    | Publish'
-          { topic :: String
-          , message :: PubNotifyMessage
-          }
-    | Notify'
-          { topic :: String
-          , message :: PubNotifyMessage
-          }
-    deriving (Show, Generic, Serialise)
+-- data PubSubMsg
+--     = Subscribe'
+--           { topic :: String
+--           }
+--     | Publish'
+--           { topic :: String
+--           , message :: PubNotifyMessage
+--           }
+--     | Notify'
+--           { topic :: String
+--           , message :: PubNotifyMessage
+--           }
+--     deriving (Show, Generic, Serialise)
+
+data Tx' =
+    Tx'
+        { txVersion :: !Word32
+        , txIn :: ![TxIn']
+        , txOut :: ![TxOut]
+        , txLockTime :: !Word32
+        }
+    deriving (Show, Read, Eq, Ord, Generic, Hashable, Serialise)
+
+data TxIn' =
+    TxIn'
+        { prevOutput   :: !OutPoint
+        , scriptInput  :: !ByteString
+        , txInSequence :: !Word32
+        , value        :: !Word64
+        }
+    deriving (Eq, Show, Read, Ord, Generic, Hashable, Serialise)
+
+instance ToJSON Tx' where
+    toJSON (Tx' v i o l) = object ["version" .= v, "ins" .= i, "outs" .= o, "locktime" .= l]
+
+instance ToJSON TxIn' where
+    toJSON (TxIn' op scr seq val) = object ["outpoint" .= op, "script" .= scr, "sequence" .= seq , "value" .= val]

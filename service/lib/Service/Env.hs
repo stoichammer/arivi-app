@@ -6,6 +6,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 
 module Service.Env where
 
@@ -65,7 +66,7 @@ data XPubInfo =
         , count :: Int
         , index :: KeyIndex
         , utxoCommitment :: [String]
-        }
+        } deriving (Show)
 
 decodeXPubInfo :: Network -> ByteString -> Parser XPubInfo
 decodeXPubInfo net bs =
@@ -95,11 +96,11 @@ data EndPointEnv =
         {
         }
 
-class HasEndPointEnv env where
-    getEndPointEnv :: env -> EndPointEnv
+-- class HasEndPointEnv env where
+--     getEndPointEnv :: env -> EndPointEnv
 
-instance HasEndPointEnv (ServiceEnv m r t rmsg pmsg) where
-    getEndPointEnv = tcpEnv
+-- instance HasEndPointEnv (ServiceEnv m r t rmsg pmsg) where
+--     getEndPointEnv = tcpEnv
 
 class HasNodeConfig m where
     getNodeConfig :: m (NodeConfig)
@@ -116,55 +117,64 @@ class HasUtxoPool m where
 class HasCommittedUtxos m where
     getCommittedUtxos :: m (TVar (M.Map String ProxyProviderUtxo))
 
-data ServiceEnv m r t rmsg pmsg =
-    ServiceEnv
-        { tcpEnv :: EndPointEnv
-        , p2pEnv :: P2PEnv m r t rmsg pmsg
-        , nodeConfig :: NodeConfig
-        , addressMap :: TVar (M.Map Base58 [TxHash])
-        , xpubInfoMap :: TVar (M.Map String XPubInfo)
-        , utxoPool :: TVar (M.Map String ProxyProviderUtxo)
-        , committedUtxos :: TVar (M.Map String ProxyProviderUtxo)
-        }
+-- data ServiceEnv m r t rmsg pmsg =
+--     ServiceEnv
+--         { tcpEnv :: EndPointEnv
+--         , p2pEnv :: P2PEnv m r t rmsg pmsg
+--         , nodeConfig :: NodeConfig
+--         , addressMap :: TVar (M.Map Base58 [TxHash])
+--         , xpubInfoMap :: TVar (M.Map String XPubInfo)
+--         , utxoPool :: TVar (M.Map String ProxyProviderUtxo)
+--         , committedUtxos :: TVar (M.Map String ProxyProviderUtxo)
+--         }
 
 type HasService env m
-     = ( HasP2PEnv env m ServiceResource ServiceTopic RPCMessage PubNotifyMessage
-       , HasEndPointEnv env
-       , MonadReader env m
+     = ( --HasP2PEnv env m ServiceResource ServiceTopic RPCMessage PubNotifyMessage
+    --    , HasEndPointEnv env
+       MonadReader env m
        , HasNodeConfig m
        , HasAddressMap m
        , HasXPubInfoMap m
        , HasUtxoPool m
        , HasCommittedUtxos m)
 
-instance HasNetworkConfig (ServiceEnv m r t rmsg pmsg) NetworkConfig where
-    networkConfig f se =
-        fmap
-            (\nc ->
-                 se
-                     { p2pEnv =
-                           (p2pEnv se)
-                               {nodeEndpointEnv = (nodeEndpointEnv (p2pEnv se)) {Arivi.P2P.P2PEnv._networkConfig = nc}}
-                     })
-            (f ((Arivi.P2P.P2PEnv._networkConfig . nodeEndpointEnv . p2pEnv) se))
+-- instance HasNetworkConfig (ServiceEnv m r t rmsg pmsg) NetworkConfig where
+--     networkConfig f se =
+--         fmap
+--             (\nc ->
+--                  se
+--                      { p2pEnv =
+--                            (p2pEnv se)
+--                                {nodeEndpointEnv = (nodeEndpointEnv (p2pEnv se)) {Arivi.P2P.P2PEnv._networkConfig = nc}}
+--                      })
+--             (f ((Arivi.P2P.P2PEnv._networkConfig . nodeEndpointEnv . p2pEnv) se))
 
-instance HasTopics (ServiceEnv m r t rmsg pmsg) t where
-    topics = pubSubTopics . psEnv . p2pEnv
+-- instance HasTopics (ServiceEnv m r t rmsg pmsg) t where
+--     topics = pubSubTopics . psEnv . p2pEnv
 
-instance HasSubscribers (ServiceEnv m r t rmsg pmsg) t where
-    subscribers = pubSubSubscribers . psEnv . p2pEnv
+-- instance HasSubscribers (ServiceEnv m r t rmsg pmsg) t where
+--     subscribers = pubSubSubscribers . psEnv . p2pEnv
 
-instance HasNotifiers (ServiceEnv m r t rmsg pmsg) t where
-    notifiers = pubSubNotifiers . psEnv . p2pEnv
+-- instance HasNotifiers (ServiceEnv m r t rmsg pmsg) t where
+--     notifiers = pubSubNotifiers . psEnv . p2pEnv
 
-instance HasPubSubEnv (ServiceEnv m r t rmsg pmsg) t where
-    pubSubEnv = psEnv . p2pEnv
+-- instance HasPubSubEnv (ServiceEnv m r t rmsg pmsg) t where
+--     pubSubEnv = psEnv . p2pEnv
 
-instance HasRpcEnv (ServiceEnv m r t rmsg pmsg) r rmsg where
-    rpcEnv = rEnv . p2pEnv
+-- instance HasRpcEnv (ServiceEnv m r t rmsg pmsg) r rmsg where
+--     rpcEnv = rEnv . p2pEnv
 
-instance HasPSGlobalHandler (ServiceEnv m r t rmsg pmsg) m r t rmsg pmsg where
-    psGlobalHandler = psHandler . p2pEnv
+-- instance HasPSGlobalHandler (ServiceEnv m r t rmsg pmsg) m r t rmsg pmsg where
+--     psGlobalHandler = psHandler . p2pEnv
 
-instance HasRpcGlobalHandler (ServiceEnv m r t rmsg pmsg) m r t rmsg pmsg where
-    rpcGlobalHandler = rHandler . p2pEnv
+-- instance HasRpcGlobalHandler (ServiceEnv m r t rmsg pmsg) m r t rmsg pmsg where
+--     rpcGlobalHandler = rHandler . p2pEnv
+
+data AllpayProxyEnv =
+    AllpayProxyEnv
+        { nodeConfig :: NodeConfig
+        , addressMap :: TVar (M.Map Base58 [TxHash])
+        , xpubInfoMap :: TVar (M.Map String XPubInfo)
+        , utxoPool :: TVar (M.Map String ProxyProviderUtxo)
+        , committedUtxos :: TVar (M.Map String ProxyProviderUtxo)
+        }

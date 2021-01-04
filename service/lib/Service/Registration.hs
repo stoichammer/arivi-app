@@ -42,6 +42,7 @@ import Network.Xoken.Transaction.Common
 import Network.Xoken.Address
 import Network.Xoken.Util
 
+import qualified NodeConfig as NC
 import Control.Concurrent.STM
 import Control.Monad
 import Control.Monad.IO.Class
@@ -82,14 +83,15 @@ getRegistrationDetails net pubKey count = do
 
 registerNewUser ::
        (HasService env m, MonadIO m)
-    => Network
-    -> [Int]
+    => [Int]
     -> C.ByteString
     -> Int
     -> (OutPoint', Int64)
     -> String
     -> m (Either String C.ByteString)
-registerNewUser net allegoryName pubKey count (nutxo, value) returnAddr = do
+registerNewUser allegoryName pubKey count (nutxo, value) returnAddr = do
+    nodeCnf <- getNodeConfig
+    let net = NC.bitcoinNetwork nodeCnf
     aMapTvar <- getXPubHashMap
     addressTVar <- getAddressMap
     regDetails <- getRegistrationDetails net pubKey count

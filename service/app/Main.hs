@@ -49,6 +49,7 @@ import qualified Data.ByteString.Base16 as B16
 import Data.ByteString.Lazy as BSL
 import Data.ByteString.Lazy.Char8 as BSLC (pack, unpack)
 import qualified Data.ByteString.UTF8 as BSU
+import Data.Function
 import Data.IORef
 import Data.Int
 import qualified Data.List as L
@@ -56,9 +57,11 @@ import Data.Map.Strict as M
 import Data.Maybe
 import Data.String.Conv
 import Data.Text
+import qualified Data.Text as DT
 import qualified Data.Text.Encoding as DTE
 import Data.Typeable
 import Database.LevelDB
+import HTTP.Server
 import LevelDB
 import Network.Simple.TCP
 import Network.Xoken.Constants
@@ -68,6 +71,7 @@ import Numeric (showHex)
 import Service.Data
 import Service.Env
 import Service.Types
+import qualified Snap as Snap
 import StmContainers.Map as H
 import System.Directory
 import System.Environment (getArgs)
@@ -75,11 +79,11 @@ import TLSServer
 import UtxoPool
 
 newtype AppM a =
-    AppM (ReaderT (ServiceEnv AppM ServiceResource ServiceTopic RPCMessage PubNotifyMessage) (LoggingT IO) a)
+    AppM (ReaderT AllpayProxyEnv (LoggingT IO) a)
     deriving ( Functor
              , Applicative
              , Monad
-             , MonadReader (ServiceEnv AppM ServiceResource ServiceTopic RPCMessage PubNotifyMessage)
+             , MonadReader AllpayProxyEnv
              , MonadIO
              , MonadThrow
              , MonadCatch
@@ -105,31 +109,31 @@ instance HasCommittedUtxos AppM where
 instance HasNodeConfig AppM where
     getNodeConfig = asks (nodeConfig)
 
-instance HasNetworkEnv AppM where
-    getEnv = asks (ariviNetworkEnv . nodeEndpointEnv . p2pEnv)
+-- instance HasNetworkEnv AppM where
+--     getEnv = asks (ariviNetworkEnv . nodeEndpointEnv . p2pEnv)
 
-instance HasSecretKey AppM
+-- instance HasSecretKey AppM
 
-instance HasKbucket AppM where
-    getKb = asks (kbucket . kademliaEnv . p2pEnv)
+-- instance HasKbucket AppM where
+--     getKb = asks (kbucket . kademliaEnv . p2pEnv)
 
-instance HasStatsdClient AppM where
-    getStatsdClient = asks (statsdClient . p2pEnv)
+-- instance HasStatsdClient AppM where
+--     getStatsdClient = asks (statsdClient . p2pEnv)
 
-instance HasNodeEndpoint AppM where
-    getEndpointEnv = asks (nodeEndpointEnv . p2pEnv)
-    getNetworkConfig = asks (PE._networkConfig . nodeEndpointEnv . p2pEnv)
-    getHandlers = asks (handlers . nodeEndpointEnv . p2pEnv)
-    getNodeIdPeerMapTVarP2PEnv = asks (tvarNodeIdPeerMap . nodeEndpointEnv . p2pEnv)
+-- instance HasNodeEndpoint AppM where
+--     getEndpointEnv = asks (nodeEndpointEnv . p2pEnv)
+--     getNetworkConfig = asks (PE._networkConfig . nodeEndpointEnv . p2pEnv)
+--     getHandlers = asks (handlers . nodeEndpointEnv . p2pEnv)
+--     getNodeIdPeerMapTVarP2PEnv = asks (tvarNodeIdPeerMap . nodeEndpointEnv . p2pEnv)
 
-instance HasPRT AppM where
-    getPeerReputationHistoryTableTVar = asks (tvPeerReputationHashTable . prtEnv . p2pEnv)
-    getServicesReputationHashMapTVar = asks (tvServicesReputationHashMap . prtEnv . p2pEnv)
-    getP2PReputationHashMapTVar = asks (tvP2PReputationHashMap . prtEnv . p2pEnv)
-    getReputedVsOtherTVar = asks (tvReputedVsOther . prtEnv . p2pEnv)
-    getKClosestVsRandomTVar = asks (tvKClosestVsRandom . prtEnv . p2pEnv)
+-- instance HasPRT AppM where
+--     getPeerReputationHistoryTableTVar = asks (tvPeerReputationHashTable . prtEnv . p2pEnv)
+--     getServicesReputationHashMapTVar = asks (tvServicesReputationHashMap . prtEnv . p2pEnv)
+--     getP2PReputationHashMapTVar = asks (tvP2PReputationHashMap . prtEnv . p2pEnv)
+--     getReputedVsOtherTVar = asks (tvReputedVsOther . prtEnv . p2pEnv)
+--     getKClosestVsRandomTVar = asks (tvKClosestVsRandom . prtEnv . p2pEnv)
 
-runAppM :: ServiceEnv AppM ServiceResource ServiceTopic RPCMessage PubNotifyMessage -> AppM a -> LoggingT IO a
+runAppM :: AllpayProxyEnv -> AppM a -> LoggingT IO a
 runAppM env (AppM app) = runReaderT app env
 
 defaultConfig :: FilePath -> IO ()
@@ -194,13 +198,24 @@ runNode config nodeConfig certPaths pool = do
                 M.empty
                 (M.toList xPubInfoMap)
     amT <- newTVarIO addressMap
-    let serviceEnv = ServiceEnv EndPointEnv p2pEnv nodeConfig amT amr up cu
+    -- let serviceEnv = ServiceEnv EndPointEnv p2pEnv nodeConfig amT amr up cu
+    let allpayProxyEnv = AllpayProxyEnv nodeConfig amT amr up cu
     -- start TLS
-    epHandler <- newTLSEndpointServiceHandler
-    async $
-        startTLSEndpoint epHandler (NC.endPointTLSListenIP nodeConfig) (NC.endPointTLSListenPort nodeConfig) certPaths
-    runFileLoggingT (toS $ Config.logFile config) $ runAppM serviceEnv (handleNewConnectionRequest epHandler)
-    return ()
+    -- epHandler <- newTLSEndpointServiceHandler
+    -- async $
+        -- startTLSEndpoint epHandler (NC.endPointTLSListenIP nodeConfig) (NC.endPointTLSListenPort nodeConfig) certPaths
+    -- start HTTP endpoint
+    let snapConfig' = Snap.defaultConfig
+    -- let snapConfig =
+    --         Snap.defaultConfig & Snap.setSSLBind (DTE.encodeUtf8 $ DT.pack $ NC.endPointListenIP nodeConfig) &
+    --         Snap.setSSLPort (fromEnum $ NC.endPointListenPort nodeConfig) &
+    --         Snap.setSSLKey ("/home/shubendra/Code/Work/Xoken/allpay-proxy/.stack-work/install/x86_64-linux-tinfo6/7664f47e6f0944cdb43eff0565aa94ec0434d7728dc0c14ac78028731e41a6d9/8.4.4/bin/example.key") &
+    --         Snap.setSSLCert ("/home/shubendra/Code/Work/Xoken/allpay-proxy/.stack-work/install/x86_64-linux-tinfo6/7664f47e6f0944cdb43eff0565aa94ec0434d7728dc0c14ac78028731e41a6d9/8.4.4/bin/example.crt") &
+    --         Snap.setSSLChainCert False
+    Snap.serveSnaplet snapConfig' (appInit allpayProxyEnv)
+
+    -- runFileLoggingT (toS $ Config.logFile config) $ runAppM allpayProxyEnv (handleNewConnectionRequest epHandler)
+    -- return ()
 
 main :: IO ()
 main = do

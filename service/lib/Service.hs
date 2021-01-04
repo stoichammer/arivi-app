@@ -126,7 +126,7 @@ goGetResource msg net = do
         "PS_ALLPAY_TX" ->
             case rqParams msg of
                 Just (PSAllpayTransaction inputs recipient amount change) -> do
-                    res <- getPartiallySignedAllpayTransaction net inputs amount recipient change
+                    res <- getPartiallySignedAllpayTransaction inputs amount recipient change
                     case res of
                         Left err -> return $ RPCResponse 500 (Just INTERNAL_ERROR) Nothing
                         Right (stx, addrProof, utxoProof) -> do
@@ -136,7 +136,7 @@ goGetResource msg net = do
         "REGISTER" ->
             case rqParams msg of
                 Just (Register rname xpk nutxo retaddr count) -> do
-                    res <- registerNewUser net rname xpk count nutxo retaddr
+                    res <- registerNewUser rname xpk count nutxo retaddr
                     case res of
                         Left err -> return $ RPCResponse 500 (Just INTERNAL_ERROR) Nothing
                         Right stx -> do

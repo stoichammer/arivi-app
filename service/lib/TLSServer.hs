@@ -18,6 +18,7 @@ import Control.Exception
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Loops
+import Control.Monad.Trans.Control
 import Data.Aeson as A
 import Data.Binary as DB
 import qualified Data.ByteString as B
@@ -96,7 +97,7 @@ handleRPCReqResp sockMVar format mid version encReq = do
     NTLS.sendData connSock prefixbody
     liftIO $ putMVar sockMVar connSock
 
-handleNewConnectionRequest :: (HasService env m, MonadIO m) => TLSEndpointServiceHandler -> m ()
+handleNewConnectionRequest :: (MonadBaseControl IO m, HasService env m, MonadIO m) => TLSEndpointServiceHandler -> m ()
 handleNewConnectionRequest handler = do
     continue <- liftIO $ newIORef True
     whileM_ (liftIO $ readIORef continue) $ do
@@ -105,7 +106,7 @@ handleNewConnectionRequest handler = do
         async $ handleRequest epConn
         return ()
 
-handleRequest :: (HasService env m, MonadIO m) => EndPointConnection -> m ()
+handleRequest :: (MonadBaseControl IO m, HasService env m, MonadIO m) => EndPointConnection -> m ()
 handleRequest epConn = do
     continue <- liftIO $ newIORef True
     whileM_ (liftIO $ readIORef continue) $ do
