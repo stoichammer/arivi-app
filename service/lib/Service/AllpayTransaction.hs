@@ -161,7 +161,7 @@ getPartiallySignedAllpayTransaction inputs amount receiverName changeAddr = do
             let fee = guessTxFee (fromIntegral 5) (1 + length inputs) 2
             -- compute change
             let totalInput = L.foldl (+) 0 $ (\(_, val) -> val) <$> inputsOp
-            let values = [500]
+            let values = (U.value pputxo) : ((\(_, value) -> fromIntegral value) <$> inputsOp)
             let change = totalInput - (amount + fromIntegral fee)
             -- add proxy-provider utxo output
             let outputs =

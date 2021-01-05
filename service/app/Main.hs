@@ -205,14 +205,14 @@ runNode config nodeConfig certPaths pool = do
     -- async $
         -- startTLSEndpoint epHandler (NC.endPointTLSListenIP nodeConfig) (NC.endPointTLSListenPort nodeConfig) certPaths
     -- start HTTP endpoint
-    let snapConfig' = Snap.defaultConfig
-    -- let snapConfig =
-    --         Snap.defaultConfig & Snap.setSSLBind (DTE.encodeUtf8 $ DT.pack $ NC.endPointListenIP nodeConfig) &
-    --         Snap.setSSLPort (fromEnum $ NC.endPointListenPort nodeConfig) &
-    --         Snap.setSSLKey ("/home/shubendra/Code/Work/Xoken/allpay-proxy/.stack-work/install/x86_64-linux-tinfo6/7664f47e6f0944cdb43eff0565aa94ec0434d7728dc0c14ac78028731e41a6d9/8.4.4/bin/example.key") &
-    --         Snap.setSSLCert ("/home/shubendra/Code/Work/Xoken/allpay-proxy/.stack-work/install/x86_64-linux-tinfo6/7664f47e6f0944cdb43eff0565aa94ec0434d7728dc0c14ac78028731e41a6d9/8.4.4/bin/example.crt") &
-    --         Snap.setSSLChainCert False
-    Snap.serveSnaplet snapConfig' (appInit allpayProxyEnv)
+    -- let snapConfig' = Snap.defaultConfig
+    let snapConfig =
+            Snap.defaultConfig & Snap.setSSLBind (DTE.encodeUtf8 $ DT.pack $ NC.endPointListenIP nodeConfig) &
+            Snap.setSSLPort (fromEnum $ NC.endPointListenPort nodeConfig) &
+            Snap.setSSLKey (certPaths !! 1) &
+            Snap.setSSLCert (L.head certPaths) &
+            Snap.setSSLChainCert False
+    Snap.serveSnaplet snapConfig (appInit allpayProxyEnv)
 
     -- runFileLoggingT (toS $ Config.logFile config) $ runAppM allpayProxyEnv (handleNewConnectionRequest epHandler)
     -- return ()
