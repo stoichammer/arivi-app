@@ -32,6 +32,7 @@ flag network-uri
 executable aaproxy
   hs-source-dirs: app, lib
   main-is: Main.hs
+  ghc-options: -O2 -threaded
   build-depends:  arivi-p2p
                 , base >=4.9 && <4.11
                 , yaml
