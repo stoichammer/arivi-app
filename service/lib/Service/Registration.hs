@@ -30,6 +30,7 @@ import Data.Text.Encoding as DTE
 import Service.AllpayTransaction
 import Service.Data
 import Service.Data.Allegory
+import qualified Service.Data.Allegory as Al
 import Service.Env
 import Service.ProxyProviderUtxo
 import Service.Types
@@ -161,8 +162,8 @@ makeRegistrationTx net nutxoInput allegoryName retAddr reg = do
                         1
                         allegoryName
                         (OwnerAction
-                            (Index 0)
-                            (OwnerOutput (Index 1) (Just $ Endpoint "XokenP2P" "someuri"))
+                            (Al.Index 0)
+                            (OwnerOutput (Al.Index 1) (Just $ Endpoint "XokenP2P" "someuri"))
                             [ ProxyProvider
                                 "AllPay"
                                 "Public"

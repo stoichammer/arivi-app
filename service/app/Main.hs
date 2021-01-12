@@ -205,7 +205,6 @@ runNode config nodeConfig certPaths pool = do
     -- async $
         -- startTLSEndpoint epHandler (NC.endPointTLSListenIP nodeConfig) (NC.endPointTLSListenPort nodeConfig) certPaths
     -- start HTTP endpoint
-    -- let snapConfig' = Snap.defaultConfig
     let snapConfig =
             Snap.defaultConfig & Snap.setSSLBind (DTE.encodeUtf8 $ DT.pack $ NC.endPointListenIP nodeConfig) &
             Snap.setSSLPort (fromEnum $ NC.endPointListenPort nodeConfig) &
@@ -213,7 +212,6 @@ runNode config nodeConfig certPaths pool = do
             Snap.setSSLCert (L.head certPaths) &
             Snap.setSSLChainCert False
     Snap.serveSnaplet snapConfig (appInit allpayProxyEnv)
-
     -- runFileLoggingT (toS $ Config.logFile config) $ runAppM allpayProxyEnv (handleNewConnectionRequest epHandler)
     -- return ()
 

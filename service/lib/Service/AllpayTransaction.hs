@@ -90,18 +90,12 @@ getAddressAndProxyUtxo ::
        (HasService env m, MonadIO m)
     => Network
     -> String
-    -> m (Either String (String, U.ProxyProviderUtxo, PartialMerkleTree, PartialMerkleTree))
+    -> m (Either String (String, U.ProxyProviderUtxo, [(Bool, Hash256)], [(Bool, Hash256)]))
 getAddressAndProxyUtxo net name = do
     aMapTvar <- getXPubHashMap
     addressTvar <- getAddressMap
     aMap <- liftIO $ readTVarIO aMapTvar
-    -- liftIO $ print name
-    -- liftIO $ print aMap
-    let lookupRes = M.lookup (show name) aMap
-    liftIO $ print "Debug"
-    liftIO $ print lookupRes
-    -- case M.lookup name aMap of
-    case lookupRes of
+    case M.lookup (show name) aMap of
         Just XPubInfo {..} -> do
             if (count > fromIntegral index)
                 then do
@@ -140,7 +134,7 @@ getPartiallySignedAllpayTransaction ::
     -> Int64 -- value
     -> String -- receiver
     -> String -- change address
-    -> m (Either String (BC.ByteString, PartialMerkleTree, PartialMerkleTree)) -- serialized transaction
+    -> m (Either String (BC.ByteString, [(Bool, Hash256)], [(Bool, Hash256)])) -- serialized transaction
 getPartiallySignedAllpayTransaction inputs amount receiverName changeAddr = do
     nodeCnf <- getNodeConfig
     let net = bitcoinNetwork nodeCnf
@@ -162,6 +156,7 @@ getPartiallySignedAllpayTransaction inputs amount receiverName changeAddr = do
             -- compute change
             let totalInput = L.foldl (+) 0 $ (\(_, val) -> val) <$> inputsOp
             let values = (U.value pputxo) : ((\(_, value) -> fromIntegral value) <$> inputsOp)
+            -- let values = [50]
             let change = totalInput - (amount + fromIntegral fee)
             -- add proxy-provider utxo output
             let outputs =
@@ -188,9 +183,9 @@ getPartiallySignedAllpayTransaction inputs amount receiverName changeAddr = do
                                     let serializedTx = BSL.toStrict $ A.encode $ createTx' psaTx values
                                     return $ Right (serializedTx, addrProof, utxoProof)
 
-buildProof' :: [TxHash] -> Word32 -> PartialMerkleTree
+buildProof' :: [TxHash] -> Word32 -> [(Bool, Hash256)]
 buildProof' hashes index =
-    snd $
+    (\(fb, pm) -> zip fb pm) $
     buildPartialMerkle $
     zipWith
         (\h i ->

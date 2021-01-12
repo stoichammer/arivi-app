@@ -81,8 +81,8 @@ data RPCResponseBody
           }
     | RespPSAllpayTransaction
           { serialisedTx :: ByteString
-          , addressProof :: PartialMerkleTree
-          , utxoProof :: PartialMerkleTree
+          , addressProof :: [(Bool, Hash256)]
+          , utxoProof :: [(Bool, Hash256)]
           }
     | RespRegister
           { registrationTx :: ByteString

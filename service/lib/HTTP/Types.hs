@@ -99,8 +99,8 @@ instance FromJSON ReqParams' where
 data ResponseBody
     = RespPSAllpayTransaction
           { serialisedTx :: ByteString
-          , addressProof :: PartialMerkleTree
-          , utxoProof :: PartialMerkleTree
+          , addressProof :: [(Bool, Hash256)]
+          , utxoProof :: [(Bool, Hash256)]
           }
     | RespRegister
           { registrationTx :: ByteString
