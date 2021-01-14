@@ -25,8 +25,8 @@ import Data.ByteString
 import Data.ByteString.Base64 as B64
 import qualified Data.ByteString.Lazy.Char8 as C
 import qualified Data.Char as Char
-import Data.Hashable
 import qualified Data.HashTable.IO as H
+import Data.Hashable
 import Data.Int
 import qualified Data.Map.Strict as M
 import Data.Text
@@ -37,9 +37,9 @@ import GHC.Generics
 import Network.HTTP.Req
 import Network.Xoken.Block
 import Network.Xoken.Crypto.Hash
-import Service.Types (OutPoint')
 import Prelude
 import Service.Env
+import Service.Types (OutPoint')
 import Snap
 
 data App =
@@ -49,7 +49,6 @@ data App =
 
 -- instance HasBitcoinP2P (Handler App App) where
 --     getBitcoinP2P = bitcoinP2PEnv <$> gets _env
-
 instance HasAddressMap (Handler App App) where
     getAddressMap = asks (addressMap . _env)
 
@@ -89,12 +88,13 @@ data ReqParams'
           , amount :: Int64
           , change :: String
           }
-    deriving (Generic, Show, Hashable, Eq, Serialise, ToJSON)
+    deriving (Generic, Show, Eq, Serialise, ToJSON)
 
 instance FromJSON ReqParams' where
     parseJSON (Object o) =
         (PSAllpayTransaction <$> o .: "inputs" <*> o .: "recipient" <*> o .: "amount" <*> o .: "change") <|>
-        (Register <$> o .: "name" <*> (T.encodeUtf8 <$> o .: "xpubKey") <*> o .: "nutxo" <*> o .: "return" <*> o .: "addressCount")
+        (Register <$> o .: "name" <*> (T.encodeUtf8 <$> o .: "xpubKey") <*> o .: "nutxo" <*> o .: "return" <*>
+         o .: "addressCount")
 
 data ResponseBody
     = RespPSAllpayTransaction
@@ -108,7 +108,8 @@ data ResponseBody
     deriving (Generic, Show, Hashable, Eq, Serialise)
 
 instance ToJSON ResponseBody where
-    toJSON (RespPSAllpayTransaction stx ap up) = object ["tx" .= (T.decodeUtf8 . B64.encode $ stx), "addressProof" .= ap, "utxoProof" .= up]
+    toJSON (RespPSAllpayTransaction stx ap up) =
+        object ["tx" .= (T.decodeUtf8 . B64.encode $ stx), "addressProof" .= ap, "utxoProof" .= up]
     toJSON (RespRegister stx) = object ["tx" .= (T.decodeUtf8 . B64.encode $ stx)]
 
 makeLenses ''App

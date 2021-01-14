@@ -32,11 +32,12 @@ import qualified Data.Text.Encoding as DTE
 import Data.Time.Calendar
 import Data.Time.Clock
 import Data.Time.Clock.POSIX
-import Service.Env
 import HTTP.Types
-import Snap
 import Service.AllpayTransaction
+import Service.Env
+import Service.Faucet
 import Service.Registration
+import Snap
 import qualified System.Logger as LG
 
 registerNewUser' :: ReqParams' -> Handler App App ()
@@ -60,6 +61,11 @@ getPartiallySignedAllpayTransaction' (PSAllpayTransaction inputs recipient amoun
         Right (stx, addrProof, utxoProof) -> do
             writeBS $ BSL.toStrict $ encodeResp True $ (Just $ RespPSAllpayTransaction stx addrProof utxoProof)
 getPartiallySignedAllpayTransaction' _ = throwBadRequest
+
+getCoins' :: Handler App App ()
+getCoins' = do
+    addrString <- (fmap $ DT.unpack . DTE.decodeUtf8) <$> (getParam "address")
+    writeBS "Ok"
 
 throwBadRequest :: Handler App App ()
 throwBadRequest = do

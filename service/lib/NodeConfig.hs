@@ -40,6 +40,8 @@ data NodeConfig =
         , poolTransaction :: String
         , poolAddress :: String
         , poolSecKey :: SecKey
+        , faucetKey :: String
+        , faucetAmt :: Int
         , nexaUsername :: String
         , nexaPassword :: String
         , nexaHost :: String
