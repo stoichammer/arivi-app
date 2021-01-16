@@ -105,11 +105,15 @@ data ResponseBody
     | RespRegister
           { registrationTx :: ByteString
           }
+    | RespGiveCoins
+          { result :: Bool
+          }
     deriving (Generic, Show, Hashable, Eq, Serialise)
 
 instance ToJSON ResponseBody where
     toJSON (RespPSAllpayTransaction stx ap up) =
         object ["tx" .= (T.decodeUtf8 . B64.encode $ stx), "addressProof" .= ap, "utxoProof" .= up]
     toJSON (RespRegister stx) = object ["tx" .= (T.decodeUtf8 . B64.encode $ stx)]
+    toJSON (RespGiveCoins r) = object ["success" .= r]
 
 makeLenses ''App

@@ -65,7 +65,15 @@ getPartiallySignedAllpayTransaction' _ = throwBadRequest
 getCoins' :: Handler App App ()
 getCoins' = do
     addrString <- (fmap $ DT.unpack . DTE.decodeUtf8) <$> (getParam "address")
-    writeBS "Ok"
+    case addrString of
+        Nothing -> throwBadRequest
+        Just a' -> do
+            res <- LE.try $ giveCoins a'
+            case res of
+                Left (SomeException e) -> do
+                    modifyResponse $ setResponseStatus 500 "Internal Server Error"
+                    writeBS "INTERNAL_SERVER_ERROR"
+                Right r -> writeBS $ BSL.toStrict $ encodeResp True $ (Just $ RespGiveCoins r)
 
 throwBadRequest :: Handler App App ()
 throwBadRequest = do

@@ -89,8 +89,8 @@ giveCoins addrBase58 = do
         unsignedTx = Tx 1 inputs outputs 0
     case signTx net unsignedTx sigInputs $ (L.take (L.length inputs) $ L.repeat $ xPrvKey faucetXPrvKey) of
         Right signedTx -> do
-            liftIO $ relayTx (NC.nexaHost nodeCnf) (NC.nexaSessionKey nodeCnf) (Data.Serialize.encode signedTx)
-            return True
+            res <- liftIO $ relayTx (NC.nexaHost nodeCnf) (NC.nexaSessionKey nodeCnf) (Data.Serialize.encode signedTx)
+            return $ txBroadcast res
         Left err -> return False
 
 relayTx :: (MonadUnliftIO m) => String -> SessionKey -> C.ByteString -> m RelayTxResponse
