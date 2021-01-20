@@ -45,6 +45,7 @@ data NodeConfig =
         , nexaUsername :: String
         , nexaPassword :: String
         , nexaHost :: String
+        , proxyProviderUri :: String
         }
     deriving (Show, Generic)
 

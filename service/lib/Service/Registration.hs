@@ -16,13 +16,13 @@ import Codec.Serialise
 import Data.Aeson
 import Data.Aeson.Types
 import Data.ByteString as B
-import Data.Serialize
 import Data.ByteString.Base16 as B16
 import Data.ByteString.Builder
 import Data.ByteString.Char8 as C
 import Data.ByteString.Lazy as BSL
 import Data.ByteString.Lazy.Char8 as LC
 import Data.Map.Strict as M
+import Data.Serialize
 import Data.String (IsString, fromString)
 import qualified Data.Text as DT
 import Data.Text.Encoding as DTE
@@ -36,20 +36,20 @@ import Service.ProxyProviderUtxo
 import Service.Types
 import UtxoPool
 
+import Network.Xoken.Address
 import Network.Xoken.Block.Merkle
 import Network.Xoken.Crypto.Hash
 import Network.Xoken.Keys
 import Network.Xoken.Transaction.Common
-import Network.Xoken.Address
 import Network.Xoken.Util
 
-import qualified NodeConfig as NC
 import Control.Concurrent.STM
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.List
 import Data.Maybe
 import Network.Xoken.Constants
+import qualified NodeConfig as NC
 
 import Data.Int
 import LevelDB
@@ -102,9 +102,10 @@ registerNewUser allegoryName pubKey count (nutxo, value) returnAddr = do
             mkTxRes <- makeRegistrationTx net (nutxo, value) allegoryName returnAddr reg
             case mkTxRes of
                 Left err -> return $ Left $ "error while making registration transaction: " <> err
-                Right (stx, opRetHash) -> do
+                Right (stx, opRetHash)
                     -- let opRetScript = frameOpReturn $ LC.toStrict $ serialise al
                     -- let opRetHashRev = txHashToHex $ TxHash opRetHash
+                 -> do
                     xPubInfo <- liftIO $ readTVarIO aMapTvar
                     let f x =
                             case x of
@@ -115,7 +116,10 @@ registerNewUser allegoryName pubKey count (nutxo, value) returnAddr = do
                     names <- liftIO $ M.keys <$> readTVarIO aMapTvar
                     liftIO $ putValue "names" (BSL.toStrict $ Data.Aeson.encode $ nub $ (show opRetHash) : names)
                     when (isNothing $ M.lookup (show opRetHash) xPubInfo) $
-                        liftIO $ putValue (DTE.encodeUtf8 $ DT.pack (show opRetHash)) (encodeXPubInfo net $ XPubInfo k count 0 [])
+                        liftIO $
+                        putValue
+                            (DTE.encodeUtf8 $ DT.pack (show opRetHash))
+                            (encodeXPubInfo net $ XPubInfo k count 0 [])
                     liftIO $ print $ "HASH TO USE***: " <> (show opRetHash)
                     return $ Right $ stx
 
@@ -152,24 +156,31 @@ makeRegistrationTx ::
     -> RegDetails -- registration details
     -> m (Either String (C.ByteString, Hash256))
 makeRegistrationTx net nutxoInput allegoryName retAddr reg = do
+    providerUri <- NC.proxyProviderUri <$> getNodeConfig
     case stringToAddr net (DT.pack retAddr) of
         Nothing -> return $ Left "failed to decode return address"
         (Just addr) -> do
-            let nUtxoIp = (\(op', val) -> (TxIn (OutPoint (fromJust $ hexToTxHash $ DT.pack $ opTxHash op') (fromIntegral $ opIndex op')) "" 0)) nutxoInput
+            let nUtxoIp =
+                    (\(op', val) ->
+                         (TxIn
+                              (OutPoint (fromJust $ hexToTxHash $ DT.pack $ opTxHash op') (fromIntegral $ opIndex op'))
+                              ""
+                              0))
+                        nutxoInput
             let nUtxoOp = (TxOut (fromIntegral $ snd nutxoInput) (addressToScriptBS $ addr))
             let al =
                     Allegory
                         1
                         allegoryName
                         (OwnerAction
-                            (Al.Index 0)
-                            (OwnerOutput (Al.Index 1) (Just $ Endpoint "XokenP2P" "someuri"))
-                            [ ProxyProvider
-                                "AllPay"
-                                "Public"
-                                (Endpoint "XokenP2P" "uri2")
-                                (Registration (addrCom reg) (utxoCom reg) "" (fromIntegral $ exp' reg))
-                            ])
+                             (Al.Index 0)
+                             (OwnerOutput (Al.Index 1) (Just $ Endpoint "XokenP2P" "someuri"))
+                             [ ProxyProvider
+                                   "AllPay"
+                                   "Public"
+                                   (Endpoint "XokenP2P" providerUri)
+                                   (Registration (addrCom reg) (utxoCom reg) "" (fromIntegral $ exp' reg))
+                             ])
             let opRetScript = frameOpReturn $ LC.toStrict $ serialise al
             let opRetHex = DTE.encodeUtf8 $ encodeHex opRetScript
             liftIO $ print "HASHED***: "
