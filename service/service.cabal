@@ -94,6 +94,7 @@ executable aaproxy
                 , http-conduit
                 , connection
                 , snap
+                , snap-core
                 , lifted-base
                 , errors
                 , hashtables

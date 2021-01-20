@@ -7,11 +7,13 @@ import HTTP.Handler
 import HTTP.Types (App(..))
 import Service.Env
 import Snap
+import Snap.Util.CORS
 
 appInit :: AllpayProxyEnv -> SnapletInit App App
 appInit env =
     makeSnaplet "v1" "API's" Nothing $ do
         addRoutes apiRoutes
+        wrapSite (applyCORS defaultOptions)
         return $ App env
 
 apiRoutes :: [(B.ByteString, Handler App App ())]
