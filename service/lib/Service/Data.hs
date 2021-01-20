@@ -13,13 +13,13 @@ module Service.Data where
 import Codec.Serialise
 import Control.Concurrent.MVar
 import Control.Exception
+import Data.Aeson
 import Data.ByteString
 import Data.Hashable
 import Data.Int
 import GHC.Generics
 import Network.Xoken.Block
 import Service.Types
-import Data.Aeson
 
 -- import Control.Concurrent.MVar
 -- import Control.Concurrent.STM
@@ -40,7 +40,7 @@ data RPCMessage
           , rsStatusMessage :: Maybe RPCErrors
           , rsBody :: Maybe RPCResponseBody
           }
-    deriving (Show, Generic, Hashable, Eq, Serialise)
+    deriving (Show, Generic, Eq, Serialise)
 
 data XRPCRequest
     = CBORRPCRequest
@@ -54,7 +54,7 @@ data XRPCRequest
           , jsonrpc :: String
           , id :: Int
           }
-    deriving (Show, Generic, Hashable, Eq, Serialise)
+    deriving (Show, Generic, Eq, Serialise)
 
 instance FromJSON XRPCRequest where
     parseJSON = genericParseJSON (defaultOptions {sumEncoding = UntaggedValue})
@@ -76,7 +76,7 @@ data XRPCResponse
           , error :: ErrorResponse
           , jsonrpc :: String
           }
-    deriving (Show, Generic, Hashable, Eq, Serialise)
+    deriving (Show, Generic, Eq, Serialise)
 
 instance ToJSON XRPCResponse where
     toJSON = genericToJSON (defaultOptions {sumEncoding = UntaggedValue})
@@ -101,7 +101,7 @@ data XDataReq
           }
     | XDataRPCBadRequest
     | XCloseConnection
-    deriving (Show, Generic, Hashable, Eq, Serialise)
+    deriving (Show, Generic, Eq, Serialise)
 
 data XDataResp =
     XDataRPCResp
@@ -110,7 +110,7 @@ data XDataResp =
         , statusMessage :: Maybe String
         , respBody :: Maybe RPCResponseBody
         }
-    deriving (Show, Generic, Hashable, Eq, Serialise, ToJSON)
+    deriving (Show, Generic, Eq, Serialise, ToJSON)
 
 data RPCErrors
     = INVALID_METHOD

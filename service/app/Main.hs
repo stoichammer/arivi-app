@@ -70,7 +70,6 @@ import qualified NodeConfig as NC
 import Numeric (showHex)
 import Service.Data
 import Service.Env
-import Service.Types
 import qualified Snap as Snap
 import StmContainers.Map as H
 import System.Directory
@@ -80,15 +79,7 @@ import UtxoPool
 
 newtype AppM a =
     AppM (ReaderT AllpayProxyEnv (LoggingT IO) a)
-    deriving ( Functor
-             , Applicative
-             , Monad
-             , MonadReader AllpayProxyEnv
-             , MonadIO
-             , MonadThrow
-             , MonadCatch
-             , MonadLogger
-             )
+    deriving (Functor, Applicative, Monad, MonadReader AllpayProxyEnv, MonadIO, MonadThrow, MonadCatch, MonadLogger)
 
 deriving instance MonadBase IO AppM
 
@@ -111,28 +102,22 @@ instance HasNodeConfig AppM where
 
 -- instance HasNetworkEnv AppM where
 --     getEnv = asks (ariviNetworkEnv . nodeEndpointEnv . p2pEnv)
-
 -- instance HasSecretKey AppM
-
 -- instance HasKbucket AppM where
 --     getKb = asks (kbucket . kademliaEnv . p2pEnv)
-
 -- instance HasStatsdClient AppM where
 --     getStatsdClient = asks (statsdClient . p2pEnv)
-
 -- instance HasNodeEndpoint AppM where
 --     getEndpointEnv = asks (nodeEndpointEnv . p2pEnv)
 --     getNetworkConfig = asks (PE._networkConfig . nodeEndpointEnv . p2pEnv)
 --     getHandlers = asks (handlers . nodeEndpointEnv . p2pEnv)
 --     getNodeIdPeerMapTVarP2PEnv = asks (tvarNodeIdPeerMap . nodeEndpointEnv . p2pEnv)
-
 -- instance HasPRT AppM where
 --     getPeerReputationHistoryTableTVar = asks (tvPeerReputationHashTable . prtEnv . p2pEnv)
 --     getServicesReputationHashMapTVar = asks (tvServicesReputationHashMap . prtEnv . p2pEnv)
 --     getP2PReputationHashMapTVar = asks (tvP2PReputationHashMap . prtEnv . p2pEnv)
 --     getReputedVsOtherTVar = asks (tvReputedVsOther . prtEnv . p2pEnv)
 --     getKClosestVsRandomTVar = asks (tvKClosestVsRandom . prtEnv . p2pEnv)
-
 runAppM :: AllpayProxyEnv -> AppM a -> LoggingT IO a
 runAppM env (AppM app) = runReaderT app env
 

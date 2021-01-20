@@ -5,6 +5,7 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 
 module Service.Types where
 
@@ -21,8 +22,9 @@ import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Lazy.Char8 as C
 import Data.Hashable
 import Data.Int
-import Data.Word
+import Data.Text as DT
 import qualified Data.Text.Encoding as T
+import Data.Word
 import GHC.Generics
 import Network.Xoken.Block
 import Network.Xoken.Crypto.Hash
@@ -65,13 +67,18 @@ data RPCReqParams
           , rRetAddr :: String
           , rCount :: Int
           }
-    deriving (Generic, Show, Hashable, Eq, Serialise)
+    | GetCoins
+          { userAddress :: String
+          }
+    deriving (Generic, Show, Eq, Serialise)
 
 instance FromJSON RPCReqParams where
     parseJSON (Object o) =
         (AddXPubKey <$> (T.encodeUtf8 <$> o .: "xpubKey") <*> o .: "addressCount" <*> o .: "allegoryHash") <|>
         (PSAllpayTransaction <$> o .: "inputs" <*> o .: "recipient" <*> o .: "amount" <*> o .: "change") <|>
-        (Register <$> o .: "name" <*> (T.encodeUtf8 <$> o .: "xpubKey") <*> o .: "nutxo" <*> o .: "return" <*> o .: "addressCount")
+        (Register <$> o .: "name" <*> (T.encodeUtf8 <$> o .: "xpubKey") <*> o .: "nutxo" <*> o .: "return" <*>
+         o .: "addressCount") <|>
+        (GetCoins <$> o .: "address")
 
 data RPCResponseBody
     = RespXPubKey
@@ -87,11 +94,12 @@ data RPCResponseBody
     | RespRegister
           { registrationTx :: ByteString
           }
-    deriving (Generic, Show, Hashable, Eq, Serialise)
+    deriving (Generic, Show, Eq, Serialise)
 
 instance ToJSON RPCResponseBody where
     toJSON (RespXPubKey rxpb ac uc) = object ["registered" .= rxpb, "addressCommitment" .= ac, "utxoCommitment" .= uc]
-    toJSON (RespPSAllpayTransaction stx ap up) = object ["tx" .= (T.decodeUtf8 . B64.encode $ stx), "addressProof" .= ap, "utxoProof" .= up]
+    toJSON (RespPSAllpayTransaction stx ap up) =
+        object ["tx" .= (T.decodeUtf8 . B64.encode $ stx), "addressProof" .= ap, "utxoProof" .= up]
     toJSON (RespRegister stx) = object ["tx" .= (T.decodeUtf8 . B64.encode $ stx)]
 
 -- data BlockRecord =
@@ -101,7 +109,6 @@ instance ToJSON RPCResponseBody where
 --         , rbHeader :: String
 --         }
 --     deriving (Generic, Show, Hashable, Eq, Serialise)
-
 -- data TxRecord =
 --     TxRecord
 --         { txId :: String
@@ -109,7 +116,6 @@ instance ToJSON RPCResponseBody where
 --         , txSerialized :: C.ByteString
 --         }
 --     deriving (Show, Generic, Hashable, Eq, Serialise)
-
 -- data AddressOutputs =
 --     AddressOutputs
 --         { aoAddress :: String
@@ -123,7 +129,7 @@ instance ToJSON RPCResponseBody where
 --         , aoValue :: Int64
 --         }
 --     deriving (Show, Generic, Hashable, Eq, Serialise)
-
+{-
 data OutPoint' =
     OutPoint'
         { opTxHash :: String
@@ -135,7 +141,7 @@ instance FromJSON OutPoint' where
     parseJSON (Object o) = (OutPoint' <$> o .: "txid" <*> o .: "index")
 
 instance ToJSON OutPoint'
-
+-}
 -- data BlockInfo' =
 --     BlockInfo'
 --         { binfBlockHash :: String
@@ -143,14 +149,12 @@ instance ToJSON OutPoint'
 --         , binfBlockHeight :: Int
 --         }
 --     deriving (Show, Generic, Hashable, Eq, Serialise)
-
 -- data MerkleBranchNode' =
 --     MerkleBranchNode'
 --         { nodeValue :: String
 --         , isLeftNode :: Bool
 --         }
 --     deriving (Show, Generic, Hashable, Eq, Serialise)
-
 data PubNotifyMessage =
     PubNotifyMessage
         { psBody :: String
@@ -170,7 +174,6 @@ data PubNotifyMessage =
 --           , message :: PubNotifyMessage
 --           }
 --     deriving (Show, Generic, Serialise)
-
 data Tx' =
     Tx'
         { txVersion :: !Word32
@@ -182,10 +185,10 @@ data Tx' =
 
 data TxIn' =
     TxIn'
-        { prevOutput   :: !OutPoint
-        , scriptInput  :: !ByteString
+        { prevOutput :: !OutPoint
+        , scriptInput :: !ByteString
         , txInSequence :: !Word32
-        , value        :: !Word64
+        , value :: !Word64
         }
     deriving (Eq, Show, Read, Ord, Generic, Hashable, Serialise)
 
@@ -193,4 +196,87 @@ instance ToJSON Tx' where
     toJSON (Tx' v i o l) = object ["version" .= v, "ins" .= i, "outs" .= o, "locktime" .= l]
 
 instance ToJSON TxIn' where
-    toJSON (TxIn' op scr seq val) = object ["outpoint" .= op, "script" .= scr, "sequence" .= seq , "value" .= val]
+    toJSON (TxIn' op scr seq val) = object ["outpoint" .= op, "script" .= scr, "sequence" .= seq, "value" .= val]
+
+data FaucetException
+    = InvalidFaucetKeyException
+    | UserAddressException
+    | NexaResponseParseException
+    deriving (Show, Eq)
+
+instance Exception FaucetException
+
+data GetUtxosByAddressResponse =
+    GetUtxosByAddressResponse
+        { nextCursor :: Maybe String
+        , utxos :: [AddressOutputs]
+        }
+    deriving (Show, Ord, Eq, Read, Generic)
+
+instance FromJSON GetUtxosByAddressResponse
+
+data AddressOutputs =
+    AddressOutputs
+        { address :: String
+        , outputTxHash :: String
+        , outputIndex :: Int
+        , txIndex :: Int
+        , blockHash :: String
+        , blockHeight :: Int
+        , spendInfo :: Maybe SpendInfo
+        , prevOutpoint :: [(OutPoint', Int32, Int64)]
+        , value :: Int64
+        }
+    deriving (Show, Ord, Eq, Read, Generic)
+
+instance FromJSON AddressOutputs
+
+data SpendInfo =
+    SpendInfo
+        { spendingTxId :: String
+        , spendingTxIndex :: Int32
+        , spendingBlockHash :: String
+        , spendingBlockHeight :: Int32
+        , spendData :: [SpendInfo']
+        }
+    deriving (Show, Ord, Eq, Read, Generic)
+
+instance FromJSON SpendInfo
+
+data OutPoint' =
+    OutPoint'
+        { opTxHash :: String
+        , opIndex :: Int
+        }
+    deriving (Show, Ord, Eq, Read, Generic, Serialise)
+
+instance FromJSON OutPoint'
+
+instance ToJSON OutPoint'
+
+data SpendInfo' =
+    SpendInfo'
+        { spendingOutputIndex :: Int32
+        , outputAddress :: DT.Text
+        , value' :: Int64
+        }
+    deriving (Show, Ord, Eq, Read, Generic)
+
+instance FromJSON SpendInfo'
+
+data NexaRequest =
+    RelayTxRequest
+        { rawTx :: ByteString
+        }
+    deriving (Show, Ord, Eq, Read, Generic)
+
+instance ToJSON NexaRequest where
+    toJSON (RelayTxRequest r) = object ["rawTx" .= (T.decodeUtf8 $ B64.encode r)]
+
+data RelayTxResponse =
+    RelayTxResponse
+        { txBroadcast :: Bool
+        }
+    deriving (Show, Ord, Eq, Read, Generic)
+
+instance FromJSON RelayTxResponse
