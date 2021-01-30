@@ -1,19 +1,18 @@
-resolver: lts-12.26
+resolver: lts-14.7
 allow-newer: true
 
 packages:
-    - service
+  - service
 
 extra-deps:
-
-- serialise-0.2.0.0
-- cborg-0.2.0.0
-- statsd-client-0.3.0.0
-- time-units-1.0.0
-- timers-updatable-0.2.0.2
-- digest-pure-0.0.3
-- DRBG-0.5.5
-- stm-containers-1.0.1
-- either-unwrap-1.1
-- raaz-0.2.1
-- queue-0.1.2
+  - serialise-0.2.0.0
+  - cborg-0.2.0.0
+  - statsd-client-0.3.0.0
+  - time-units-1.0.0
+  - timers-updatable-0.2.0.2
+  - digest-pure-0.0.3
+  - DRBG-0.5.5
+  - stm-containers-1.0.1
+  - either-unwrap-1.1
+  - raaz-0.2.1
+  - queue-0.1.2

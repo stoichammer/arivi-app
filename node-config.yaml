@@ -1,4 +1,27 @@
 logLevel: Debug
+
 logFileName: ./proxy.log
+
 endPointListenPort: 9090
+
 endPointListenIP: 127.0.0.1
+
+bitcoinNetwork: bsv
+
+endPointTLSListenIP: 127.0.0.1
+
+endPointTLSListenPort: 9090
+
+tlsCertificatePath : ./example.crt
+
+tlsKeyfilePath : ./example.key
+
+tlsCertificateStorePath : .
+
+poolTransaction : 
+
+poolAddress :
+
+nexaSessionKey : 
+
+poolSecKey : 

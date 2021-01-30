@@ -22,12 +22,30 @@ import Network.Xoken.Constants
 import Network.Xoken.Constants
 import System.Logger
 
+import Crypto.Secp256k1
+
 data NodeConfig =
     NodeConfig
         { logLevel :: Level
         , logFileName :: T.Text
         , endPointListenIP :: String
         , endPointListenPort :: PortNumber
+        , bitcoinNetwork :: Network
+        , endPointTLSListenIP :: String
+        , endPointTLSListenPort :: PortNumber
+        , tlsCertificatePath :: FilePath
+        , tlsKeyfilePath :: FilePath
+        , tlsCertificateStorePath :: FilePath
+        , nexaSessionKey :: String
+        , poolTransaction :: String
+        , poolAddress :: String
+        , poolSecKey :: SecKey
+        , faucetKey :: String
+        , faucetAmt :: Int
+        , nexaUsername :: String
+        , nexaPassword :: String
+        , nexaHost :: String
+        , proxyProviderUri :: String
         }
     deriving (Show, Generic)
 
@@ -44,6 +62,9 @@ instance FromJSON Level where
     parseJSON v = read <$> parseJSON v
 
 instance FromJSON NodeConfig
+
+instance FromJSON SecKey where
+    parseJSON v = fromJust <$> secKey <$> (parseJSON v :: Parser ByteString)
 
 readConfig :: FilePath -> IO NodeConfig
 readConfig path = do

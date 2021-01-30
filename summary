@@ -1,0 +1,51 @@
+1. The proxy-provider generates a private key that is used to spawn one or more 
+Bitcoin addresses. A certain amount of Bitcoin is then acquired with these 
+addresses.
+
+2. At the initialization of service, or at regular intervals thereafter, the 
+proxy-provider consolidates these amounts as inputs in a single transaction 
+that has a multiple number of outputs addressed to itself, each output having 
+an equal amount of nominal spendable Satoshi value. 
+
+3. These outputs are designated as 'proxy-provider utxos', and the set of these 
+outputs is called the 'utxo pool'.
+
+4. For every new subscriber that registers with the proxy-provider service, a 
+pre-determined number of proxy-provider utxos, selected randomly from the utxo 
+pool are marked as 'commited proxy-provider utxos'. The commitment is to the 
+subscriber. A Merkle tree is computed using these utxos, and the resulting 
+Merkle root, referred to as 'provider utxo set commitment' is included in the 
+subscriber's Allpay registration transaction Allegory metadata.
+
+5. The utxo pool consists of proxy-provider utxos that are NOT committed to any 
+subscriber. It follows that when a utxo from the pool is committed to a 
+subscriber, it is removed from the pool.
+
+6. Whenever any sender that is using an Allpay wallet wishes to send Bitcoin to 
+a subscriber, the transaction must include a proxy-provider utxo from the 
+committed set for that subscriber. This utxo is supplied by the proxy-provider. 
+A Merkle path that leads to the provider utxo set commitment is also supplied 
+to the sender so that s/he can independently verify that the proxy-provider 
+utxo belongs to the commited set.
+
+7. At the end of subscription period, or upon termination of subscription, the 
+proxy-provider has to prove to the subscriber that all the proxy-provider utxos 
+committed to it are no longer spendable. It can do this by:
+	(i) spending all the unspent proxy-provider utxos back into the utxo 
+pool, where it can commit them to another subscriber down the line, and
+	(ii) sending the committed proxy-prover utxos to the subscriber so s/he 
+can verify that [a] all the utxos are spent, and [b] all the utxos belong to 
+the commitment set and the set contains no more utxos than what have been sent.
+(ii)[b] can be achieved by simply computing the Merkle root using all the 
+provided utxos and verifying it against the provider utxo set commitment in the 
+Allpay registration tranasction.
+
+--------
+
+i. There is nothing intrinsically specialy about a proxy-provider utxo. Its 
+value is derived from the fact that it is a part of a commitment made to a 
+subscriber, legitimised by being recored in the Allegory metadata of a 
+transaction included on the chain.
+ii. Proxy-provider utxos used in Allpay-enabled transactions can be spent back 
+to the proxy-provider service, and the Satoshi value makes its way back to the 
+utxo pool of the proxy-provider.
