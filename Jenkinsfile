@@ -1,168 +1,126 @@
-def running(gitlabBuildName) {
-	updateGitlabCommitStatus(name: "${gitlabBuildName}", state: 'running')
-}
-
-def success(gitlabBuildName) {
-	updateGitlabCommitStatus(name: "${gitlabBuildName}", state: 'success')
-}
-
-def failure(gitlabBuildName) {
-	updateGitlabCommitStatus(name: "${gitlabBuildName}", state: 'failed')
-}
 pipeline {
-    agent any
-    options {
-        gitLabConnection('Gitlab');
-    }
-    stages {
-        stage('Build') {
-            steps {
-                 gitlabBuilds(builds: ["1.Build", "2.Lint Checking"]) {
-                    echo 'Building..'
-                    running('1.Build');
-                    sh 'stack clean'
-                    sh 'stack build'
+  agent any
+  stages {
 
-                }
-            }
-            post {
-                success {
-                    success('1.Build');
-
-                }
-                failure {
-                    failure('1.Build');
-                    failure('2.Lint Checking');
-                }
-            }
+    stage('Prepare') {
+      steps {
+        sh 'mkdir -p arivi-core'
+        dir(path: 'arivi-core') {
+          git(url: 'https://github.com/xoken/arivi-core/', branch: 'master')
         }
 
-        stage('Lint Checking') {
-            steps {
-                gitlabBuilds(builds: ["2.Lint Checking","3.Testing"]) {
-                    echo 'Checking lint..'
-                    running('2.Lint Checking');
-                    sh 'hlint --extension=hs .'
-                }
-            }
-            post {
-                success {
-                    success('2.Lint Checking');
-                }
-                failure {
-                    failure('2.Lint Checking');
-                    failure('3.Testing');
-                }
-            }
+        sh 'mkdir -p xoken-core'
+        dir(path: 'xoken-core') {
+          git(url: 'https://github.com/xoken/xoken-core/', branch: 'master')
         }
-        stage('Test') {
-            steps {
-                 gitlabBuilds(builds: ["3.Testing"]) {
-                    echo 'Testing..'
 
-                }
-            }
-
-            post {
-                success {
-                    success('3.Testing');
-                }
-                failure {
-                    failure('3.Testing');
-                }
-            }
-
+        sh 'mkdir -p allpay-proxy'
+        dir(path: 'allpay-proxy') {
+          git(url: 'https://github.com/xoken/allpay-proxy/', branch: "${env.BRANCH_NAME}")
         }
-       stage('Deploy') {
-            when {
-              expression {
-                env.DEPLOY_BRANCH ==  env.GIT_BRANCH
-              }
-            }
-            steps {
-                gitlabBuilds(builds: ["Deploy"]) {
-                    echo 'Deploying....'
-                    running('4.Deploy');
-                    sh 'mv `stack path --local-install-root`/bin/Main scripts/Deployment-Tools/Main'
-                    sh 'chmod +x scripts/Deployment-Tools/cronjob.sh'
-                    sh 'cd scripts/Deployment-Tools; python fabfile.py Main 180;rm Main'
-                }
-            }
-            post {
-                success {
-                    success('4.Deploy');
-                }
-                failure {
-                    failure('4.Deploy');
-                }
-            }
-        }
+
+      }
     }
 
-  post {
-        success {
-          updateGitlabCommitStatus name: 'build', state: 'success'
-          emailext (
-              subject: "SUCCESSFUL: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'",
-              body: """
-              <p> BUILD_NUMBER : '${env.BUILD_NUMBER}' </p>
-              <p> BUILD_ID : '${env.BUILD_ID}' </p>
-              <p> BUILD_URL : '${env.BUILD_URL}' </p>
-              <p> NODE_NAME : '${env.NODE_NAME}' </p>
-              <p> JOB_NAME : '${env.JOB_NAME}' </p>
-              <p> BUILD_TAG : '${env.BUILD_TAG}' </p>
-              <p> JENKINS_URL : '${env.JENKINS_URL}' </p>
-              <p> EXECUTOR_NUMBER : '${env.EXECUTOR_NUMBER}' </p>
-              <p> JAVA_HOME : '${env.JAVA_HOME}' </p>
-              <p> WORKSPACE : '${env.WORKSPACE}' </p>
-              <p> SVN_REVISION : '${env.SVN_REVISION}' </p>
-              <p> CVS_BRANCH : '${env.CVS_BRANCH}' </p>
-              <p> GIT_COMMIT : '${env.GIT_COMMIT}' </p>
-              <p> GIT_URL : '${env.GIT_URL}' </p>
-              <p> GIT_BRANCH : '${env.GIT_BRANCH}' </p>
-              <p> PROMOTED_URL : '${env.PROMOTED_URL}' </p>
-              <p> PROMOTED_JOB_NAME : '${env.PROMOTED_JOB_NAME}' </p>
-              <p> PROMOTED_NUMBER : '${env.PROMOTED_NUMBER}' </p>
-              <p> PROMOTED_ID : '${env.PROMOTED_ID}' </p>
-              <p> BUILD_URL : '${env.BUILD_URL}' </p>
-              <p> JOB_NAME : '${env.JOB_NAME}' </p>
-              <p> BUILD_NUMBER : '${env.BUILD_NUMBER}' </p>
-                """,
-              to: "xokensjenkins@flockgroups.com"
-            )
+    stage('Clean') {
+      steps {
+        dir(path: 'allpay-proxy') {
+          sh 'stack clean'
         }
 
-        failure {
-          updateGitlabCommitStatus name: 'build', state: 'failed'
-          emailext (
-              subject: "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'",
-             body: """
-              <p> BUILD_NUMBER : '${env.BUILD_NUMBER}' </p>
-              <p> BUILD_ID : '${env.BUILD_ID}' </p>
-              <p> BUILD_URL : '${env.BUILD_URL}' </p>
-              <p> NODE_NAME : '${env.NODE_NAME}' </p>
-              <p> JOB_NAME : '${env.JOB_NAME}' </p>
-              <p> BUILD_TAG : '${env.BUILD_TAG}' </p>
-              <p> JENKINS_URL : '${env.JENKINS_URL}' </p>
-              <p> EXECUTOR_NUMBER : '${env.EXECUTOR_NUMBER}' </p>
-              <p> JAVA_HOME : '${env.JAVA_HOME}' </p>
-              <p> WORKSPACE : '${env.WORKSPACE}' </p>
-              <p> SVN_REVISION : '${env.SVN_REVISION}' </p>
-              <p> CVS_BRANCH : '${env.CVS_BRANCH}' </p>
-              <p> GIT_COMMIT : '${env.GIT_COMMIT}' </p>
-              <p> GIT_URL : '${env.GIT_URL}' </p>
-              <p> GIT_BRANCH : '${env.GIT_BRANCH}' </p>
-              <p> PROMOTED_URL : '${env.PROMOTED_URL}' </p>
-              <p> PROMOTED_JOB_NAME : '${env.PROMOTED_JOB_NAME}' </p>
-              <p> PROMOTED_NUMBER : '${env.PROMOTED_NUMBER}' </p>
-              <p> PROMOTED_ID : '${env.PROMOTED_ID}' </p>
-              <p> BUILD_URL : '${env.BUILD_URL}' </p>
-              <p> JOB_NAME : '${env.JOB_NAME}' </p>
-              <p> BUILD_NUMBER : '${env.BUILD_NUMBER}' </p>
-                """,
-              to: "xokensjenkins@flockgroups.com"
-            )
-        }
-  }
+      }
+    }
 
+    stage('Build') {
+      steps {
+        dir(path: 'allpay-proxy') {
+          sh 'stack install  --local-bin-path  ../build/reg/'
+        }
+
+        archiveArtifacts(artifacts: 'build/**/proxy', followSymlinks: true)
+      }
+    }
+
+
+
+      stage('Release') {
+        
+
+        steps {
+          script {
+            if ((env.BRANCH_NAME).startsWith("release")) {   
+              echo '****** Starting Ubuntu18.04 container ******'
+              dir(path: 'allpay-proxy'){
+                      sh 'rm -f /tmp/proxy-ubuntu1804.cid'
+                      sh 'docker run -t -d --cidfile /tmp/proxy-ubuntu1804.cid -w  /opt/work/allpay-proxy  xoken-nexa/ubuntu18.04 sh'
+                      sh 'docker exec -w /opt/work/arivi-core $(cat /tmp/proxy-ubuntu1804.cid) git pull'
+                      sh 'docker exec -w /opt/work/xoken-core $(cat /tmp/proxy-ubuntu1804.cid) git pull'
+                      sh 'docker exec -w /opt/work/ $(cat /tmp/proxy-ubuntu1804.cid) git clone https://github.com/xoken/allpay-proxy.git '
+                      sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-ubuntu1804.cid) git fetch '
+                      sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-ubuntu1804.cid) git checkout $(basename $(git symbolic-ref HEAD))'
+                      sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-ubuntu1804.cid) git pull'
+                      sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-ubuntu1804.cid) stack clean'
+                      sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-ubuntu1804.cid) stack install  --local-bin-path  app '
+                      sh 'docker cp $(cat /tmp/proxy-ubuntu1804.cid):/opt/work/allpay-proxy/app/proxy  ./allpay_proxy '
+                      sh 'rm -f /tmp/proxy-ubuntu1804.cid'
+                      sh 'sha256sum ./allpay_proxy > Checksum_SHA256'
+                      sh 'zip allpay-proxy_"$(basename $(git symbolic-ref HEAD))"_ubuntu1804.zip allpay_proxy node-config.yaml README.md Checksum_SHA256 LICENSE LICENSE-AGPL LICENSE-OpenBSV '
+                    }
+              echo '****** Starting Ubuntu20.04 container ******'
+              dir(path: 'allpay-proxy'){
+                      sh 'rm -f /tmp/proxy-ubuntu2004.cid'
+                      sh 'docker run -t -d --cidfile /tmp/proxy-ubuntu2004.cid -w  /opt/work/allpay-proxy  xoken-nexa/ubuntu20.04 sh'
+                      sh 'docker exec -w /opt/work/arivi-core $(cat /tmp/proxy-ubuntu2004.cid) git pull'
+                      sh 'docker exec -w /opt/work/xoken-core $(cat /tmp/proxy-ubuntu2004.cid) git pull'
+                      sh 'docker exec -w /opt/work/ $(cat /tmp/proxy-ubuntu2004.cid) git clone https://github.com/xoken/allpay-proxy.git '
+                      sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-ubuntu2004.cid) git fetch '
+                      sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-ubuntu2004.cid) git checkout $(basename $(git symbolic-ref HEAD))'
+                      sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-ubuntu2004.cid) git pull'
+                      sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-ubuntu2004.cid) stack clean'
+                      sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-ubuntu2004.cid) stack install  --local-bin-path  app '
+                      sh 'docker cp $(cat /tmp/proxy-ubuntu2004.cid):/opt/work/allpay-proxy/app/proxy  ./allpay_proxy '
+                      sh 'rm -f /tmp/proxy-ubuntu2004.cid'
+                      sh 'sha256sum ./allpay_proxy > Checksum_SHA256'
+                      sh 'zip allpay-proxy_"$(basename $(git symbolic-ref HEAD))"_ubuntu2004.zip allpay_proxy node-config.yaml README.md Checksum_SHA256 LICENSE LICENSE-AGPL LICENSE-OpenBSV '
+                    }
+              echo '****** Starting Arch Linux container ******'
+              dir(path: 'allpay-proxy'){
+                      sh 'rm -f /tmp/proxy-archlinux.cid'
+                      sh 'docker run -t -d --cidfile /tmp/proxy-archlinux.cid -w  /opt/work/allpay-proxy  xoken-nexa/archlinux sh'
+                      sh 'docker exec -w /opt/work/arivi-core $(cat /tmp/proxy-archlinux.cid) git pull'
+                      sh 'docker exec -w /opt/work/xoken-core $(cat /tmp/proxy-archlinux.cid) git pull'
+                      sh 'docker exec -w /opt/work/ $(cat /tmp/proxy-archlinux.cid) git clone https://github.com/xoken/allpay-proxy.git '
+                      sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-archlinux.cid) git fetch '
+                      sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-archlinux.cid) git checkout $(basename $(git symbolic-ref HEAD))'
+                      sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-archlinux.cid) git pull'
+                      sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-archlinux.cid) stack clean'
+                      sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-archlinux.cid) env LD_PRELOAD=/usr/lib/libjemalloc.so.2 stack install  --local-bin-path  app '
+                      sh 'docker cp $(cat /tmp/proxy-archlinux.cid):/opt/work/allpay-proxy/app/proxy ./allpay_proxy '
+                      sh 'rm -f /tmp/proxy-archlinux.cid'
+                      sh 'sha256sum ./allpay_proxy > Checksum_SHA256'
+                      sh 'zip allpay-proxy_"$(basename $(git symbolic-ref HEAD))"_archlinux.zip allpay_proxy node-config.yaml README.md Checksum_SHA256 LICENSE LICENSE-AGPL LICENSE-OpenBSV '
+                    }              
+                    archiveArtifacts(artifacts: 'allpay-proxy/allpay-proxy*.zip', followSymlinks: true)
+          } else { 
+          echo 'skipping Docker release packaging..'
+          }
+        }
+        } 
+        
+       } 
+
+    } 
+    
+  
+      post {
+          unsuccessful {
+                  emailext(subject: '$PROJECT_NAME - Build # $BUILD_NUMBER - $BUILD_STATUS!', body: '$PROJECT_NAME - Build # $BUILD_NUMBER - $BUILD_STATUS    ||   Please check attached logfile for more details.', attachLog: true, from: 'buildmaster@xoken.org', replyTo: 'buildmaster@xoken.org', to: 'jenkins-notifications@xoken.org')
+           
+          }
+          fixed {
+                  emailext(subject: '$PROJECT_NAME - Build # $BUILD_NUMBER - $BUILD_STATUS!', body: '$PROJECT_NAME - Build # $BUILD_NUMBER - $BUILD_STATUS  ||  Previous build was not successful and the current builds status is SUCCESS ||  Please check attached logfile for more details.', attachLog: true, from: 'buildmaster@xoken.org', replyTo: 'buildmaster@xoken.org', to: 'jenkins-notifications@xoken.org')
+          }
+      }
+  
+  
 }
