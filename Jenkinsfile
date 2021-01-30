@@ -37,7 +37,7 @@ pipeline {
           sh 'stack install  --local-bin-path  ../build/reg/'
         }
 
-        archiveArtifacts(artifacts: 'build/**/proxy', followSymlinks: true)
+        archiveArtifacts(artifacts: 'build/**/aaproxy', followSymlinks: true)
       }
     }
 
@@ -60,11 +60,11 @@ pipeline {
                       sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-ubuntu1804.cid) git checkout $(basename $(git symbolic-ref HEAD))'
                       sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-ubuntu1804.cid) git pull'
                       sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-ubuntu1804.cid) stack clean'
-                      sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-ubuntu1804.cid) stack install  --local-bin-path  app '
-                      sh 'docker cp $(cat /tmp/proxy-ubuntu1804.cid):/opt/work/allpay-proxy/app/proxy  ./allpay_proxy '
+                      sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-ubuntu1804.cid) stack install  --local-bin-path  . '
+                      sh 'docker cp $(cat /tmp/proxy-ubuntu1804.cid):/opt/work/allpay-proxy/aaproxy  . '
                       sh 'rm -f /tmp/proxy-ubuntu1804.cid'
-                      sh 'sha256sum ./allpay_proxy > Checksum_SHA256'
-                      sh 'zip allpay-proxy_"$(basename $(git symbolic-ref HEAD))"_ubuntu1804.zip allpay_proxy node-config.yaml README.md Checksum_SHA256 LICENSE LICENSE-AGPL LICENSE-OpenBSV '
+                      sh 'sha256sum ./aaproxy > Checksum_SHA256'
+                      sh 'zip allpay-proxy_"$(basename $(git symbolic-ref HEAD))"_ubuntu1804.zip aaproxy node-config.yaml README.md Checksum_SHA256 LICENSE LICENSE-AGPL LICENSE-OpenBSV '
                     }
               echo '****** Starting Ubuntu20.04 container ******'
               dir(path: 'allpay-proxy'){
@@ -77,11 +77,11 @@ pipeline {
                       sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-ubuntu2004.cid) git checkout $(basename $(git symbolic-ref HEAD))'
                       sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-ubuntu2004.cid) git pull'
                       sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-ubuntu2004.cid) stack clean'
-                      sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-ubuntu2004.cid) stack install  --local-bin-path  app '
-                      sh 'docker cp $(cat /tmp/proxy-ubuntu2004.cid):/opt/work/allpay-proxy/app/proxy  ./allpay_proxy '
+                      sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-ubuntu2004.cid) stack install  --local-bin-path  . '
+                      sh 'docker cp $(cat /tmp/proxy-ubuntu2004.cid):/opt/work/allpay-proxy/aaproxy  . '
                       sh 'rm -f /tmp/proxy-ubuntu2004.cid'
-                      sh 'sha256sum ./allpay_proxy > Checksum_SHA256'
-                      sh 'zip allpay-proxy_"$(basename $(git symbolic-ref HEAD))"_ubuntu2004.zip allpay_proxy node-config.yaml README.md Checksum_SHA256 LICENSE LICENSE-AGPL LICENSE-OpenBSV '
+                      sh 'sha256sum ./aaproxy > Checksum_SHA256'
+                      sh 'zip allpay-proxy_"$(basename $(git symbolic-ref HEAD))"_ubuntu2004.zip aaproxy node-config.yaml README.md Checksum_SHA256 LICENSE LICENSE-AGPL LICENSE-OpenBSV '
                     }
               echo '****** Starting Arch Linux container ******'
               dir(path: 'allpay-proxy'){
@@ -94,11 +94,11 @@ pipeline {
                       sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-archlinux.cid) git checkout $(basename $(git symbolic-ref HEAD))'
                       sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-archlinux.cid) git pull'
                       sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-archlinux.cid) stack clean'
-                      sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-archlinux.cid) env LD_PRELOAD=/usr/lib/libjemalloc.so.2 stack install  --local-bin-path  app '
-                      sh 'docker cp $(cat /tmp/proxy-archlinux.cid):/opt/work/allpay-proxy/app/proxy ./allpay_proxy '
+                      sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-archlinux.cid) env LD_PRELOAD=/usr/lib/libjemalloc.so.2 stack install  --local-bin-path  . '
+                      sh 'docker cp $(cat /tmp/proxy-archlinux.cid):/opt/work/allpay-proxy/aaproxy . '
                       sh 'rm -f /tmp/proxy-archlinux.cid'
-                      sh 'sha256sum ./allpay_proxy > Checksum_SHA256'
-                      sh 'zip allpay-proxy_"$(basename $(git symbolic-ref HEAD))"_archlinux.zip allpay_proxy node-config.yaml README.md Checksum_SHA256 LICENSE LICENSE-AGPL LICENSE-OpenBSV '
+                      sh 'sha256sum ./aaproxy > Checksum_SHA256'
+                      sh 'zip allpay-proxy_"$(basename $(git symbolic-ref HEAD))"_archlinux.zip aaproxy node-config.yaml README.md Checksum_SHA256 LICENSE LICENSE-AGPL LICENSE-OpenBSV '
                     }              
                     archiveArtifacts(artifacts: 'allpay-proxy/allpay-proxy*.zip', followSymlinks: true)
           } else { 
