@@ -37,7 +37,6 @@ data NodeConfig =
         , tlsKeyfilePath :: FilePath
         , tlsCertificateStorePath :: FilePath
         , nexaSessionKey :: String
-        , poolTransaction :: String
         , poolAddress :: String
         , poolSecKey :: SecKey
         , faucetKey :: String

@@ -220,12 +220,7 @@ main = do
     let e = xPubExport bsvTest p
     print $ "testnet pubkey" ++ show e
     --
-    pool <- getPool (NC.poolTransaction nodeCnf) (NC.nexaSessionKey nodeCnf)
-    case pool of
-        Just p' -> do
-            print $ "size of pool: " ++ show (Prelude.length p')
-            -- launch node
-            runNode config nodeCnf [certFP, keyFP, csrFP] p'
-        Nothing -> do
-            print "failed to build utxo pool!"
-            return ()
+    pool <- getPoolFromAddress (NC.bitcoinNetwork nodeCnf) (NC.nexaHost nodeCnf) (NC.poolAddress nodeCnf) (NC.nexaSessionKey nodeCnf)
+    print $ "size of pool: " ++ show (Prelude.length pool)
+    -- launch node
+    runNode config nodeCnf [certFP, keyFP, csrFP] pool

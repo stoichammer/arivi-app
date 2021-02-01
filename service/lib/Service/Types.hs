@@ -198,13 +198,14 @@ instance ToJSON Tx' where
 instance ToJSON TxIn' where
     toJSON (TxIn' op scr seq val) = object ["outpoint" .= op, "script" .= scr, "sequence" .= seq, "value" .= val]
 
-data FaucetException
+data ProxyProviderException
     = InvalidFaucetKeyException
     | UserAddressException
+    | PoolAddressException
     | NexaResponseParseException
     deriving (Show, Eq)
 
-instance Exception FaucetException
+instance Exception ProxyProviderException
 
 data GetUtxosByAddressResponse =
     GetUtxosByAddressResponse
@@ -220,9 +221,9 @@ data AddressOutputs =
         { address :: String
         , outputTxHash :: String
         , outputIndex :: Int
-        , txIndex :: Int
-        , blockHash :: String
-        , blockHeight :: Int
+        , txIndex :: Maybe Int
+        , blockHash :: Maybe String
+        , blockHeight :: Maybe Int
         , spendInfo :: Maybe SpendInfo
         , prevOutpoint :: [(OutPoint', Int32, Int64)]
         , value :: Int64

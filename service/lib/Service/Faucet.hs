@@ -37,11 +37,12 @@ import Service.Nexa
 import Service.ProxyProviderUtxo
 import Service.Types
     ( AddressOutputs(..)
-    , FaucetException(..)
+    , ProxyProviderException(..)
     , GetUtxosByAddressResponse(..)
     , NexaRequest(..)
     , RelayTxResponse(..)
     )
+import qualified Service.Types as ST (AddressOutputs (..))
 import System.Logger as LG
 
 import Network.Xoken.Address
@@ -128,10 +129,10 @@ getInputs nexaAddr addr requiredSats cursor
                     (\ao ->
                          SigInput
                              scriptPubKey
-                             (fromIntegral $ (value :: AddressOutputs -> Int64) ao)
+                             (fromIntegral $ (ST.value :: AddressOutputs -> Int64) ao)
                              (OutPoint
                                   (fromJust $ hexToTxHash $ DT.pack $ outputTxHash ao)
-                                  (fromIntegral $ outputIndex ao))
+                                  (fromIntegral $ ST.outputIndex ao))
                              (setForkIdFlag sigHashAll)
                              Nothing) <$>
                     utxos resp
