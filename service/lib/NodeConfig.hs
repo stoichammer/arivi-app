@@ -39,7 +39,7 @@ data NodeConfig =
         , nexaSessionKey :: String
         , poolAddress :: String
         , poolSecKey :: SecKey
-        , faucetKey :: String
+        , faucetSecKey :: SecKey
         , faucetAmt :: Int
         , nexaUsername :: String
         , nexaPassword :: String

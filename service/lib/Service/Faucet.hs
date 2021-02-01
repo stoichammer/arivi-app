@@ -72,8 +72,8 @@ giveCoins :: (HasService env m, MonadIO m) => String -> m Bool
 giveCoins addrBase58 = do
     nodeCnf <- getNodeConfig
     let net = NC.bitcoinNetwork nodeCnf
-        faucetXPrvKey = fromMaybe (throw InvalidFaucetKeyException) $ xPrvImport net (DT.pack $ NC.faucetKey nodeCnf)
-        faucetAddress = xPubAddr $ deriveXPubKey $ faucetXPrvKey
+        faucetSecKey = NC.faucetSecKey nodeCnf
+        faucetAddress = pubKeyAddr $ derivePubKeyI $ wrapSecKey True $ faucetSecKey
         faucetAddressBase58 = DT.unpack $ fromJust $ addrToString net faucetAddress
         faucetScript = addressToScriptBS faucetAddress
         faucetAmount = NC.faucetAmt nodeCnf
@@ -88,7 +88,7 @@ giveCoins addrBase58 = do
                 then []
                 else [TxOut (fromIntegral change) faucetScript]
         unsignedTx = Tx 1 inputs outputs 0
-    case signTx net unsignedTx sigInputs $ (L.take (L.length inputs) $ L.repeat $ xPrvKey faucetXPrvKey) of
+    case signTx net unsignedTx sigInputs $ (L.take (L.length inputs) $ L.repeat faucetSecKey) of
         Right signedTx -> do
             res <- liftIO $ relayTx (NC.nexaHost nodeCnf) (NC.nexaSessionKey nodeCnf) (Data.Serialize.encode signedTx)
             return $ txBroadcast res
