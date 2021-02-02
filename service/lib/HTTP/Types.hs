@@ -78,8 +78,6 @@ data ReqParams'
     = Register
           { rName :: [Int]
           , rXpk :: ByteString
-          , rNutxo :: (OutPoint', Int64)
-          , rRetAddr :: String
           , rCount :: Int
           }
     | PSAllpayTransaction
@@ -93,8 +91,7 @@ data ReqParams'
 instance FromJSON ReqParams' where
     parseJSON (Object o) =
         (PSAllpayTransaction <$> o .: "inputs" <*> o .: "recipient" <*> o .: "amount" <*> o .: "change") <|>
-        (Register <$> o .: "name" <*> (T.encodeUtf8 <$> o .: "xpubKey") <*> o .: "nutxo" <*> o .: "return" <*>
-         o .: "addressCount")
+        (Register <$> o .: "name" <*> (T.encodeUtf8 <$> o .: "xpubKey") <*> o .: "addressCount")
 
 data ResponseBody
     = RespPSAllpayTransaction
@@ -103,7 +100,9 @@ data ResponseBody
           , utxoProof :: [(Bool, Hash256)]
           }
     | RespRegister
-          { registrationTx :: ByteString
+          { opReturnScript :: ByteString
+          , registrationFeeSats :: Int64
+          , paymentAddress :: String
           }
     | RespGiveCoins
           { result :: Bool
@@ -113,7 +112,8 @@ data ResponseBody
 instance ToJSON ResponseBody where
     toJSON (RespPSAllpayTransaction stx ap up) =
         object ["tx" .= (T.decodeUtf8 . B64.encode $ stx), "addressProof" .= ap, "utxoProof" .= up]
-    toJSON (RespRegister stx) = object ["tx" .= (T.decodeUtf8 . B64.encode $ stx)]
+    toJSON (RespRegister opret fee addr) =
+        object ["opReturn" .= (opret), "registrationFeeSats" .= fee, "paymentAddress" .= addr]
     toJSON (RespGiveCoins r) = object ["success" .= r]
 
 makeLenses ''App

@@ -129,7 +129,7 @@ registerNewUser allegoryName pubKey count (nutxo, value) returnAddr = do
                     liftIO $ print $ "HASH TO USE***: " <> (show opRetHash)
                     return $ Right $ stx
 
-registerNewUser' :: (HasService env m, MonadIO m) => [Int] -> C.ByteString -> Int -> m C.ByteString
+registerNewUser' :: (HasService env m, MonadIO m) => [Int] -> C.ByteString -> Int -> m (C.ByteString, Int64, String)
 registerNewUser' allegoryName pubKey count = do
     nodeCnf <- getNodeConfig
     let net = NC.bitcoinNetwork nodeCnf
@@ -137,6 +137,7 @@ registerNewUser' allegoryName pubKey count = do
     addressTVar <- getAddressMap
     userValid <- liftIO $ validateUser (NC.nexaHost nodeCnf) (NC.nexaSessionKey nodeCnf) allegoryName
     let ownerUri = fromMaybe (throw UserValidationException) userValid
+        feeSats = 10000
     regDetails <- getRegistrationDetails net pubKey count
     case regDetails of
         Left err -> throw RegistrationException
@@ -154,7 +155,7 @@ registerNewUser' allegoryName pubKey count = do
             when (isNothing $ M.lookup (show opRetHash) xPubInfo) $
                 liftIO $
                 putValue (DTE.encodeUtf8 $ DT.pack (show opRetHash)) (encodeXPubInfo net $ XPubInfo k count 0 [])
-            return opRetScript
+            return (opRetScript, feeSats, NC.paymentAddress nodeCnf)
 
 cancelRegistration :: (HasService env m, MonadIO m) => Hash256 -> m ()
 cancelRegistration opReturnHash = do

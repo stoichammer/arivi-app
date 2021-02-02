@@ -73,14 +73,13 @@ import qualified Data.Text.Encoding as E
 import LevelDB
 import Network.Xoken.Constants
 import Network.Xoken.Keys
+import Service.AllpayTransaction
 import Service.Data
 import Service.Data.Allegory
 import Service.Env
 import Service.ProxyProviderUtxo
-import Service.Types
-
-import Service.AllpayTransaction
 import Service.Registration
+import Service.Types
 
 data ServiceException
     = KeyValueDBLookupException
@@ -133,18 +132,18 @@ goGetResource msg net = do
                             liftIO $ print $ show res
                             return $ RPCResponse 200 Nothing (Just $ RespPSAllpayTransaction stx addrProof utxoProof)
                 Nothing -> return $ RPCResponse 400 (Just INVALID_PARAMS) Nothing
-        "REGISTER" ->
-            case rqParams msg of
-                Just (Register rname xpk nutxo retaddr count) -> do
-                    res <- registerNewUser rname xpk count nutxo retaddr
-                    case res of
-                        Left err -> return $ RPCResponse 500 (Just INTERNAL_ERROR) Nothing
-                        Right stx -> do
-                            liftIO $ print $ show res
-                            return $ RPCResponse 200 Nothing (Just $ RespRegister stx)
-                Nothing -> return $ RPCResponse 400 (Just INVALID_PARAMS) Nothing
         _____ -> return $ RPCResponse 400 (Just INVALID_METHOD) Nothing
 
+{--        "REGISTER" ->
+            case rqParams msg of
+                Just (Register rname xpk count) -> do
+                    res <- registerNewUser' rname xpk count
+                    case res of
+                        Left (e :: SomeException) -> return $ RPCResponse 500 (Just INTERNAL_ERROR) Nothing
+                        Right stx -> do
+                            liftIO $ print $ show res
+                            return $ RPCResponse 200 Nothing (Just $ RespRegister stx 100 "")
+                Nothing -> return $ RPCResponse 400 (Just INVALID_PARAMS) Nothing --}
 buildProof :: [TxHash] -> Word32 -> PartialMerkleTree
 buildProof hashes index =
     snd $

@@ -37,18 +37,25 @@ import Service.AllpayTransaction
 import Service.Env
 import Service.Faucet
 import Service.Registration
+import qualified Service.Registration as SR (registerNewUser')
+import Service.Types (ProxyProviderException(..))
 import Snap
 import qualified System.Logger as LG
 
 registerNewUser' :: ReqParams' -> Handler App App ()
-registerNewUser' (Register rname xpk nutxo retaddr count) = do
-    res <- registerNewUser rname xpk count nutxo retaddr
+registerNewUser' (Register rname xpk count) = do
+    res <- LE.try $ SR.registerNewUser' rname xpk count
     case res of
-        Left e -> do
+        Left (e :: ProxyProviderException) -> do
             modifyResponse $ setResponseStatus 500 "Internal Server Error"
-            writeBS "INTERNAL_SERVER_ERROR"
-        Right ops -> do
-            writeBS $ BSL.toStrict $ encodeResp True $ (Just $ RespRegister ops)
+            writeBS $
+                case e of
+                    UserValidationException -> "Invalid name-UTXO input: name doesn't exist, or is producer"
+                    RegistrationException -> "Failed to complete registration"
+                    NexaResponseParseException -> "Failed to fetch name-UTXO information from Nexa"
+                    _ -> "Unspecified internal error"
+        Right (opRet, feeSats, addr) -> do
+            writeBS $ BSL.toStrict $ encodeResp True $ (Just $ RespRegister opRet feeSats addr)
 registerNewUser' _ = throwBadRequest
 
 getPartiallySignedAllpayTransaction' :: ReqParams' -> Handler App App ()

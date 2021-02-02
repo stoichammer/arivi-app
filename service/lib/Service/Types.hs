@@ -63,8 +63,6 @@ data RPCReqParams
     | Register
           { rName :: [Int]
           , rXpk :: ByteString
-          , rNutxo :: (OutPoint', Int64)
-          , rRetAddr :: String
           , rCount :: Int
           }
     | GetCoins
@@ -76,8 +74,7 @@ instance FromJSON RPCReqParams where
     parseJSON (Object o) =
         (AddXPubKey <$> (T.encodeUtf8 <$> o .: "xpubKey") <*> o .: "addressCount" <*> o .: "allegoryHash") <|>
         (PSAllpayTransaction <$> o .: "inputs" <*> o .: "recipient" <*> o .: "amount" <*> o .: "change") <|>
-        (Register <$> o .: "name" <*> (T.encodeUtf8 <$> o .: "xpubKey") <*> o .: "nutxo" <*> o .: "return" <*>
-         o .: "addressCount") <|>
+        (Register <$> o .: "name" <*> (T.encodeUtf8 <$> o .: "xpubKey") <*> o .: "addressCount") <|>
         (GetCoins <$> o .: "address")
 
 data RPCResponseBody
@@ -92,7 +89,9 @@ data RPCResponseBody
           , utxoProof :: [(Bool, Hash256)]
           }
     | RespRegister
-          { registrationTx :: ByteString
+          { opReturnScript :: ByteString
+          , registrationFee :: Int
+          , paymentAddress :: String
           }
     deriving (Generic, Show, Eq, Serialise)
 
@@ -100,7 +99,8 @@ instance ToJSON RPCResponseBody where
     toJSON (RespXPubKey rxpb ac uc) = object ["registered" .= rxpb, "addressCommitment" .= ac, "utxoCommitment" .= uc]
     toJSON (RespPSAllpayTransaction stx ap up) =
         object ["tx" .= (T.decodeUtf8 . B64.encode $ stx), "addressProof" .= ap, "utxoProof" .= up]
-    toJSON (RespRegister stx) = object ["tx" .= (T.decodeUtf8 . B64.encode $ stx)]
+    toJSON (RespRegister opret fee addr) =
+        object ["opReturn" .= (T.decodeUtf8 opret), "registrationFeeSats" .= fee, "paymentAddress" .= addr]
 
 -- data BlockRecord =
 --     BlockRecord
