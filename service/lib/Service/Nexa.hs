@@ -13,6 +13,7 @@ type SessionKey = String
 data NexaEndpoint
     = Auth
     | NameOutpoint
+    | FindUri
     | GetUtxosByAddress
     | RelayTransaction
     deriving (Show, Eq, Read)
@@ -26,6 +27,7 @@ nexaPostEndpoint addr ep =
     case ep of
         Auth -> "auth"
         NameOutpoint -> "allegory/name-outpoint"
+        FindUri -> "allegory/reseller-uri"
         RelayTransaction -> "relaytx"
 
 nexaGetEndpoint :: String -> NexaEndpoint -> String -> Int -> String

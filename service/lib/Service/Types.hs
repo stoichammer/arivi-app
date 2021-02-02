@@ -205,6 +205,7 @@ data ProxyProviderException
     | NexaResponseParseException
     | InvalidOpReturnHashException
     | RegistrationException
+    | UserValidationException
     deriving (Show, Eq)
 
 instance Exception ProxyProviderException
@@ -267,14 +268,19 @@ data SpendInfo' =
 
 instance FromJSON SpendInfo'
 
-data NexaRequest =
-    RelayTxRequest
-        { rawTx :: ByteString
-        }
+data NexaRequest
+    = RelayTxRequest
+          { rawTx :: ByteString
+          }
+    | FindUriRequest
+          { name :: [Int]
+          , isProducer :: Bool
+          }
     deriving (Show, Ord, Eq, Read, Generic)
 
 instance ToJSON NexaRequest where
     toJSON (RelayTxRequest r) = object ["rawTx" .= (T.decodeUtf8 $ B64.encode r)]
+    toJSON (FindUriRequest n p) = object ["name" .= n, "isProducer" .= p]
 
 data RelayTxResponse =
     RelayTxResponse
@@ -283,3 +289,15 @@ data RelayTxResponse =
     deriving (Show, Ord, Eq, Read, Generic)
 
 instance FromJSON RelayTxResponse
+
+data FindUriResponse =
+    FindUriResponse
+        { forName :: [Int]
+        , uri :: String
+        , protocol :: String
+        , isConfirmed :: Bool
+        , isProducer :: Bool
+        }
+    deriving (Show, Ord, Eq, Read, Generic)
+
+instance FromJSON FindUriResponse

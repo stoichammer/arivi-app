@@ -13,7 +13,7 @@
 module Service.Registration where
 
 import Codec.Serialise
-import Data.Aeson
+import Data.Aeson as A
 import Data.Aeson.Types
 import Data.ByteString as B
 import Data.ByteString.Base16 as B16
@@ -32,10 +32,12 @@ import Service.Data
 import Service.Data.Allegory
 import qualified Service.Data.Allegory as Al
 import Service.Env
+import Service.Nexa
 import Service.ProxyProviderUtxo
 import Service.Types
 import UtxoPool
 
+import Network.HTTP.Client
 import Network.Xoken.Address
 import Network.Xoken.Block.Merkle
 import Network.Xoken.Crypto.Hash
@@ -45,8 +47,11 @@ import Network.Xoken.Util
 
 import Control.Concurrent.STM
 import Control.Exception
+
+--import Control.Exception.Lifted as LE
 import Control.Monad
 import Control.Monad.IO.Class
+import Control.Monad.IO.Unlift
 import Data.List
 import Data.Maybe
 import Network.Xoken.Constants
@@ -71,7 +76,7 @@ getRegistrationDetails ::
     -> Int
     -> m (Either String (RegDetails, [String], [TxHash], XPubKey))
 getRegistrationDetails net pubKey count = do
-    let res = Data.Aeson.String (DTE.decodeUtf8 pubKey)
+    let res = A.String (DTE.decodeUtf8 pubKey)
     case parse Prelude.id . xPubFromJSON net $ res of
         Success k -> do
             ops <- getFromPool count
@@ -115,7 +120,7 @@ registerNewUser allegoryName pubKey count (nutxo, value) returnAddr = do
                     liftIO $ atomically $ writeTVar aMapTvar (M.alter f (show opRetHash) xPubInfo)
                     liftIO $ atomically $ modifyTVar addressTVar (M.insert (xPubExport net k) addrHashes)
                     names <- liftIO $ M.keys <$> readTVarIO aMapTvar
-                    liftIO $ putValue "names" (BSL.toStrict $ Data.Aeson.encode $ nub $ (show opRetHash) : names)
+                    liftIO $ putValue "names" (BSL.toStrict $ A.encode $ nub $ (show opRetHash) : names)
                     when (isNothing $ M.lookup (show opRetHash) xPubInfo) $
                         liftIO $
                         putValue
@@ -124,18 +129,19 @@ registerNewUser allegoryName pubKey count (nutxo, value) returnAddr = do
                     liftIO $ print $ "HASH TO USE***: " <> (show opRetHash)
                     return $ Right $ stx
 
-registerNewUser' ::
-       (HasService env m, MonadIO m) => [Int] -> C.ByteString -> Int -> (OutPoint', Int64) -> String -> m C.ByteString
-registerNewUser' allegoryName pubKey count (nutxo, value) returnAddr = do
+registerNewUser' :: (HasService env m, MonadIO m) => [Int] -> C.ByteString -> Int -> m C.ByteString
+registerNewUser' allegoryName pubKey count = do
     nodeCnf <- getNodeConfig
     let net = NC.bitcoinNetwork nodeCnf
     aMapTvar <- getXPubHashMap
     addressTVar <- getAddressMap
+    userValid <- liftIO $ validateUser (NC.nexaHost nodeCnf) (NC.nexaSessionKey nodeCnf) allegoryName
+    let ownerUri = fromMaybe (throw UserValidationException) userValid
     regDetails <- getRegistrationDetails net pubKey count
     case regDetails of
         Left err -> throw RegistrationException
         Right (reg, committedOps, addrHashes, k) -> do
-            (opRetScript, opRetHash) <- makeOpReturn allegoryName "someuri" reg
+            (opRetScript, opRetHash) <- makeOpReturn allegoryName ownerUri reg
             xPubInfo <- liftIO $ readTVarIO aMapTvar
             let f x =
                     case x of
@@ -144,7 +150,7 @@ registerNewUser' allegoryName pubKey count (nutxo, value) returnAddr = do
             liftIO $ atomically $ writeTVar aMapTvar (M.alter f (show opRetHash) xPubInfo)
             liftIO $ atomically $ modifyTVar addressTVar (M.insert (xPubExport net k) addrHashes)
             names <- liftIO $ M.keys <$> readTVarIO aMapTvar
-            liftIO $ putValue "names" (BSL.toStrict $ Data.Aeson.encode $ nub $ (show opRetHash) : names)
+            liftIO $ putValue "names" (BSL.toStrict $ A.encode $ nub $ (show opRetHash) : names)
             when (isNothing $ M.lookup (show opRetHash) xPubInfo) $
                 liftIO $
                 putValue (DTE.encodeUtf8 $ DT.pack (show opRetHash)) (encodeXPubInfo net $ XPubInfo k count 0 [])
@@ -210,7 +216,7 @@ makeRegistrationTx net nutxoInput allegoryName retAddr reg = do
             let inputs = [nUtxoIp]
             let outputs = (TxOut 0 opRetScript) : nUtxoOp : []
             let tx = Tx 1 inputs outputs 0
-            let stx = BSL.toStrict $ Data.Aeson.encode tx
+            let stx = BSL.toStrict $ A.encode tx
             return $ Right (stx, opRetHash)
 
 makeOpReturn :: (HasService env m, MonadIO m) => [Int] -> String -> RegDetails -> m (C.ByteString, Hash256)
@@ -232,6 +238,16 @@ makeOpReturn allegoryName ownerUri reg = do
         opRetScript = frameOpReturn $ LC.toStrict $ serialise al
         opRetHash = sha256 $ DTE.encodeUtf8 $ encodeHex opRetScript
     return (opRetScript, opRetHash)
+
+validateUser :: (MonadUnliftIO m) => String -> SessionKey -> [Int] -> m (Maybe String)
+validateUser host sk name = do
+    response <- liftIO $ nexaReq FindUri (A.encode $ FindUriRequest name False) host (Just sk)
+    case A.decode (responseBody response) :: Maybe FindUriResponse of
+        Nothing -> throw NexaResponseParseException
+        Just (FindUriResponse gotName uri _ confirmed producer) -> do
+            if (gotName /= name) || producer -- if the name doesn't exist or is a producer node
+                then return Nothing
+                else return $ Just uri
 
 frameOpReturn :: C.ByteString -> C.ByteString
 frameOpReturn opReturn = do
