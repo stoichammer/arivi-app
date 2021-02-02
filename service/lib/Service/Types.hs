@@ -202,10 +202,12 @@ data ProxyProviderException
     = InvalidFaucetKeyException
     | UserAddressException
     | PoolAddressException
+    | PaymentAddressException
     | NexaResponseParseException
     | InvalidOpReturnHashException
     | RegistrationException
     | UserValidationException
+    | TxParseException
     deriving (Show, Eq)
 
 instance Exception ProxyProviderException
@@ -272,7 +274,7 @@ data NexaRequest
     = RelayTxRequest
           { rawTx :: ByteString
           }
-    | FindUriRequest
+    | NexaNameRequest
           { name :: [Int]
           , isProducer :: Bool
           }
@@ -280,7 +282,7 @@ data NexaRequest
 
 instance ToJSON NexaRequest where
     toJSON (RelayTxRequest r) = object ["rawTx" .= (T.decodeUtf8 $ B64.encode r)]
-    toJSON (FindUriRequest n p) = object ["name" .= n, "isProducer" .= p]
+    toJSON (NexaNameRequest n p) = object ["name" .= n, "isProducer" .= p]
 
 data RelayTxResponse =
     RelayTxResponse
@@ -290,8 +292,8 @@ data RelayTxResponse =
 
 instance FromJSON RelayTxResponse
 
-data FindUriResponse =
-    FindUriResponse
+data ResellerUriResponse =
+    ResellerUriResponse
         { forName :: [Int]
         , uri :: String
         , protocol :: String
@@ -300,4 +302,16 @@ data FindUriResponse =
         }
     deriving (Show, Ord, Eq, Read, Generic)
 
-instance FromJSON FindUriResponse
+instance FromJSON ResellerUriResponse
+
+data NameOutpointResponse =
+    NameOutpointResponse
+        { forName :: [Int]
+        , script :: String
+        , isConfirmed :: Bool
+        , outPoint :: OutPoint'
+        , isProducer :: Bool
+        }
+    deriving (Show, Ord, Eq, Read, Generic)
+
+instance FromJSON NameOutpointResponse

@@ -2,18 +2,22 @@
 
 module Service.Nexa where
 
+import Control.Exception
+import Control.Monad.IO.Unlift
+import Data.Aeson as A
 import Data.ByteString.Char8 as C
 import Data.ByteString.Lazy as L
 import Network.Connection
 import Network.HTTP.Client
 import Network.HTTP.Client.TLS
+import Service.Types
 
 type SessionKey = String
 
 data NexaEndpoint
     = Auth
     | NameOutpoint
-    | FindUri
+    | ResellerUri
     | GetUtxosByAddress
     | RelayTransaction
     deriving (Show, Eq, Read)
@@ -27,7 +31,7 @@ nexaPostEndpoint addr ep =
     case ep of
         Auth -> "auth"
         NameOutpoint -> "allegory/name-outpoint"
-        FindUri -> "allegory/reseller-uri"
+        ResellerUri -> "allegory/reseller-uri"
         RelayTransaction -> "relaytx"
 
 nexaGetEndpoint :: String -> NexaEndpoint -> String -> Int -> String
@@ -80,3 +84,10 @@ nexaGetReq req sk = do
                        C.pack <$> sk)
                 }
     httpLbs req man
+
+relayTx :: (MonadUnliftIO m) => String -> SessionKey -> C.ByteString -> m RelayTxResponse
+relayTx nexaAddr sk tx = do
+    response <- liftIO $ nexaReq RelayTransaction (A.encode $ RelayTxRequest tx) nexaAddr (Just sk)
+    case A.decode (responseBody response) :: Maybe RelayTxResponse of
+        Nothing -> throw NexaResponseParseException
+        Just relayTxResponse -> return relayTxResponse

@@ -21,12 +21,12 @@ import Data.ByteString.Builder
 import Data.ByteString.Char8 as C
 import Data.ByteString.Lazy as BSL
 import Data.ByteString.Lazy.Char8 as LC
+import Data.List as L
 import Data.Map.Strict as M
 import Data.Serialize
 import Data.String (IsString, fromString)
 import qualified Data.Text as DT
 import Data.Text.Encoding as DTE
-
 import Service.AllpayTransaction
 import Service.Data
 import Service.Data.Allegory
@@ -43,6 +43,7 @@ import Network.Xoken.Block.Merkle
 import Network.Xoken.Crypto.Hash
 import Network.Xoken.Keys
 import Network.Xoken.Transaction.Common
+import qualified Network.Xoken.Transaction.Common as TC (TxIn(..))
 import Network.Xoken.Util
 
 import Control.Concurrent.STM
@@ -55,6 +56,7 @@ import Control.Monad.IO.Unlift
 import Data.List
 import Data.Maybe
 import Network.Xoken.Constants
+import Network.Xoken.Network.Message
 import qualified NodeConfig as NC
 
 import Data.Int
@@ -137,7 +139,7 @@ registerNewUser' allegoryName pubKey count = do
     addressTVar <- getAddressMap
     userValid <- liftIO $ validateUser (NC.nexaHost nodeCnf) (NC.nexaSessionKey nodeCnf) allegoryName
     let ownerUri = fromMaybe (throw UserValidationException) userValid
-        feeSats = 10000
+        feeSats = 100000
     regDetails <- getRegistrationDetails net pubKey count
     case regDetails of
         Left err -> throw RegistrationException
@@ -242,13 +244,38 @@ makeOpReturn allegoryName ownerUri reg = do
 
 validateUser :: (MonadUnliftIO m) => String -> SessionKey -> [Int] -> m (Maybe String)
 validateUser host sk name = do
-    response <- liftIO $ nexaReq FindUri (A.encode $ FindUriRequest name False) host (Just sk)
-    case A.decode (responseBody response) :: Maybe FindUriResponse of
+    response <- liftIO $ nexaReq ResellerUri (A.encode $ NexaNameRequest name False) host (Just sk)
+    case A.decode (responseBody response) :: Maybe ResellerUriResponse of
         Nothing -> throw NexaResponseParseException
-        Just (FindUriResponse gotName uri _ confirmed producer) -> do
+        Just (ResellerUriResponse gotName uri _ confirmed producer) -> do
             if (gotName /= name) || producer -- if the name doesn't exist or is a producer node
                 then return Nothing
                 else return $ Just uri
+
+inspectAndRelayRegistrationTx :: (HasService env m, MonadIO m) => C.ByteString -> m Bool
+inspectAndRelayRegistrationTx rawTx = do
+    nodeCfg <- getNodeConfig
+    case runGetState (getConfirmedTx) (rawTx) 0 of
+        Left e -> throw TxParseException
+        Right (mbTx, _) -> do
+            let tx@(Tx version ins outs locktime) = fromMaybe (throw TxParseException) mbTx
+            if verifyPayment (NC.bitcoinNetwork nodeCfg) (NC.paymentAddress nodeCfg) outs
+                then do
+                    let rTx = BSL.toStrict $ A.encode tx
+                    res <- liftIO $ relayTx (NC.nexaHost nodeCfg) (NC.nexaSessionKey nodeCfg) rTx
+                    return $ txBroadcast res
+                else do
+                    let opRetHash = sha256 $ DTE.encodeUtf8 $ encodeHex $ TC.scriptInput $ ins !! 0
+                    cancelRegistration opRetHash
+                    return False
+
+verifyPayment :: Network -> String -> [TxOut] -> Bool
+verifyPayment net paymentAddrString outs = do
+    let paymentScript =
+            addressToScriptBS $ fromMaybe (throw PaymentAddressException) $ stringToAddr net (DT.pack paymentAddrString)
+        paymentOutputs = L.filter (\(TxOut v s) -> s == paymentScript) outs
+        paymentAmount = L.foldr (\(TxOut v0 _) v1 -> (v0 + v1)) 0 paymentOutputs
+     in paymentAmount >= 100000
 
 frameOpReturn :: C.ByteString -> C.ByteString
 frameOpReturn opReturn = do

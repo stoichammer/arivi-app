@@ -80,6 +80,9 @@ data ReqParams'
           , rXpk :: ByteString
           , rCount :: Int
           }
+    | RelayRegistrationTx
+          { rTx :: ByteString
+          }
     | PSAllpayTransaction
           { inputs :: [(OutPoint', Int64)]
           , recipient :: String
@@ -91,6 +94,7 @@ data ReqParams'
 instance FromJSON ReqParams' where
     parseJSON (Object o) =
         (PSAllpayTransaction <$> o .: "inputs" <*> o .: "recipient" <*> o .: "amount" <*> o .: "change") <|>
+        (RelayRegistrationTx . B64.decodeLenient . T.encodeUtf8 <$> o .: "rawTx") <|>
         (Register <$> o .: "name" <*> (T.encodeUtf8 <$> o .: "xpubKey") <*> o .: "addressCount")
 
 data ResponseBody
@@ -104,6 +108,9 @@ data ResponseBody
           , registrationFeeSats :: Int64
           , paymentAddress :: String
           }
+    | RespRelayRegistrationTx
+          { result :: Bool
+          }
     | RespGiveCoins
           { result :: Bool
           }
@@ -114,6 +121,7 @@ instance ToJSON ResponseBody where
         object ["tx" .= (T.decodeUtf8 . B64.encode $ stx), "addressProof" .= ap, "utxoProof" .= up]
     toJSON (RespRegister opret fee addr) =
         object ["opReturn" .= (opret), "registrationFeeSats" .= fee, "paymentAddress" .= addr]
+    toJSON (RespRelayRegistrationTx rTx) = object ["success" .= rTx]
     toJSON (RespGiveCoins r) = object ["success" .= r]
 
 makeLenses ''App

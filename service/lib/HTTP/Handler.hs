@@ -53,7 +53,7 @@ registerNewUser' (Register rname xpk count) = do
                     UserValidationException -> "Invalid name-UTXO input: name doesn't exist, or is producer"
                     RegistrationException -> "Failed to complete registration"
                     NexaResponseParseException -> "Failed to fetch name-UTXO information from Nexa"
-                    _ -> "Unspecified internal error"
+                    _ -> "Internal server error"
         Right (opRet, feeSats, addr) -> do
             writeBS $ BSL.toStrict $ encodeResp True $ (Just $ RespRegister opRet feeSats addr)
 registerNewUser' _ = throwBadRequest
@@ -81,6 +81,20 @@ getCoins' = do
                     modifyResponse $ setResponseStatus 500 "Internal Server Error"
                     writeBS "INTERNAL_SERVER_ERROR"
                 Right r -> writeBS $ BSL.toStrict $ encodeResp True $ (Just $ RespGiveCoins r)
+
+relayRegistrationTx :: ReqParams' -> Handler App App ()
+relayRegistrationTx (RelayRegistrationTx tx) = do
+    res <- LE.try $ inspectAndRelayRegistrationTx tx
+    case res of
+        Left (e :: ProxyProviderException) -> do
+            modifyResponse $ setResponseStatus 500 "Internal Server Error"
+            writeBS $
+                case e of
+                    TxParseException -> "Invalid transaction input"
+                    InvalidOpReturnHashException -> "Invalid OP_RETURN data not recognized by proxy provider"
+                    PaymentAddressException -> "Internal server error"
+                    _ -> "Internal server error"
+        Right status -> writeBS $ BSL.toStrict $ encodeResp True $ RespRelayRegistrationTx status
 
 throwBadRequest :: Handler App App ()
 throwBadRequest = do
