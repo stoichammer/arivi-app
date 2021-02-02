@@ -204,6 +204,7 @@ data ProxyProviderException
     | PoolAddressException
     | NexaResponseParseException
     | InvalidOpReturnHashException
+    | RegistrationException
     deriving (Show, Eq)
 
 instance Exception ProxyProviderException

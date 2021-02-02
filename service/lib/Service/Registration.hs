@@ -124,6 +124,32 @@ registerNewUser allegoryName pubKey count (nutxo, value) returnAddr = do
                     liftIO $ print $ "HASH TO USE***: " <> (show opRetHash)
                     return $ Right $ stx
 
+registerNewUser' ::
+       (HasService env m, MonadIO m) => [Int] -> C.ByteString -> Int -> (OutPoint', Int64) -> String -> m C.ByteString
+registerNewUser' allegoryName pubKey count (nutxo, value) returnAddr = do
+    nodeCnf <- getNodeConfig
+    let net = NC.bitcoinNetwork nodeCnf
+    aMapTvar <- getXPubHashMap
+    addressTVar <- getAddressMap
+    regDetails <- getRegistrationDetails net pubKey count
+    case regDetails of
+        Left err -> throw RegistrationException
+        Right (reg, committedOps, addrHashes, k) -> do
+            (opRetScript, opRetHash) <- makeOpReturn allegoryName "someuri" reg
+            xPubInfo <- liftIO $ readTVarIO aMapTvar
+            let f x =
+                    case x of
+                        Just v -> Just v
+                        Nothing -> Just (XPubInfo k count 0 committedOps)
+            liftIO $ atomically $ writeTVar aMapTvar (M.alter f (show opRetHash) xPubInfo)
+            liftIO $ atomically $ modifyTVar addressTVar (M.insert (xPubExport net k) addrHashes)
+            names <- liftIO $ M.keys <$> readTVarIO aMapTvar
+            liftIO $ putValue "names" (BSL.toStrict $ Data.Aeson.encode $ nub $ (show opRetHash) : names)
+            when (isNothing $ M.lookup (show opRetHash) xPubInfo) $
+                liftIO $
+                putValue (DTE.encodeUtf8 $ DT.pack (show opRetHash)) (encodeXPubInfo net $ XPubInfo k count 0 [])
+            return opRetScript
+
 cancelRegistration :: (HasService env m, MonadIO m) => Hash256 -> m ()
 cancelRegistration opReturnHash = do
     nodeCnf <- getNodeConfig
@@ -135,6 +161,7 @@ cancelRegistration opReturnHash = do
             fromMaybe (throw InvalidOpReturnHashException) $ M.lookup (show opReturnHash) aMap
     -- delete XPubKey registration
     liftIO $ atomically $ modifyTVar aMapTVar $ M.delete $ show opReturnHash
+    liftIO $ deleteValue (DTE.encodeUtf8 $ DT.pack $ show opReturnHash)
     -- delete address hashes (Merkle leaves)
     liftIO $ atomically $ modifyTVar addressTVar $ M.delete $ xPubExport net xpk
     -- free up committed utxos; return them to pool
@@ -185,6 +212,26 @@ makeRegistrationTx net nutxoInput allegoryName retAddr reg = do
             let tx = Tx 1 inputs outputs 0
             let stx = BSL.toStrict $ Data.Aeson.encode tx
             return $ Right (stx, opRetHash)
+
+makeOpReturn :: (HasService env m, MonadIO m) => [Int] -> String -> RegDetails -> m (C.ByteString, Hash256)
+makeOpReturn allegoryName ownerUri reg = do
+    providerUri <- NC.proxyProviderUri <$> getNodeConfig
+    let al =
+            Allegory
+                1
+                allegoryName
+                (OwnerAction
+                     (Al.Index 0)
+                     (OwnerOutput (Al.Index 1) (Just $ Endpoint "XokenP2P" ownerUri))
+                     [ ProxyProvider
+                           "AllPay"
+                           "Public"
+                           (Endpoint "XokenP2P" providerUri)
+                           (Registration (addrCom reg) (utxoCom reg) "" (fromIntegral $ exp' reg))
+                     ])
+        opRetScript = frameOpReturn $ LC.toStrict $ serialise al
+        opRetHash = sha256 $ DTE.encodeUtf8 $ encodeHex opRetScript
+    return (opRetScript, opRetHash)
 
 frameOpReturn :: C.ByteString -> C.ByteString
 frameOpReturn opReturn = do
