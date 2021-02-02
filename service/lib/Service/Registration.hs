@@ -44,6 +44,7 @@ import Network.Xoken.Transaction.Common
 import Network.Xoken.Util
 
 import Control.Concurrent.STM
+import Control.Exception
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.List
@@ -123,29 +124,22 @@ registerNewUser allegoryName pubKey count (nutxo, value) returnAddr = do
                     liftIO $ print $ "HASH TO USE***: " <> (show opRetHash)
                     return $ Right $ stx
 
-ref12345 net pubKey count name = do
-    aMapTvar <- getXPubHashMap
+cancelRegistration :: (HasService env m, MonadIO m) => Hash256 -> m ()
+cancelRegistration opReturnHash = do
+    nodeCnf <- getNodeConfig
+    let net = NC.bitcoinNetwork nodeCnf
+    aMapTVar <- getXPubHashMap
     addressTVar <- getAddressMap
-    let res = Data.Aeson.String (DTE.decodeUtf8 pubKey)
-    case parse Prelude.id . xPubFromJSON net $ res of
-        Success k -> do
-            committedOutpoints <- getFromPool count
-            let utxoRoot = buildMerkleRoot $ outpointHashes committedOutpoints
-            let addrRoot = buildMerkleRoot $ (getAddressList k count)
-            xPubInfo <- liftIO $ readTVarIO aMapTvar
-            let f x =
-                    case x of
-                        Just v -> Just v
-                        Nothing -> Just (XPubInfo k count 0 committedOutpoints)
-            liftIO $ atomically $ writeTVar aMapTvar (M.alter f name xPubInfo)
-            liftIO $ atomically $ modifyTVar addressTVar (M.insert (xPubExport net k) (getAddressList k count))
-            names <- liftIO $ M.keys <$> readTVarIO aMapTvar
-            liftIO $ putValue "names" (BSL.toStrict $ Data.Aeson.encode $ nub $ name : names)
-            when (isNothing $ M.lookup name xPubInfo) $
-                liftIO $ putValue (DTE.encodeUtf8 $ DT.pack name) (encodeXPubInfo net $ XPubInfo k count 0 [])
-            return $ Right $ (True, (show utxoRoot), (show addrRoot))
-        Error err -> do
-            return $ Left $ "error occurred while decoding XPubKey: " <> show err
+    aMap <- liftIO $ readTVarIO aMapTVar
+    let (XPubInfo xpk count used committedOps) =
+            fromMaybe (throw InvalidOpReturnHashException) $ M.lookup (show opReturnHash) aMap
+    -- delete XPubKey registration
+    liftIO $ atomically $ modifyTVar aMapTVar $ M.delete $ show opReturnHash
+    -- delete address hashes (Merkle leaves)
+    liftIO $ atomically $ modifyTVar addressTVar $ M.delete $ xPubExport net xpk
+    -- free up committed utxos; return them to pool
+    putBackInPool committedOps
+    return ()
 
 makeRegistrationTx ::
        (HasService env m, MonadIO m)

@@ -203,6 +203,7 @@ data ProxyProviderException
     | UserAddressException
     | PoolAddressException
     | NexaResponseParseException
+    | InvalidOpReturnHashException
     deriving (Show, Eq)
 
 instance Exception ProxyProviderException
