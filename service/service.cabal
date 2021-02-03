@@ -1,45 +1,30 @@
-name:        service
-version:     0.1.0.0
-synopsis:    Services running on p2p.
+cabal-version: 2.0
 
-description: The arivi library is a generic library to build P2P
-  network of computational nodes that exchange information from
-  time-to-time. The library is agnostic towards the network layer and
-  can be plugged in with different protocols as long as it allows the
-  exchange of peering information. Network layer for some common
-  protocol layers are supported.
 
-homepage:         http://github.com/xoken/allpay-proxy
-bug-reports:      https://github.com/xoken/allpay-proxy/issues
-
-license:      BSD3
-license-file: LICENSE
-author:       Unknown
-maintainer:   ppk@cse.iitk.ac.in
-category:           Network
-build-type:         Simple
-extra-source-files: CHANGELOG.md, README.md
-cabal-version:      >=1.10
+name:          service
+version:       0.1
+synopsis:      Allpay Proxy Provider
+description: 
+homepage:      http://github.com/xoken/allpay-proxy
+bug-reports:   https://github.com/xoken/allpay-proxy/issues
+license:       BSD3
+author:        Unknown
+maintainer:   
+category:      Network
+build-type:    Simple
 
 source-repository head
   type: git
   location: https://github.com/xoken/allpay-proxy
 
-flag network-uri
- description: Get Network.URI from the network-uri package
- default: True
-
 executable aaproxy
   hs-source-dirs: app, lib
   main-is: Main.hs
   ghc-options: -O2 -threaded
-  build-depends:  arivi-p2p
-                , base >=4.9 && <4.11
+  build-depends:  base >=4.9 && <4.11
                 , yaml
                 , cryptonite
-                , arivi-network
                 , network
-                , arivi-crypto
                 , memory
                 , time
                 , cborg <=0.2.0.0
@@ -51,7 +36,6 @@ executable aaproxy
                 , monad-loops
                 , monad-logger
                 , async
-                , arivi-utils
                 , stm
                 , lifted-async
                 , ghc-prim
@@ -100,13 +84,6 @@ executable aaproxy
                 , hashtables
                 , lens
                 , req
-                --, extra
-                --, monad-control
-
-  if flag(network-uri)
-     build-depends: network-uri >= 2.6, network >= 2.6
-  else
-     build-depends: network < 2.6
 
   other-modules:
          NodeConfig
@@ -116,13 +93,11 @@ executable aaproxy
          Service
          Service.Types
          Service.Env
-         Service.Data
          Service.AllpayTransaction
          Service.ProxyProviderUtxo
          Service.Data.Allegory
          Service.Registration
          LevelDB
-         TLSServer
          UtxoPool
 
   default-language:    Haskell2010

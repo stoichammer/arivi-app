@@ -6,7 +6,6 @@ module NodeConfig
     ( module NodeConfig
     ) where
 
-import Arivi.P2P.Kademlia.Types
 import Control.Exception
 import Control.Monad (guard)
 import qualified Data.ByteString as BS
