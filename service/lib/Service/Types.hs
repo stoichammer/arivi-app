@@ -202,7 +202,6 @@ data ProxyProviderException
     = InvalidFaucetKeyException
     | UserAddressException
     | PoolAddressException
-    | PaymentAddressException
     | NexaResponseParseException
     | InvalidOpReturnHashException
     | RegistrationException
@@ -211,6 +210,14 @@ data ProxyProviderException
     deriving (Show, Eq)
 
 instance Exception ProxyProviderException
+
+data RegValidationException
+    = RawTxParseException
+    | InvalidNameException
+    | PaymentAddressException
+    deriving (Show, Eq)
+
+instance Exception RegValidationException
 
 data GetUtxosByAddressResponse =
     GetUtxosByAddressResponse

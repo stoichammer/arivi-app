@@ -156,7 +156,9 @@ registerNewUser' allegoryName pubKey count = do
             liftIO $ putValue "names" (BSL.toStrict $ A.encode $ nub $ (show opRetHash) : names)
             when (isNothing $ M.lookup (show opRetHash) xPubInfo) $
                 liftIO $
-                putValue (DTE.encodeUtf8 $ DT.pack (show opRetHash)) (encodeXPubInfo net $ XPubInfo k count 0 committedOps)
+                putValue
+                    (DTE.encodeUtf8 $ DT.pack (show opRetHash))
+                    (encodeXPubInfo net $ XPubInfo k count 0 committedOps)
             return (opRetScript, feeSats, NC.paymentAddress nodeCnf)
 
 cancelRegistration :: (HasService env m, MonadIO m) => Hash256 -> m ()
@@ -166,8 +168,7 @@ cancelRegistration opReturnHash = do
     aMapTVar <- getXPubHashMap
     addressTVar <- getAddressMap
     aMap <- liftIO $ readTVarIO aMapTVar
-    let (XPubInfo xpk count used committedOps) =
-            fromMaybe (throw InvalidOpReturnHashException) $ M.lookup (show opReturnHash) aMap
+    let (XPubInfo xpk count used committedOps) = fromJust $ M.lookup (show opReturnHash) aMap
     -- delete XPubKey registration
     liftIO $ atomically $ modifyTVar aMapTVar $ M.delete $ show opReturnHash
     liftIO $ deleteValue (DTE.encodeUtf8 $ DT.pack $ show opReturnHash)
@@ -255,17 +256,20 @@ validateUser host sk name = do
 inspectAndRelayRegistrationTx :: (HasService env m, MonadIO m) => C.ByteString -> m Bool
 inspectAndRelayRegistrationTx rawTx = do
     nodeCfg <- getNodeConfig
-    case runGetState (getConfirmedTx) (rawTx) 0 of
-        Left e -> throw TxParseException
+    regMapTVar <- getXPubHashMap
+    regMap <- liftIO $ readTVarIO regMapTVar
+    case runGetState getConfirmedTx rawTx 0 of
+        Left e -> throw RawTxParseException
         Right (mbTx, _) -> do
-            let tx@(Tx version ins outs locktime) = fromMaybe (throw TxParseException) mbTx
+            let tx@(Tx version ins outs locktime) = fromMaybe (throw RawTxParseException) mbTx
+                opRetHash = sha256 $ DTE.encodeUtf8 $ encodeHex $ TC.scriptInput $ ins !! 0
+                reg = fromMaybe (throw InvalidNameException) $ M.lookup (show opRetHash) regMap
             if verifyPayment (NC.bitcoinNetwork nodeCfg) (NC.paymentAddress nodeCfg) outs
                 then do
                     let rTx = BSL.toStrict $ A.encode tx
                     res <- liftIO $ relayTx (NC.nexaHost nodeCfg) (NC.nexaSessionKey nodeCfg) rTx
                     return $ txBroadcast res
                 else do
-                    let opRetHash = sha256 $ DTE.encodeUtf8 $ encodeHex $ TC.scriptInput $ ins !! 0
                     cancelRegistration opRetHash
                     return False
 

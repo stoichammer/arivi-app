@@ -38,7 +38,7 @@ import Service.Env
 import Service.Faucet
 import Service.Registration
 import qualified Service.Registration as SR (registerNewUser')
-import Service.Types (ProxyProviderException(..))
+import Service.Types (ProxyProviderException(..), RegValidationException(..))
 import Snap
 import qualified System.Logger as LG
 
@@ -86,14 +86,19 @@ relayRegistrationTx :: ReqParams' -> Handler App App ()
 relayRegistrationTx (RelayRegistrationTx tx) = do
     res <- LE.try $ inspectAndRelayRegistrationTx tx
     case res of
-        Left (e :: ProxyProviderException) -> do
-            modifyResponse $ setResponseStatus 500 "Internal Server Error"
-            writeBS $
-                case e of
-                    TxParseException -> "Invalid transaction input"
-                    InvalidOpReturnHashException -> "Invalid OP_RETURN data not recognized by proxy provider"
-                    PaymentAddressException -> "Internal server error"
-                    _ -> "Internal server error"
+        Left (e :: RegValidationException) -> do
+            case e of
+                PaymentAddressException -> do
+                    liftIO $ putStrLn "Configuration error: Payment Address invalid!"
+                    modifyResponse $ setResponseStatus 500 "Internal Server Error"
+                    writeBS $ "Internal Server Error"
+                RawTxParseException -> do
+                    modifyResponse $ setResponseStatus 400 "Bad Request"
+                    writeBS $
+                        "Failed to parse raw transaction: incorrect encoding or bad format (require base64 encoding)"
+                InvalidNameException -> do
+                    modifyResponse $ setResponseStatus 404 "Not Found"
+                    writeBS $ "Name not found. Use registration API first"
         Right status -> writeBS $ BSL.toStrict $ encodeResp True $ RespRelayRegistrationTx status
 
 throwBadRequest :: Handler App App ()
