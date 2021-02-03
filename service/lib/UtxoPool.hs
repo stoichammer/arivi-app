@@ -39,7 +39,13 @@ getPoolFromAddress net nexaAddr poolAddrString sessionKey = do
         poolAddress = fromMaybe (throw PoolAddressException) $ stringToAddr net (DT.pack poolAddrString)
     response <- liftIO $ nexaGetReq req (Just sessionKey)
     case A.decode (responseBody response) :: Maybe GetUtxosByAddressResponse of
-        Nothing -> throw NexaResponseParseException
+        Nothing -> do
+            putStrLn $
+                "Error: Failed to fetch pool. Nexa responded with status " <> (show $ responseStatus response) <>
+                ", response body: '" <>
+                (show $ responseBody response) <>
+                "'"
+            throw NexaResponseParseException
         Just resp -> do
             return $
                 (\(AddressOutputs addr txHash txIndex _ _ _ _ _ val) ->
