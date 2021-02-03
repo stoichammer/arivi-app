@@ -127,7 +127,7 @@ registerNewUser allegoryName pubKey count (nutxo, value) returnAddr = do
                         liftIO $
                         putValue
                             (DTE.encodeUtf8 $ DT.pack (show opRetHash))
-                            (encodeXPubInfo net $ XPubInfo k count 0 [])
+                            (encodeXPubInfo net $ XPubInfo k count 0 committedOps)
                     liftIO $ print $ "HASH TO USE***: " <> (show opRetHash)
                     return $ Right $ stx
 
@@ -156,7 +156,7 @@ registerNewUser' allegoryName pubKey count = do
             liftIO $ putValue "names" (BSL.toStrict $ A.encode $ nub $ (show opRetHash) : names)
             when (isNothing $ M.lookup (show opRetHash) xPubInfo) $
                 liftIO $
-                putValue (DTE.encodeUtf8 $ DT.pack (show opRetHash)) (encodeXPubInfo net $ XPubInfo k count 0 [])
+                putValue (DTE.encodeUtf8 $ DT.pack (show opRetHash)) (encodeXPubInfo net $ XPubInfo k count 0 committedOps)
             return (opRetScript, feeSats, NC.paymentAddress nodeCnf)
 
 cancelRegistration :: (HasService env m, MonadIO m) => Hash256 -> m ()
