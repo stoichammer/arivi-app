@@ -37,11 +37,12 @@ import Service.Nexa
 import Service.ProxyProviderUtxo
 import Service.Types
     ( AddressOutputs(..)
-    , FaucetException(..)
     , GetUtxosByAddressResponse(..)
     , NexaRequest(..)
+    , ProxyProviderException(..)
     , RelayTxResponse(..)
     )
+import qualified Service.Types as ST (AddressOutputs(..))
 import System.Logger as LG
 
 import Network.Xoken.Address
@@ -93,13 +94,6 @@ giveCoins addrBase58 = do
             return $ txBroadcast res
         Left err -> return False
 
-relayTx :: (MonadUnliftIO m) => String -> SessionKey -> C.ByteString -> m RelayTxResponse
-relayTx nexaAddr sk tx = do
-    response <- liftIO $ nexaReq RelayTransaction (A.encode $ RelayTxRequest tx) nexaAddr (Just sk)
-    case A.decode (responseBody response) :: Maybe RelayTxResponse of
-        Nothing -> throw NexaResponseParseException
-        Just relayTxResponse -> return relayTxResponse
-
 getInputs :: (HasService env m, MonadIO m) => String -> String -> Int -> Maybe String -> m [SigInput]
 getInputs nexaAddr addr requiredSats cursor
     --lg <- getLogger
@@ -128,10 +122,10 @@ getInputs nexaAddr addr requiredSats cursor
                     (\ao ->
                          SigInput
                              scriptPubKey
-                             (fromIntegral $ (value :: AddressOutputs -> Int64) ao)
+                             (fromIntegral $ (ST.value :: AddressOutputs -> Int64) ao)
                              (OutPoint
                                   (fromJust $ hexToTxHash $ DT.pack $ outputTxHash ao)
-                                  (fromIntegral $ outputIndex ao))
+                                  (fromIntegral $ ST.outputIndex ao))
                              (setForkIdFlag sigHashAll)
                              Nothing) <$>
                     utxos resp

@@ -37,7 +37,6 @@ data NodeConfig =
         , tlsKeyfilePath :: FilePath
         , tlsCertificateStorePath :: FilePath
         , nexaSessionKey :: String
-        , poolTransaction :: String
         , poolAddress :: String
         , poolSecKey :: SecKey
         , faucetKey :: String
@@ -45,6 +44,7 @@ data NodeConfig =
         , nexaUsername :: String
         , nexaPassword :: String
         , nexaHost :: String
+        , paymentAddress :: String
         , proxyProviderUri :: String
         }
     deriving (Show, Generic)

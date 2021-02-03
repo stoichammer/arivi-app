@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -46,7 +47,6 @@ import NodeConfig as NC
 import Service.Data
 import Service.Data.Utxo
 import Service.Types
-import UtxoPool
 
 data ServiceResource =
     AriviSecureRPC
@@ -87,6 +87,25 @@ getAddressList pubKey count =
 
 outpointHashes :: [String] -> [TxHash]
 outpointHashes outpoints = (TxHash . doubleSHA256 . S.encode) <$> outpoints
+
+data ProxyProviderUtxo =
+    Unspent
+        { address :: String
+        , txid :: String
+        , outputIndex :: Int
+        , value :: Int
+        , scriptPubKey :: String
+        }
+    deriving (Show, Eq, Hashable, Generic, Serialise)
+
+instance FromJSON ProxyProviderUtxo where
+    parseJSON (Object o) =
+        (Unspent <$> o .: "address" <*> o .: "txid" <*> o .: "vout" <*> o .: "value" <*> o .: "scriptPubKey")
+
+instance ToJSON ProxyProviderUtxo where
+    toJSON (Unspent a t o v s) =
+        object ["address" .= a, "txid" .= t, "outputIndex" .= o, "value" .= v, "scriptPubKey" .= s]
+
 
 data EndPointEnv =
     EndPointEnv

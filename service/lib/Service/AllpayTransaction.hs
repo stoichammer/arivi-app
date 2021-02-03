@@ -83,14 +83,14 @@ import Service.Data
 import Service.Env
 import Service.ProxyProviderUtxo
 import Service.Types
-import qualified UtxoPool as U
+import qualified Service.Env as SE (ProxyProviderUtxo (..))
 
 -- get address, pptuxo and Merkle proofs for address and pputxo
 getAddressAndProxyUtxo ::
        (HasService env m, MonadIO m)
     => Network
     -> String
-    -> m (Either String (String, U.ProxyProviderUtxo, [(Bool, Hash256)], [(Bool, Hash256)]))
+    -> m (Either String (String, SE.ProxyProviderUtxo, [(Bool, Hash256)], [(Bool, Hash256)]))
 getAddressAndProxyUtxo net name = do
     aMapTvar <- getXPubHashMap
     addressTvar <- getAddressMap
@@ -149,31 +149,31 @@ getPartiallySignedAllpayTransaction inputs amount receiverName changeAddr = do
         Left err -> return $ Left $ "failed to get address or proxy-provider utxo: " ++ err
         Right (addr, pputxo, addrProof, utxoProof) -> do
             -- let ppOutPoint = OutPoint (TxHash $ fromString $ txid $ pputxo) (fromIntegral $ outputIndex $ pputxo)
-            let ppOutPoint = OutPoint (fromJust $ hexToTxHash $ DT.pack $ U.txid $ pputxo) (fromIntegral $ U.outputIndex $ pputxo)
+            let ppOutPoint = OutPoint (fromJust $ hexToTxHash $ DT.pack $ SE.txid $ pputxo) (fromIntegral $ SE.outputIndex $ pputxo)
             let inputs' = ppOutPoint : ((\(outpoint, _) -> outpoint) <$> inputsOp)
             -- compute fee at 5 sat/byte
             let fee = guessTxFee (fromIntegral 5) (1 + length inputs) 2
             -- compute change
             let totalInput = L.foldl (+) 0 $ (\(_, val) -> val) <$> inputsOp
-            let values = (U.value pputxo) : ((\(_, value) -> fromIntegral value) <$> inputsOp)
+            let values = (SE.value pputxo) : ((\(_, value) -> fromIntegral value) <$> inputsOp)
             -- let values = [50]
             let change = totalInput - (amount + fromIntegral fee)
             -- add proxy-provider utxo output
             let outputs =
-                    [ (DT.pack poolAddr, fromIntegral $ U.value $ pputxo)
+                    [ (DT.pack poolAddr, fromIntegral $ SE.value $ pputxo)
                     , (DT.pack addr, fromIntegral amount)
                     , (DT.pack changeAddr, fromIntegral change)
                     ]
             case buildAddrTx net inputs' outputs of
                 Left err -> return $ Left $ "failed to build transaction: " ++ err
                 Right tx -> do
-                    case decodeOutputBS ((fst . B16.decode) (E.encodeUtf8 $ DT.pack $ U.scriptPubKey pputxo)) of
+                    case decodeOutputBS ((fst . B16.decode) (E.encodeUtf8 $ DT.pack $ SE.scriptPubKey pputxo)) of
                         Left err -> return $ Left $ "failed to decode proxy-provider utxo script: " ++ err
                         Right so -> do
                             let si =
                                     SigInput
                                         so
-                                        (fromIntegral $ U.value pputxo)
+                                        (fromIntegral $ SE.value pputxo)
                                         ppOutPoint
                                         (setForkIdFlag sigHashAll)
                                         Nothing
