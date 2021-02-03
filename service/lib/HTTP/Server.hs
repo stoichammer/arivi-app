@@ -20,5 +20,6 @@ apiRoutes :: [(B.ByteString, Handler App App ())]
 apiRoutes =
     [ ("/v1/register", method POST (withReq registerNewUser'))
     , ("/v1/ps-allpay-tx", method POST (withReq getPartiallySignedAllpayTransaction'))
+    , ("/v1/relay-registration-tx", method POST (withReq relayRegistrationTx))
     , ("/v1/faucet/:address", method GET (getCoins'))
     ]

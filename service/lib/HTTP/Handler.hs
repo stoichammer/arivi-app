@@ -37,18 +37,25 @@ import Service.AllpayTransaction
 import Service.Env
 import Service.Faucet
 import Service.Registration
+import qualified Service.Registration as SR (registerNewUser')
+import Service.Types (ProxyProviderException(..), RegValidationException(..))
 import Snap
 import qualified System.Logger as LG
 
 registerNewUser' :: ReqParams' -> Handler App App ()
-registerNewUser' (Register rname xpk nutxo retaddr count) = do
-    res <- registerNewUser rname xpk count nutxo retaddr
+registerNewUser' (Register rname xpk count) = do
+    res <- LE.try $ SR.registerNewUser' rname xpk count
     case res of
-        Left e -> do
+        Left (e :: ProxyProviderException) -> do
             modifyResponse $ setResponseStatus 500 "Internal Server Error"
-            writeBS "INTERNAL_SERVER_ERROR"
-        Right ops -> do
-            writeBS $ BSL.toStrict $ encodeResp True $ (Just $ RespRegister ops)
+            writeBS $
+                case e of
+                    UserValidationException -> "Invalid name-UTXO input: name doesn't exist, or is producer"
+                    RegistrationException -> "Failed to complete registration"
+                    NexaResponseParseException -> "Failed to fetch name-UTXO information from Nexa"
+                    _ -> "Internal server error"
+        Right (opRet, feeSats, addr) -> do
+            writeBS $ BSL.toStrict $ encodeResp True $ (Just $ RespRegister opRet feeSats addr)
 registerNewUser' _ = throwBadRequest
 
 getPartiallySignedAllpayTransaction' :: ReqParams' -> Handler App App ()
@@ -74,6 +81,25 @@ getCoins' = do
                     modifyResponse $ setResponseStatus 500 "Internal Server Error"
                     writeBS "INTERNAL_SERVER_ERROR"
                 Right r -> writeBS $ BSL.toStrict $ encodeResp True $ (Just $ RespGiveCoins r)
+
+relayRegistrationTx :: ReqParams' -> Handler App App ()
+relayRegistrationTx (RelayRegistrationTx tx) = do
+    res <- LE.try $ inspectAndRelayRegistrationTx tx
+    case res of
+        Left (e :: RegValidationException) -> do
+            case e of
+                PaymentAddressException -> do
+                    liftIO $ putStrLn "Configuration error: Payment Address invalid!"
+                    modifyResponse $ setResponseStatus 500 "Internal Server Error"
+                    writeBS $ "Internal Server Error"
+                RawTxParseException -> do
+                    modifyResponse $ setResponseStatus 400 "Bad Request"
+                    writeBS $
+                        "Failed to parse raw transaction: incorrect encoding or bad format (require base64 encoding)"
+                InvalidNameException -> do
+                    modifyResponse $ setResponseStatus 404 "Not Found"
+                    writeBS $ "Name not found. Use registration API first"
+        Right status -> writeBS $ BSL.toStrict $ encodeResp True $ RespRelayRegistrationTx status
 
 throwBadRequest :: Handler App App ()
 throwBadRequest = do
