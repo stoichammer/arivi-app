@@ -62,12 +62,17 @@ import qualified Snap as Snap
 import StmContainers.Map as H
 import System.Directory
 import System.Environment (getArgs)
+import System.IO as IO (putStrLn)
+import System.Posix.Daemon
 import UtxoPool
 
 runNode :: NC.NodeConfig -> [FilePath] -> [ProxyProviderUtxo] -> IO ()
 runNode nodeConfig certPaths pool = do
+    IO.putStrLn "------------------------------"
+    IO.putStrLn "Starting Allpay Proxy-Provider"
+    IO.putStrLn "------------------------------"
+    IO.putStrLn $ "Size of ppUTXO pool: " ++ show (Prelude.length pool)
     let net = NC.bitcoinNetwork nodeConfig
-    print $ "sec key: " ++ show (NC.poolSecKey nodeConfig)
     -- read xpubKeys and build a HashMap
     allXPubKeys <-
         fmap (Prelude.map (Data.Text.unpack) . fromMaybe [] . Data.Aeson.decode . BSL.fromStrict) <$> getValue "names" :: IO (Maybe [String])
@@ -126,6 +131,6 @@ main = do
             (NC.nexaHost nodeCnf)
             (NC.poolAddress nodeCnf)
             (NC.nexaSessionKey nodeCnf)
-    print $ "size of pool: " ++ show (Prelude.length pool)
-    -- launch node
-    runNode nodeCnf [certFP, keyFP, csrFP] pool
+    -- launch node as daemon
+    let pid = "/tmp/aaproxy.pid.0"
+    runDetached (Just pid) (ToFile "aaproxy.log") $ runNode nodeCnf [certFP, keyFP, csrFP] pool

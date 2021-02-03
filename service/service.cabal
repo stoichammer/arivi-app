@@ -84,6 +84,7 @@ executable aaproxy
                 , hashtables
                 , lens
                 , req
+                , daemons >= 0.3.0
 
   other-modules:
          NodeConfig
@@ -96,9 +97,11 @@ executable aaproxy
          Service.AllpayTransaction
          Service.ProxyProviderUtxo
          Service.Data.Allegory
+         Service.Data.Utxo
+         Service.Faucet
+         Service.Nexa
          Service.Registration
          LevelDB
          UtxoPool
 
   default-language:    Haskell2010
-  build-tool-depends: hspec-discover:hspec-discover

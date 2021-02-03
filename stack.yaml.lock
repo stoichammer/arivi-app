@@ -187,6 +187,13 @@ packages:
   original:
     hackage: hashtables-1.2.3.4
 - completed:
+    hackage: daemons-0.3.0@sha256:356edaf06a8cf5e9f19685f9ce793ad6d2b6bce2e55379f6b2aff1b0c07a633f,3178
+    pantry-tree:
+      size: 918
+      sha256: 26b1a5279be340c896edbc72baa6d95b071384b9bf7e19cd146025cf13d21769
+  original:
+    hackage: daemons-0.3.0
+- completed:
     name: snap-server
     version: 1.1.1.2
     git: https://github.com/xoken/snap-server.git
