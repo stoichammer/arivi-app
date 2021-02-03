@@ -41,7 +41,6 @@ pipeline {
             dir(path: 'allpay-proxy') {
                     sh 'rm -f /tmp/proxy-ubuntu1804.cid'
                     sh 'docker run -t -d --cidfile /tmp/proxy-ubuntu1804.cid -w  /opt/work/allpay-proxy  xoken-nexa/ubuntu18.04 sh'
-                    sh 'docker exec -w /opt/work/arivi-core $(cat /tmp/proxy-ubuntu1804.cid) git pull'
                     sh 'docker exec -w /opt/work/xoken-core $(cat /tmp/proxy-ubuntu1804.cid) git pull'
                     sh 'docker exec -w /opt/work/ $(cat /tmp/proxy-ubuntu1804.cid) git clone https://github.com/xoken/allpay-proxy.git'
                     sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-ubuntu1804.cid) git fetch'
@@ -58,7 +57,6 @@ pipeline {
             dir(path: 'allpay-proxy') {
                     sh 'rm -f /tmp/proxy-ubuntu2004.cid'
                     sh 'docker run -t -d --cidfile /tmp/proxy-ubuntu2004.cid -w  /opt/work/allpay-proxy  xoken-nexa/ubuntu20.04 sh'
-                    sh 'docker exec -w /opt/work/arivi-core $(cat /tmp/proxy-ubuntu2004.cid) git pull'
                     sh 'docker exec -w /opt/work/xoken-core $(cat /tmp/proxy-ubuntu2004.cid) git pull'
                     sh 'docker exec -w /opt/work/ $(cat /tmp/proxy-ubuntu2004.cid) git clone https://github.com/xoken/allpay-proxy.git'
                     sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-ubuntu2004.cid) git fetch'
@@ -75,7 +73,6 @@ pipeline {
             dir(path: 'allpay-proxy') {
                     sh 'rm -f /tmp/proxy-archlinux.cid'
                     sh 'docker run -t -d --cidfile /tmp/proxy-archlinux.cid -w  /opt/work/allpay-proxy  xoken-nexa/archlinux sh'
-                    sh 'docker exec -w /opt/work/arivi-core $(cat /tmp/proxy-archlinux.cid) git pull'
                     sh 'docker exec -w /opt/work/xoken-core $(cat /tmp/proxy-archlinux.cid) git pull'
                     sh 'docker exec -w /opt/work/ $(cat /tmp/proxy-archlinux.cid) git clone https://github.com/xoken/allpay-proxy.git'
                     sh 'docker exec -w /opt/work/allpay-proxy $(cat /tmp/proxy-archlinux.cid) git fetch'
