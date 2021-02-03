@@ -1,3 +1,0 @@
-:set -g-fwarn-unused-binds -g-fwarn-unused-imports
-:set -isrc
-:load service/app/Main

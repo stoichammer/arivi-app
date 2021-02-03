@@ -1,10 +1,10 @@
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DuplicateRecordFields #-}
@@ -18,17 +18,6 @@ module Main
     ( module Main
     ) where
 
-import Arivi.Crypto.Utils.PublicKey.Signature as ACUPS
-import Arivi.Crypto.Utils.PublicKey.Utils
-import Arivi.Env
-import Arivi.Network
-import Arivi.P2P
-import qualified Arivi.P2P.Config as Config
-import Arivi.P2P.Kademlia.Types
-import Arivi.P2P.P2PEnv as PE
-import Arivi.P2P.PubSub.Types
-import Arivi.P2P.RPC.Types
-import Arivi.P2P.ServiceRegistry
 import Codec.Serialise
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async.Lifted (async, wait)
@@ -68,86 +57,15 @@ import Network.Xoken.Constants
 import Network.Xoken.Keys
 import qualified NodeConfig as NC
 import Numeric (showHex)
-import Service.Data
 import Service.Env
 import qualified Snap as Snap
 import StmContainers.Map as H
 import System.Directory
 import System.Environment (getArgs)
-import TLSServer
 import UtxoPool
 
-newtype AppM a =
-    AppM (ReaderT AllpayProxyEnv (LoggingT IO) a)
-    deriving (Functor, Applicative, Monad, MonadReader AllpayProxyEnv, MonadIO, MonadThrow, MonadCatch, MonadLogger)
-
-deriving instance MonadBase IO AppM
-
-deriving instance MonadBaseControl IO AppM
-
-instance HasAddressMap AppM where
-    getAddressMap = asks (addressMap)
-
-instance HasXPubInfoMap AppM where
-    getXPubHashMap = asks (xpubInfoMap)
-
-instance HasUtxoPool AppM where
-    getUtxoPool = asks (utxoPool)
-
-instance HasCommittedUtxos AppM where
-    getCommittedUtxos = asks (committedUtxos)
-
-instance HasNodeConfig AppM where
-    getNodeConfig = asks (nodeConfig)
-
--- instance HasNetworkEnv AppM where
---     getEnv = asks (ariviNetworkEnv . nodeEndpointEnv . p2pEnv)
--- instance HasSecretKey AppM
--- instance HasKbucket AppM where
---     getKb = asks (kbucket . kademliaEnv . p2pEnv)
--- instance HasStatsdClient AppM where
---     getStatsdClient = asks (statsdClient . p2pEnv)
--- instance HasNodeEndpoint AppM where
---     getEndpointEnv = asks (nodeEndpointEnv . p2pEnv)
---     getNetworkConfig = asks (PE._networkConfig . nodeEndpointEnv . p2pEnv)
---     getHandlers = asks (handlers . nodeEndpointEnv . p2pEnv)
---     getNodeIdPeerMapTVarP2PEnv = asks (tvarNodeIdPeerMap . nodeEndpointEnv . p2pEnv)
--- instance HasPRT AppM where
---     getPeerReputationHistoryTableTVar = asks (tvPeerReputationHashTable . prtEnv . p2pEnv)
---     getServicesReputationHashMapTVar = asks (tvServicesReputationHashMap . prtEnv . p2pEnv)
---     getP2PReputationHashMapTVar = asks (tvP2PReputationHashMap . prtEnv . p2pEnv)
---     getReputedVsOtherTVar = asks (tvReputedVsOther . prtEnv . p2pEnv)
---     getKClosestVsRandomTVar = asks (tvKClosestVsRandom . prtEnv . p2pEnv)
-runAppM :: AllpayProxyEnv -> AppM a -> LoggingT IO a
-runAppM env (AppM app) = runReaderT app env
-
-defaultConfig :: FilePath -> IO ()
-defaultConfig path = do
-    (sk, _) <- ACUPS.generateKeyPair
-    let bootstrapPeer =
-            Peer
-                ((fst . B16.decode)
-                     "a07b8847dc19d77f8ef966ba5a954dac2270779fb028b77829f8ba551fd2f7ab0c73441456b402792c731d8d39c116cb1b4eb3a18a98f4b099a5f9bdffee965c")
-                (NodeEndPoint "51.89.40.95" 5678 5678)
-    let config =
-            Config.Config
-                5678
-                5678
-                sk
-                [bootstrapPeer]
-                (generateNodeId sk)
-                "127.0.0.1"
-                (Data.Text.pack (path <> "/node.log"))
-                20
-                5
-                3
-    Config.makeConfig config (path <> "/config.yaml")
-
-runNode :: Config.Config -> NC.NodeConfig -> [FilePath] -> [ProxyProviderUtxo] -> IO ()
-runNode config nodeConfig certPaths pool = do
-    p2pEnv <- mkP2PEnv config undefined undefined [AriviSecureRPC] []
-    que <- atomically $ newTChan
-    mmap <- newTVarIO $ M.empty
+runNode :: NC.NodeConfig -> [FilePath] -> [ProxyProviderUtxo] -> IO ()
+runNode nodeConfig certPaths pool = do
     let net = NC.bitcoinNetwork nodeConfig
     print $ "sec key: " ++ show (NC.poolSecKey nodeConfig)
     -- read xpubKeys and build a HashMap
@@ -175,7 +93,6 @@ runNode config nodeConfig certPaths pool = do
             (\utxo -> (txid utxo ++ ":" ++ (show $ outputIndex utxo), utxo)) <$> pool
     up <- newTVarIO $ M.fromList utxoPool
     cu <- newTVarIO $ M.fromList committedUtxos
-    --
     amr <- newTVarIO xPubInfoMap
     let addressMap =
             Prelude.foldl
@@ -183,13 +100,7 @@ runNode config nodeConfig certPaths pool = do
                 M.empty
                 (M.toList xPubInfoMap)
     amT <- newTVarIO addressMap
-    -- let serviceEnv = ServiceEnv EndPointEnv p2pEnv nodeConfig amT amr up cu
     let allpayProxyEnv = AllpayProxyEnv nodeConfig amT amr up cu
-    -- start TLS
-    -- epHandler <- newTLSEndpointServiceHandler
-    -- async $
-        -- startTLSEndpoint epHandler (NC.endPointTLSListenIP nodeConfig) (NC.endPointTLSListenPort nodeConfig) certPaths
-    -- start HTTP endpoint
     let snapConfig =
             Snap.defaultConfig & Snap.setSSLBind (DTE.encodeUtf8 $ DT.pack $ NC.endPointListenIP nodeConfig) &
             Snap.setSSLPort (fromEnum $ NC.endPointListenPort nodeConfig) &
@@ -197,16 +108,11 @@ runNode config nodeConfig certPaths pool = do
             Snap.setSSLCert (L.head certPaths) &
             Snap.setSSLChainCert False
     Snap.serveSnaplet snapConfig (appInit allpayProxyEnv)
-    -- runFileLoggingT (toS $ Config.logFile config) $ runAppM allpayProxyEnv (handleNewConnectionRequest epHandler)
-    -- return ()
 
 main :: IO ()
 main = do
     let path = "."
-    b <- doesPathExist (path <> "/arivi-config.yaml")
-    up <- unless b (defaultConfig path)
-    config <- Config.readConfig (path <> "/arivi-config.yaml")
-    nodeCnf <- NC.readConfig (path <> "/node-config.yaml")
+    nodeCnf <- NC.readConfig (path <> "/allpay-proxy-config.yaml")
     let certFP = NC.tlsCertificatePath nodeCnf
         keyFP = NC.tlsKeyfilePath nodeCnf
         csrFP = NC.tlsCertificateStorePath nodeCnf
@@ -214,12 +120,6 @@ main = do
     kfp <- doesFileExist keyFP
     csfp <- doesDirectoryExist csrFP
     unless (cfp && kfp && csfp) $ Prelude.error "Error: missing TLS certificate or keyfile"
-    --
-    let k = makeXPrvKey "hello"
-    let p = deriveXPubKey k
-    let e = xPubExport bsvTest p
-    print $ "testnet pubkey" ++ show e
-    --
     pool <-
         getPoolFromAddress
             (NC.bitcoinNetwork nodeCnf)
@@ -228,4 +128,4 @@ main = do
             (NC.nexaSessionKey nodeCnf)
     print $ "size of pool: " ++ show (Prelude.length pool)
     -- launch node
-    runNode config nodeCnf [certFP, keyFP, csrFP] pool
+    runNode nodeCnf [certFP, keyFP, csrFP] pool

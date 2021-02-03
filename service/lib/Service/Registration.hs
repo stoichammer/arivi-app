@@ -28,7 +28,6 @@ import Data.String (IsString, fromString)
 import qualified Data.Text as DT
 import Data.Text.Encoding as DTE
 import Service.AllpayTransaction
-import Service.Data
 import Service.Data.Allegory
 import qualified Service.Data.Allegory as Al
 import Service.Env

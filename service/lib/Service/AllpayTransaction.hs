@@ -13,37 +13,22 @@
 
 module Service.AllpayTransaction where
 
-import Arivi.P2P.MessageHandler.HandlerTypes (HasNetworkConfig, networkConfig)
-import Arivi.P2P.P2PEnv
-import Arivi.P2P.RPC.Env
-import Arivi.P2P.RPC.Fetch
-import Arivi.P2P.Types hiding (msgType)
 import Codec.Compression.GZip as GZ
 import Codec.Serialise
+import Crypto.Secp256k1
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (AsyncCancelled, mapConcurrently, mapConcurrently_, race_)
 import Control.Concurrent.Async.Lifted (async, wait)
 import Control.Concurrent.STM.TVar
 import Control.Monad.STM
-import Data.Word (Word32, Word64, Word8)
-import Network.Xoken.Address
-import Network.Xoken.Block.Merkle
-import Network.Xoken.Crypto.Hash
-import Network.Xoken.Transaction
-import Network.Xoken.Transaction.Common
-
-import Crypto.Secp256k1
-
---import qualified Control.Error.Util as Extra
 import Control.Exception
-
---import qualified Control.Exception.Lifted as LE (try)
 import Control.Monad
-
 import Control.Monad.IO.Class
 import Control.Monad.Logger
 import Control.Monad.Loops
 import Control.Monad.Reader
+
+import Data.Word (Word32, Word64, Word8)
 import Data.Aeson as A
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Base16 as B16 (decode, encode)
@@ -53,12 +38,6 @@ import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString.Lazy.Char8 as C
 import qualified Data.ByteString.Short as BSS
-
---import Control.Monad.Extra
-import Network.Xoken.Crypto.Hash
-import Network.Xoken.Keys
-import Network.Xoken.Script
-
 import Data.Aeson
 import Data.Aeson.Types
 import qualified Data.ByteString.UTF8 as BSU
@@ -79,11 +58,17 @@ import qualified Data.Text.Encoding as E
 import LevelDB
 import Network.Xoken.Constants
 import NodeConfig
-import Service.Data
 import Service.Env
 import Service.ProxyProviderUtxo
 import Service.Types
 import qualified Service.Env as SE (ProxyProviderUtxo (..))
+import Network.Xoken.Address
+import Network.Xoken.Block.Merkle
+import Network.Xoken.Crypto.Hash
+import Network.Xoken.Transaction
+import Network.Xoken.Transaction.Common
+import Network.Xoken.Keys
+import Network.Xoken.Script
 
 -- get address, pptuxo and Merkle proofs for address and pputxo
 getAddressAndProxyUtxo ::

@@ -102,78 +102,12 @@ instance ToJSON RPCResponseBody where
     toJSON (RespRegister opret fee addr) =
         object ["opReturn" .= (T.decodeUtf8 opret), "registrationFeeSats" .= fee, "paymentAddress" .= addr]
 
--- data BlockRecord =
---     BlockRecord
---         { rbHeight :: Int
---         , rbHash :: String
---         , rbHeader :: String
---         }
---     deriving (Generic, Show, Hashable, Eq, Serialise)
--- data TxRecord =
---     TxRecord
---         { txId :: String
---         , txBlockInfo :: BlockInfo'
---         , txSerialized :: C.ByteString
---         }
---     deriving (Show, Generic, Hashable, Eq, Serialise)
--- data AddressOutputs =
---     AddressOutputs
---         { aoAddress :: String
---         , aoOutput :: OutPoint'
---         , aoBlockInfo :: BlockInfo'
---         , aoIsBlockConfirmed :: Bool
---         , aoIsOutputSpent :: Bool
---         , aoIsTypeReceive :: Bool
---         , aoOtherAddress :: String
---         , aoPrevOutpoint :: OutPoint'
---         , aoValue :: Int64
---         }
---     deriving (Show, Generic, Hashable, Eq, Serialise)
-{-
-data OutPoint' =
-    OutPoint'
-        { opTxHash :: String
-        , opIndex :: Int
-        }
-    deriving (Show, Generic, Hashable, Eq, Serialise)
-
-instance FromJSON OutPoint' where
-    parseJSON (Object o) = (OutPoint' <$> o .: "txid" <*> o .: "index")
-
-instance ToJSON OutPoint'
--}
--- data BlockInfo' =
---     BlockInfo'
---         { binfBlockHash :: String
---         , binfTxIndex :: Int
---         , binfBlockHeight :: Int
---         }
---     deriving (Show, Generic, Hashable, Eq, Serialise)
--- data MerkleBranchNode' =
---     MerkleBranchNode'
---         { nodeValue :: String
---         , isLeftNode :: Bool
---         }
---     deriving (Show, Generic, Hashable, Eq, Serialise)
 data PubNotifyMessage =
     PubNotifyMessage
         { psBody :: String
         }
     deriving (Show, Generic, Eq, Serialise)
 
--- data PubSubMsg
---     = Subscribe'
---           { topic :: String
---           }
---     | Publish'
---           { topic :: String
---           , message :: PubNotifyMessage
---           }
---     | Notify'
---           { topic :: String
---           , message :: PubNotifyMessage
---           }
---     deriving (Show, Generic, Serialise)
 data Tx' =
     Tx'
         { txVersion :: !Word32

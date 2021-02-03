@@ -5,10 +5,6 @@ packages:
   - service
 
 extra-deps:
-  - ../arivi-core/utils
-  - ../arivi-core/crypto
-  - ../arivi-core/p2p
-  - ../arivi-core/network
   - ../xoken-core/core
   - serialise-0.2.0.0
   - cborg-0.2.0.0

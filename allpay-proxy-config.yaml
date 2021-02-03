@@ -1,0 +1,33 @@
+bitcoinNetwork: bsvtest
+
+logLevel: Debug
+
+logFileName: ./proxy.log
+
+endPointListenIP: 127.0.0.1
+
+endPointListenPort: 8081
+
+tlsCertificatePath: ./example.crt
+
+tlsKeyfilePath: ./example.key
+
+tlsCertificateStorePath: .
+
+poolAddress:
+
+paymentAddress:
+
+poolSecKey:
+
+faucetSecKey:
+
+faucetAmt: 10000
+
+nexaUsername:
+
+nexaPassword:
+
+nexaHost: 127.0.0.1:9091
+
+proxyProviderUri:

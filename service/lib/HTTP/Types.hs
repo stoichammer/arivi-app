@@ -47,8 +47,6 @@ data App =
         { _env :: AllpayProxyEnv
         }
 
--- instance HasBitcoinP2P (Handler App App) where
---     getBitcoinP2P = bitcoinP2PEnv <$> gets _env
 instance HasAddressMap (Handler App App) where
     getAddressMap = asks (addressMap . _env)
 
@@ -67,13 +65,9 @@ instance HasNodeConfig (Handler App App) where
 instance MC.MonadThrow (Handler App App) where
     throwM = liftIO . CE.throwIO
 
-instance MonadUnliftIO (Handler App App) --where
-
 instance MonadHttp (Handler App App) where
     handleHttpException = MC.throwM
 
--- Request & Response Types
---
 data ReqParams'
     = Register
           { rName :: [Int]
