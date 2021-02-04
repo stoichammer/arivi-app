@@ -265,8 +265,7 @@ inspectAndRelayRegistrationTx rawTx = do
                 reg = fromMaybe (throw InvalidNameException) $ M.lookup (show opRetHash) regMap
             if verifyPayment (NC.bitcoinNetwork nodeCfg) (NC.paymentAddress nodeCfg) outs
                 then do
-                    let rTx = BSL.toStrict $ A.encode tx
-                    res <- liftIO $ relayTx (NC.nexaHost nodeCfg) (NC.nexaSessionKey nodeCfg) rTx
+                    res <- liftIO $ relayTx (NC.nexaHost nodeCfg) (NC.nexaSessionKey nodeCfg) rawTx
                     return $ txBroadcast res
                 else do
                     cancelRegistration opRetHash
