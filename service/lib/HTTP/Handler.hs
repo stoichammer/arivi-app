@@ -37,14 +37,14 @@ import Service.AllpayTransaction
 import Service.Env
 import Service.Faucet
 import Service.Registration
-import qualified Service.Registration as SR (registerNewUser')
+import qualified Service.Registration as SR (registerNewUser)
 import Service.Types (ProxyProviderException(..), RegValidationException(..))
 import Snap
 import qualified System.Logger as LG
 
 registerNewUser' :: ReqParams' -> Handler App App ()
 registerNewUser' (Register rname xpk count) = do
-    res <- LE.try $ SR.registerNewUser' rname xpk count
+    res <- LE.try $ SR.registerNewUser rname xpk count
     case res of
         Left (e :: ProxyProviderException) -> do
             modifyResponse $ setResponseStatus 500 "Internal Server Error"

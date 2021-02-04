@@ -89,49 +89,8 @@ getRegistrationDetails net pubKey count = do
         Error err -> do
             return $ Left $ "error occured while decoding xpubkey: " <> err
 
-registerNewUser ::
-       (HasService env m, MonadIO m)
-    => [Int]
-    -> C.ByteString
-    -> Int
-    -> (OutPoint', Int64)
-    -> String
-    -> m (Either String C.ByteString)
-registerNewUser allegoryName pubKey count (nutxo, value) returnAddr = do
-    nodeCnf <- getNodeConfig
-    let net = NC.bitcoinNetwork nodeCnf
-    aMapTvar <- getXPubHashMap
-    addressTVar <- getAddressMap
-    regDetails <- getRegistrationDetails net pubKey count
-    case regDetails of
-        Left err -> return $ Left $ "error while procuring registration details: " <> err
-        Right (reg, committedOps, addrHashes, k) -> do
-            mkTxRes <- makeRegistrationTx net (nutxo, value) allegoryName returnAddr reg
-            case mkTxRes of
-                Left err -> return $ Left $ "error while making registration transaction: " <> err
-                Right (stx, opRetHash)
-                    -- let opRetScript = frameOpReturn $ LC.toStrict $ serialise al
-                    -- let opRetHashRev = txHashToHex $ TxHash opRetHash
-                 -> do
-                    xPubInfo <- liftIO $ readTVarIO aMapTvar
-                    let f x =
-                            case x of
-                                Just v -> Just v
-                                Nothing -> Just (XPubInfo k count 0 committedOps)
-                    liftIO $ atomically $ writeTVar aMapTvar (M.alter f (show opRetHash) xPubInfo)
-                    liftIO $ atomically $ modifyTVar addressTVar (M.insert (xPubExport net k) addrHashes)
-                    names <- liftIO $ M.keys <$> readTVarIO aMapTvar
-                    liftIO $ putValue "names" (BSL.toStrict $ A.encode $ nub $ (show opRetHash) : names)
-                    when (isNothing $ M.lookup (show opRetHash) xPubInfo) $
-                        liftIO $
-                        putValue
-                            (DTE.encodeUtf8 $ DT.pack (show opRetHash))
-                            (encodeXPubInfo net $ XPubInfo k count 0 committedOps)
-                    liftIO $ print $ "HASH TO USE***: " <> (show opRetHash)
-                    return $ Right $ stx
-
-registerNewUser' :: (HasService env m, MonadIO m) => [Int] -> C.ByteString -> Int -> m (C.ByteString, Int64, String)
-registerNewUser' allegoryName pubKey count = do
+registerNewUser :: (HasService env m, MonadIO m) => [Int] -> C.ByteString -> Int -> m (C.ByteString, Int64, String)
+registerNewUser allegoryName pubKey count = do
     nodeCnf <- getNodeConfig
     let net = NC.bitcoinNetwork nodeCnf
     aMapTvar <- getXPubHashMap
