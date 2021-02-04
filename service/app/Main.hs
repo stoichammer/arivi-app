@@ -53,6 +53,7 @@ import Database.LevelDB
 import HTTP.Server
 import LevelDB
 import Network.Simple.TCP
+import Network.Xoken.Address
 import Network.Xoken.Constants
 import Network.Xoken.Keys
 import qualified NodeConfig as NC
@@ -71,7 +72,12 @@ runNode nodeConfig certPaths pool = do
     IO.putStrLn "------------------------------"
     IO.putStrLn "Starting Allpay Proxy-Provider"
     IO.putStrLn "------------------------------"
-    IO.putStrLn $ "Size of ppUTXO pool: " ++ show (Prelude.length pool)
+    let addresses =
+            (fromJust . addrToString (NC.bitcoinNetwork nodeConfig) . pubKeyAddr . derivePubKeyI . wrapSecKey True) <$>
+            [NC.faucetSecKey nodeConfig, NC.poolSecKey nodeConfig]
+    IO.putStrLn $ "Faucet address: " <> (show $ addresses !! 0)
+    IO.putStrLn $ "UTXO pool address: " <> (show $ addresses !! 1)
+    IO.putStrLn $ "Size of UTXO pool: " <> show (Prelude.length pool)
     let net = NC.bitcoinNetwork nodeConfig
     -- read xpubKeys and build a HashMap
     allXPubKeys <-
