@@ -42,7 +42,7 @@ import Network.Xoken.Block.Merkle
 import Network.Xoken.Crypto.Hash
 import Network.Xoken.Keys
 import Network.Xoken.Transaction.Common
-import qualified Network.Xoken.Transaction.Common as TC (TxIn(..))
+import qualified Network.Xoken.Transaction.Common as TC (TxOut(..))
 import Network.Xoken.Util
 
 import Control.Concurrent.STM
@@ -56,6 +56,7 @@ import Data.List
 import Data.Maybe
 import Network.Xoken.Constants
 import Network.Xoken.Network.Message
+import Network.Xoken.Script
 import qualified NodeConfig as NC
 
 import Data.Int
@@ -165,7 +166,8 @@ inspectAndRelayRegistrationTx rawTx = do
         Left e -> throw RawTxParseException
         Right (mbTx, _) -> do
             let tx@(Tx version ins outs locktime) = fromMaybe (throw RawTxParseException) mbTx
-                opRetHash = sha256 $ DTE.encodeUtf8 $ encodeHex $ TC.scriptInput $ ins !! 0
+                opRet = TC.scriptOutput $ outs !! 0
+                opRetHash = sha256 $ DTE.encodeUtf8 $ encodeHex opRet
                 reg = fromMaybe (throw InvalidNameException) $ M.lookup (show opRetHash) regMap
             if verifyPayment (NC.bitcoinNetwork nodeCfg) (NC.paymentAddress nodeCfg) outs
                 then do
@@ -174,6 +176,20 @@ inspectAndRelayRegistrationTx rawTx = do
                 else do
                     cancelRegistration opRetHash
                     return False
+
+fetchNameFromAllegoryData :: C.ByteString -> [Int]
+fetchNameFromAllegoryData allegoryData =
+    case decodeOutputScript allegoryData of
+        Left err -> throw TxFormatException
+        Right os ->
+            let allegoryHeader = scriptOps os !! 2
+                allegoryData = scriptOps os !! 3
+             in case (allegoryHeader, allegoryData) of
+                    (OP_PUSHDATA "Allegory/AllPay" OPCODE, OP_PUSHDATA allegory _) ->
+                        let alg' = deserialiseOrFail $ LC.fromStrict allegory :: Either DeserialiseFailure Allegory
+                         in case alg' of
+                                Left df@(DeserialiseFailure b s) -> throw AllegoryMetadataException
+                                Right alg -> Al.name alg
 
 verifyPayment :: Network -> String -> [TxOut] -> Bool
 verifyPayment net paymentAddrString outs = do

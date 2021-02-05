@@ -162,8 +162,10 @@ instance Exception RegistrationException
 
 data RegValidationException
     = RawTxParseException
+    | TxFormatException
     | InvalidNameException
     | PaymentAddressException
+    | AllegoryMetadataException
     deriving (Show, Eq)
 
 instance Exception RegValidationException
