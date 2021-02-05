@@ -21,6 +21,7 @@ import Data.ByteString.Builder
 import Data.ByteString.Char8 as C
 import Data.ByteString.Lazy as BSL
 import Data.ByteString.Lazy.Char8 as LC
+import Data.ByteString.Short as SH
 import Data.List as L
 import Data.Map.Strict as M
 import Data.Serialize
@@ -82,7 +83,14 @@ getRegistrationDetails net pubKey count = do
                 utxoRoot = buildMerkleRoot $ outpointHashes ops
                 addrRoot = buildMerkleRoot $ addrHashes
                 expiry = 2556143999 -- for demo, midnight 31st December 2050
-            return $ (RegDetails (show addrRoot) (show utxoRoot) expiry, ops, addrHashes, k)
+            return $
+                ( RegDetails
+                      (C.unpack . SH.fromShort $ getHash256 addrRoot)
+                      (C.unpack . SH.fromShort $ getHash256 utxoRoot)
+                      expiry
+                , ops
+                , addrHashes
+                , k)
         Error err -> throw $ XPubKeyDecodeException (show err)
 
 registerNewUser :: (HasService env m, MonadIO m) => [Int] -> C.ByteString -> Int -> m (C.ByteString, Int64, String)
