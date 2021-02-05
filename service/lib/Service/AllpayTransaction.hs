@@ -15,21 +15,22 @@ module Service.AllpayTransaction where
 
 import Codec.Compression.GZip as GZ
 import Codec.Serialise
-import Crypto.Secp256k1
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (AsyncCancelled, mapConcurrently, mapConcurrently_, race_)
 import Control.Concurrent.Async.Lifted (async, wait)
 import Control.Concurrent.STM.TVar
-import Control.Monad.STM
 import Control.Exception
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Logger
 import Control.Monad.Loops
 import Control.Monad.Reader
+import Control.Monad.STM
+import Crypto.Secp256k1
 
-import Data.Word (Word32, Word64, Word8)
 import Data.Aeson as A
+import Data.Aeson
+import Data.Aeson.Types
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Base16 as B16 (decode, encode)
 import Data.ByteString.Base64 as B64
@@ -38,8 +39,6 @@ import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString.Lazy.Char8 as C
 import qualified Data.ByteString.Short as BSS
-import Data.Aeson
-import Data.Aeson.Types
 import qualified Data.ByteString.UTF8 as BSU
 import Data.Char
 import Data.Default
@@ -55,20 +54,21 @@ import Data.String (IsString, fromString)
 import qualified Data.Text as DT
 import qualified Data.Text.Encoding as DTE
 import qualified Data.Text.Encoding as E
+import Data.Word (Word32, Word64, Word8)
 import LevelDB
-import Network.Xoken.Constants
-import NodeConfig
-import Service.Env
-import Service.ProxyProviderUtxo
-import Service.Types
-import qualified Service.Env as SE (ProxyProviderUtxo (..))
 import Network.Xoken.Address
 import Network.Xoken.Block.Merkle
+import Network.Xoken.Constants
 import Network.Xoken.Crypto.Hash
-import Network.Xoken.Transaction
-import Network.Xoken.Transaction.Common
 import Network.Xoken.Keys
 import Network.Xoken.Script
+import Network.Xoken.Transaction
+import Network.Xoken.Transaction.Common
+import NodeConfig
+import Service.Env
+import qualified Service.Env as SE (ProxyProviderUtxo(..))
+import Service.ProxyProviderUtxo
+import Service.Types
 
 -- get address, pptuxo and Merkle proofs for address and pputxo
 getAddressAndProxyUtxo ::
@@ -127,16 +127,17 @@ getPartiallySignedAllpayTransaction inputs amount receiverName changeAddr = do
     poolSecKey <- poolSecKey <$> getNodeConfig
     res <- getAddressAndProxyUtxo net receiverName
     let inputsOp =
-            -- (\(op', val) -> (OutPoint (TxHash $ fromString $ opTxHash op') (fromIntegral $ opIndex op'), val)) <$>
-            (\(op', val) -> (OutPoint (fromJust $ hexToTxHash $ DT.pack $ opTxHash op') (fromIntegral $ opIndex op'), val)) <$>
+            (\(op', val) ->
+                 (OutPoint (fromJust $ hexToTxHash $ DT.pack $ opTxHash op') (fromIntegral $ opIndex op'), val)) <$>
             inputs
     case res of
         Left err -> return $ Left $ "failed to get address or proxy-provider utxo: " ++ err
         Right (addr, pputxo, addrProof, utxoProof) -> do
-            -- let ppOutPoint = OutPoint (TxHash $ fromString $ txid $ pputxo) (fromIntegral $ outputIndex $ pputxo)
-            let ppOutPoint = OutPoint (fromJust $ hexToTxHash $ DT.pack $ SE.txid $ pputxo) (fromIntegral $ SE.outputIndex $ pputxo)
+            let ppOutPoint =
+                    OutPoint
+                        (fromJust $ hexToTxHash $ DT.pack $ SE.txid $ pputxo)
+                        (fromIntegral $ SE.outputIndex $ pputxo)
             let inputs' = ppOutPoint : ((\(outpoint, _) -> outpoint) <$> inputsOp)
-            -- compute fee at 5 sat/byte
             let fee = guessTxFee (fromIntegral 5) (1 + length inputs) 2
             -- compute change
             let totalInput = L.foldl (+) 0 $ (\(_, val) -> val) <$> inputsOp
@@ -152,7 +153,7 @@ getPartiallySignedAllpayTransaction inputs amount receiverName changeAddr = do
             case buildAddrTx net inputs' outputs of
                 Left err -> return $ Left $ "failed to build transaction: " ++ err
                 Right tx -> do
-                    case decodeOutputBS ((fst . B16.decode) (E.encodeUtf8 $ DT.pack $ SE.scriptPubKey pputxo)) of
+                    case decodeOutputBS (BC.pack $ SE.scriptPubKey pputxo) of
                         Left err -> return $ Left $ "failed to decode proxy-provider utxo script: " ++ err
                         Right so -> do
                             let si =
@@ -181,16 +182,8 @@ buildProof' hashes index =
         [0 ..]
 
 createTx' :: Tx -> [Int] -> Tx'
-createTx' (Tx version inputs outs locktime) values = Tx'
-        { txVersion = version
-        , txIn = fmap func $ Prelude.zip inputs values
-        , txOut = outs
-        , txLockTime = locktime
-        }
-    where
-        func (TxIn prevOut scriptIn txInSeq, val) = TxIn'
-         { prevOutput   = prevOut
-         , scriptInput  = scriptIn
-         , txInSequence = txInSeq
-         , value        = fromIntegral val
-         }
+createTx' (Tx version inputs outs locktime) values =
+    Tx' {txVersion = version, txIn = fmap func $ Prelude.zip inputs values, txOut = outs, txLockTime = locktime}
+  where
+    func (TxIn prevOut scriptIn txInSeq, val) =
+        TxIn' {prevOutput = prevOut, scriptInput = scriptIn, txInSequence = txInSeq, value = fromIntegral val}
