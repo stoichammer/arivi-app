@@ -71,23 +71,18 @@ data RegDetails =
 
 -- create: addressCommitment, utxoCommitment, list of pputxo outpoints and address hashes
 getRegistrationDetails ::
-       (HasService env m, MonadIO m)
-    => Network
-    -> C.ByteString
-    -> Int
-    -> m (Either String (RegDetails, [String], [TxHash], XPubKey))
+       (HasService env m, MonadIO m) => Network -> C.ByteString -> Int -> m (RegDetails, [String], [TxHash], XPubKey)
 getRegistrationDetails net pubKey count = do
     let res = A.String (DTE.decodeUtf8 pubKey)
     case parse Prelude.id . xPubFromJSON net $ res of
         Success k -> do
             ops <- getFromPool count
             let addrHashes = getAddressList k count
-            let utxoRoot = buildMerkleRoot $ outpointHashes ops
-            let addrRoot = buildMerkleRoot $ addrHashes
-            let expiry = 2556143999 -- for demo, midnight 31st December 2050
-            return $ Right $ (RegDetails (show addrRoot) (show utxoRoot) expiry, ops, addrHashes, k)
-        Error err -> do
-            return $ Left $ "error occured while decoding xpubkey: " <> err
+                utxoRoot = buildMerkleRoot $ outpointHashes ops
+                addrRoot = buildMerkleRoot $ addrHashes
+                expiry = 2556143999 -- for demo, midnight 31st December 2050
+            return $ (RegDetails (show addrRoot) (show utxoRoot) expiry, ops, addrHashes, k)
+        Error err -> throw $ XPubKeyDecodeException (show err)
 
 registerNewUser :: (HasService env m, MonadIO m) => [Int] -> C.ByteString -> Int -> m (C.ByteString, Int64, String)
 registerNewUser allegoryName pubKey count = do
@@ -96,28 +91,23 @@ registerNewUser allegoryName pubKey count = do
     aMapTvar <- getXPubHashMap
     addressTVar <- getAddressMap
     userValid <- liftIO $ validateUser (NC.nexaHost nodeCnf) (NC.nexaSessionKey nodeCnf) allegoryName
-    let ownerUri = fromMaybe (throw UserValidationException) userValid
+    let ownerUri = fromMaybe (throw NameValidationException) userValid
         feeSats = 100000
-    regDetails <- getRegistrationDetails net pubKey count
-    case regDetails of
-        Left err -> throw RegistrationException
-        Right (reg, committedOps, addrHashes, k) -> do
-            (opRetScript, opRetHash) <- makeOpReturn allegoryName ownerUri reg
-            xPubInfo <- liftIO $ readTVarIO aMapTvar
-            let f x =
-                    case x of
-                        Just v -> Just v
-                        Nothing -> Just (XPubInfo k count 0 committedOps)
-            liftIO $ atomically $ writeTVar aMapTvar (M.alter f (show opRetHash) xPubInfo)
-            liftIO $ atomically $ modifyTVar addressTVar (M.insert (xPubExport net k) addrHashes)
-            names <- liftIO $ M.keys <$> readTVarIO aMapTvar
-            liftIO $ putValue "names" (BSL.toStrict $ A.encode $ nub $ (show opRetHash) : names)
-            when (isNothing $ M.lookup (show opRetHash) xPubInfo) $
-                liftIO $
-                putValue
-                    (DTE.encodeUtf8 $ DT.pack (show opRetHash))
-                    (encodeXPubInfo net $ XPubInfo k count 0 committedOps)
-            return (opRetScript, feeSats, NC.paymentAddress nodeCnf)
+    (reg, committedOps, addrHashes, k) <- getRegistrationDetails net pubKey count
+    (opRetScript, opRetHash) <- makeOpReturn allegoryName ownerUri reg
+    xPubInfo <- liftIO $ readTVarIO aMapTvar
+    let f x =
+            case x of
+                Just v -> Just v
+                Nothing -> Just (XPubInfo k count 0 committedOps)
+    liftIO $ atomically $ writeTVar aMapTvar (M.alter f (show opRetHash) xPubInfo)
+    liftIO $ atomically $ modifyTVar addressTVar (M.insert (xPubExport net k) addrHashes)
+    names <- liftIO $ M.keys <$> readTVarIO aMapTvar
+    liftIO $ putValue "names" (BSL.toStrict $ A.encode $ nub $ (show opRetHash) : names)
+    when (isNothing $ M.lookup (show opRetHash) xPubInfo) $
+        liftIO $
+        putValue (DTE.encodeUtf8 $ DT.pack (show opRetHash)) (encodeXPubInfo net $ XPubInfo k count 0 committedOps)
+    return (opRetScript, feeSats, NC.paymentAddress nodeCnf)
 
 cancelRegistration :: (HasService env m, MonadIO m) => Hash256 -> m ()
 cancelRegistration opReturnHash = do
@@ -135,51 +125,6 @@ cancelRegistration opReturnHash = do
     -- free up committed utxos; return them to pool
     putBackInPool committedOps
     return ()
-
-makeRegistrationTx ::
-       (HasService env m, MonadIO m)
-    => Network
-    -> (OutPoint', Int64) -- name-utxo input, value
-    -> [Int] -- allegory name
-    -> String -- return address
-    -> RegDetails -- registration details
-    -> m (Either String (C.ByteString, Hash256))
-makeRegistrationTx net nutxoInput allegoryName retAddr reg = do
-    providerUri <- NC.proxyProviderUri <$> getNodeConfig
-    case stringToAddr net (DT.pack retAddr) of
-        Nothing -> return $ Left "failed to decode return address"
-        (Just addr) -> do
-            let nUtxoIp =
-                    (\(op', val) ->
-                         (TxIn
-                              (OutPoint (fromJust $ hexToTxHash $ DT.pack $ opTxHash op') (fromIntegral $ opIndex op'))
-                              ""
-                              0))
-                        nutxoInput
-            let nUtxoOp = (TxOut (fromIntegral $ snd nutxoInput) (addressToScriptBS $ addr))
-            let al =
-                    Allegory
-                        1
-                        allegoryName
-                        (OwnerAction
-                             (Al.Index 0)
-                             (OwnerOutput (Al.Index 1) (Just $ Endpoint "XokenP2P" "someuri"))
-                             [ ProxyProvider
-                                   "AllPay"
-                                   "Public"
-                                   (Endpoint "XokenP2P" providerUri)
-                                   (Registration (addrCom reg) (utxoCom reg) "" (fromIntegral $ exp' reg))
-                             ])
-            let opRetScript = frameOpReturn $ LC.toStrict $ serialise al
-            let opRetHex = DTE.encodeUtf8 $ encodeHex opRetScript
-            liftIO $ print "HASHED***: "
-            liftIO $ print opRetHex
-            let opRetHash = sha256 opRetHex
-            let inputs = [nUtxoIp]
-            let outputs = (TxOut 0 opRetScript) : nUtxoOp : []
-            let tx = Tx 1 inputs outputs 0
-            let stx = BSL.toStrict $ A.encode tx
-            return $ Right (stx, opRetHash)
 
 makeOpReturn :: (HasService env m, MonadIO m) => [Int] -> String -> RegDetails -> m (C.ByteString, Hash256)
 makeOpReturn allegoryName ownerUri reg = do
@@ -205,7 +150,7 @@ validateUser :: (MonadUnliftIO m) => String -> SessionKey -> [Int] -> m (Maybe S
 validateUser host sk name = do
     response <- liftIO $ nexaReq ResellerUri (A.encode $ NexaNameRequest name False) host (Just sk)
     case A.decode (responseBody response) :: Maybe ResellerUriResponse of
-        Nothing -> throw NexaResponseParseException
+        Nothing -> throw NexaResponseException
         Just (ResellerUriResponse gotName uri _ confirmed producer) -> do
             if (gotName /= name) || producer -- if the name doesn't exist or is a producer node
                 then return Nothing

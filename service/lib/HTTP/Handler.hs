@@ -38,7 +38,7 @@ import Service.Env
 import Service.Faucet
 import Service.Registration
 import qualified Service.Registration as SR (registerNewUser)
-import Service.Types (ProxyProviderException(..), RegValidationException(..))
+import Service.Types (ProxyProviderException(..), RegValidationException(..), RegistrationException(..))
 import Snap
 import qualified System.Logger as LG
 
@@ -46,14 +46,17 @@ registerNewUser' :: ReqParams' -> Handler App App ()
 registerNewUser' (Register rname xpk count) = do
     res <- LE.try $ SR.registerNewUser rname xpk count
     case res of
-        Left (e :: ProxyProviderException) -> do
-            modifyResponse $ setResponseStatus 500 "Internal Server Error"
-            writeBS $
-                case e of
-                    UserValidationException -> "Invalid name-UTXO input: name doesn't exist, or is producer"
-                    RegistrationException -> "Failed to complete registration"
-                    NexaResponseParseException -> "Failed to fetch name-UTXO information from Nexa"
-                    _ -> "Internal server error"
+        Left (e :: RegistrationException) -> do
+            case e of
+                InsufficientPoolUtxosException -> do
+                    modifyResponse $ setResponseStatus 500 "Internal Server Error"
+                    writeBS "INTERNAL_SERVER_ERROR"
+                NexaResponseException -> do
+                    modifyResponse $ setResponseStatus 500 "Internal Server Error"
+                    writeBS "INTERNAL_SERVER_ERROR"
+                _ -> do
+                    modifyResponse $ setResponseStatus 400 "Bad Request"
+                    writeBS $ S.pack $ show e
         Right (opRet, feeSats, addr) -> do
             writeBS $ BSL.toStrict $ encodeResp True $ (Just $ RespRegister opRet feeSats addr)
 registerNewUser' _ = throwBadRequest

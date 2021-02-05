@@ -13,18 +13,29 @@
 module Service.ProxyProviderUtxo where
 
 import Control.Concurrent.STM.TVar
+import Control.Exception
+import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.STM
 import Data.List as L
 import Data.Map.Strict as M
 import Data.Maybe
 import Service.Env
+import Service.Types
 import UtxoPool
 
 getFromPool :: (HasService env m, MonadIO m) => Int -> m [String]
-getFromPool count = do
+getFromPool count
+    -- replenish utxo pool with utxos spent back to pool address
+ = do
+    refreshPool
+    -- pick utxos from replenished pool
     utxoPoolTVar <- getUtxoPool
     utxoPool <- liftIO $ readTVarIO utxoPoolTVar
+    -- do we have enough utxos to satisfy the registration request?
+    when (M.size utxoPool < count) $ do
+        liftIO $ putStrLn "[ERROR] Insufficient UTXOs in pool! Replenish pool or free up committed utxos."
+        throw InsufficientPoolUtxosException
     let ops = fst . L.splitAt count $ M.keys utxoPool
     -- transfer to committed utxos set
     let cu = zip ops $ fromJust <$> flip M.lookup utxoPool <$> ops

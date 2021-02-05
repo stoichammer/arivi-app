@@ -145,6 +145,21 @@ data ProxyProviderException
 
 instance Exception ProxyProviderException
 
+data RegistrationException
+    = InsufficientPoolUtxosException
+    | NameValidationException
+    | XPubKeyDecodeException String
+    | NexaResponseException
+    deriving (Eq)
+
+instance Show RegistrationException where
+    show InsufficientPoolUtxosException = "Not enough UTXOs in pool to complete registration. Please replenish pool"
+    show NameValidationException = "Allegory name does not exist, or does has Producer rights"
+    show (XPubKeyDecodeException s) = "Failed to decode supplied xPubKey: " <> show s
+    show NexaResponseException = "Error while parsing Nexa response"
+
+instance Exception RegistrationException
+
 data RegValidationException
     = RawTxParseException
     | InvalidNameException
