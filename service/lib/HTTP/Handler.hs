@@ -66,8 +66,9 @@ getPartiallySignedAllpayTransaction' (PSAllpayTransaction inputs recipient amoun
     res <- getPartiallySignedAllpayTransaction inputs amount recipient change
     case res of
         Left e -> do
+            liftIO $ putStrLn $ "[ERROR] getPartiallySignedAllpayTransaction: " <> e
             modifyResponse $ setResponseStatus 500 "Internal Server Error"
-            writeBS "INTERNAL_SERVER_ERROR"
+            writeBS $ "INTERNAL_SERVER_ERROR: " <> (S.pack e)
         Right (stx, addrProof, utxoProof) -> do
             writeBS $ BSL.toStrict $ encodeResp True $ (Just $ RespPSAllpayTransaction stx addrProof utxoProof)
 getPartiallySignedAllpayTransaction' _ = throwBadRequest
