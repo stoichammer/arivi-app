@@ -2,7 +2,7 @@ bitcoinNetwork: bsvtest
 
 logLevel: Debug
 
-logFileName: ./proxy.log
+logFileName: ./debug.log
 
 endPointListenIP: 127.0.0.1
 

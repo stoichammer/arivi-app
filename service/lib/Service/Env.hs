@@ -15,6 +15,7 @@ import Codec.Serialise
 import Control.Concurrent.MVar
 import Control.Concurrent.STM
 import Control.Monad.Reader
+import Control.Monad.Trans.Control
 import Crypto.Secp256k1
 import Data.Aeson
 import Data.Aeson.Types
@@ -35,6 +36,7 @@ import Network.Xoken.Transaction.Common
 import NodeConfig as NC
 import Service.Data.Utxo
 import Service.Types
+import System.Logger (Logger)
 
 data XPubInfo =
     XPubInfo
@@ -42,7 +44,8 @@ data XPubInfo =
         , count :: Int
         , index :: KeyIndex
         , utxoCommitment :: [String]
-        } deriving (Show)
+        }
+    deriving (Show)
 
 decodeXPubInfo :: Network -> ByteString -> Parser XPubInfo
 decodeXPubInfo net bs =
@@ -58,7 +61,7 @@ encodeXPubInfo net (XPubInfo k c i u) =
 
 getAddressList :: XPubKey -> Int -> [TxHash]
 getAddressList pubKey count =
-    (TxHash . doubleSHA256 . S.encode . fst . (deriveAddr $ pubKey) ) <$> [1 .. (fromIntegral count)]
+    (TxHash . doubleSHA256 . S.encode . fst . (deriveAddr $ pubKey)) <$> [1 .. (fromIntegral count)]
 
 outpointHashes :: [String] -> [TxHash]
 outpointHashes outpoints = (TxHash . doubleSHA256 . S.encode) <$> outpoints
@@ -96,8 +99,13 @@ class HasUtxoPool m where
 class HasCommittedUtxos m where
     getCommittedUtxos :: m (TVar (M.Map String ProxyProviderUtxo))
 
+class HasLogger m where
+    getLogger :: m (Logger)
+
 type HasService env m
      = ( MonadReader env m
+       , MonadBaseControl IO m
+       , HasLogger m
        , HasNodeConfig m
        , HasAddressMap m
        , HasXPubInfoMap m
@@ -111,4 +119,5 @@ data AllpayProxyEnv =
         , xpubInfoMap :: TVar (M.Map String XPubInfo)
         , utxoPool :: TVar (M.Map String ProxyProviderUtxo)
         , committedUtxos :: TVar (M.Map String ProxyProviderUtxo)
+        , loggerEnv :: Logger
         }

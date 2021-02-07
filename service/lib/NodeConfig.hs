@@ -8,6 +8,7 @@ module NodeConfig
 
 import Control.Exception
 import Control.Monad (guard)
+import Crypto.Secp256k1
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Base16 as B16
 import Data.ByteString.Char8 as C
@@ -20,8 +21,6 @@ import Network.Socket
 import Network.Xoken.Constants
 import Network.Xoken.Constants
 import System.Logger
-
-import Crypto.Secp256k1
 
 data NodeConfig =
     NodeConfig

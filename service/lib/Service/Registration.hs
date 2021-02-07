@@ -49,7 +49,7 @@ import Network.Xoken.Util
 import Control.Concurrent.STM
 import Control.Exception
 
---import Control.Exception.Lifted as LE
+import Control.Exception.Lifted as LE
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.IO.Unlift

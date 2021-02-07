@@ -64,6 +64,7 @@ import StmContainers.Map as H
 import System.Directory
 import System.Environment (getArgs)
 import System.IO as IO (putStrLn)
+import qualified System.Logger as LG
 import System.Posix.Daemon
 import UtxoPool
 
@@ -111,7 +112,12 @@ runNode nodeConfig certPaths pool = do
                 M.empty
                 (M.toList xPubInfoMap)
     amT <- newTVarIO addressMap
-    let allpayProxyEnv = AllpayProxyEnv nodeConfig amT amr up cu
+    lg <-
+        LG.new
+            (LG.setOutput
+                 (LG.Path $ DT.unpack $ NC.logFileName nodeConfig)
+                 (LG.setLogLevel (NC.logLevel nodeConfig) LG.defSettings))
+    let allpayProxyEnv = AllpayProxyEnv nodeConfig amT amr up cu lg
     let snapConfig =
             Snap.defaultConfig & Snap.setSSLBind (DTE.encodeUtf8 $ DT.pack $ NC.endPointListenIP nodeConfig) &
             Snap.setSSLPort (fromEnum $ NC.endPointListenPort nodeConfig) &

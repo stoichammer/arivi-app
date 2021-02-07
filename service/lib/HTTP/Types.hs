@@ -68,6 +68,9 @@ instance MC.MonadThrow (Handler App App) where
 instance MonadHttp (Handler App App) where
     handleHttpException = MC.throwM
 
+instance HasLogger (Handler App App) where
+    getLogger = loggerEnv <$> gets _env
+
 data ReqParams'
     = Register
           { rName :: [Int]
