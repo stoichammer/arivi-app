@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -38,13 +39,14 @@ import Service.Env
 import Service.Merkle
 import Service.ProxyProviderUtxo
 import Service.Types
+import System.Logger as LG
 
 addSubscriber :: (HasService env m, MonadIO m) => [Int] -> C8.ByteString -> String -> Int -> m C8.ByteString
 addSubscriber name xPubKey ownerUri count = do
     net <- NC.bitcoinNetwork <$> getNodeConfig
     subs <- getSubscribers
     case parse Prelude.id . xPubFromJSON net $ A.String (DTE.decodeUtf8 xPubKey) of
-        Error e -> throw $ XPubKeyDecodeException e
+        A.Error e -> throw $ XPubKeyDecodeException e
         Success key -> do
             committedUtxos <- getFromPool count
             let utxoHashes = doubleSHA256 . C8.pack <$> committedUtxos
@@ -86,6 +88,59 @@ cancelSubscription opRetHash = do
     -- free up committed utxos; return them to pool
     putBackInPool committedUtxos
     return ()
+
+generateAddress ::
+       (HasService env m, MonadIO m)
+    => String
+    -> m (Address, ProxyProviderUtxo, [(ByteString, Bool)], [(ByteString, Bool)])
+generateAddress opRetHashStr = do
+    lg <- getLogger
+    net <- NC.bitcoinNetwork <$> getNodeConfig
+    subs <- getSubscribers
+    subMap <- liftIO $ readTVarIO subs
+    case M.lookup opRetHashStr subMap of
+        Nothing -> do
+            debug lg $ LG.msg $ "Name lookup failed for OP_RETURN hash: " <> opRetHashStr
+            throw InvalidOPReturnHashException
+        Just Subscriber {..} -> do
+            if addressCount <= (fromIntegral nextIndex)
+                then do
+                    debug lg $ LG.msg $ "Ran out of authorized addresses for OP_RETURN hash: " <> opRetHashStr
+                    throw OutOfAddressesException
+                else do
+                    let addr = fst $ deriveAddr xPubKey nextIndex
+                        utxoOutpoint = ppUtxos !! (fromIntegral nextIndex)
+                    mbPpUtxo <- getCommittedUtxo utxoOutpoint
+                    case mbPpUtxo of
+                        Nothing -> do
+                            err lg $
+                                LG.msg $
+                                "[ERROR] Missing committed proxy-provider UTXOS for outpoint: " <> show utxoOutpoint
+                            throw MissingCommittedUtxosException
+                        Just ppUtxo -> do
+                            liftIO $
+                                atomically $
+                                writeTVar
+                                    subs
+                                    (M.update
+                                         (\sub@(Subscriber k _ i _ _ _ _) -> Just $ sub {nextIndex = i + 1})
+                                         opRetHashStr
+                                         subMap)
+                            liftIO $
+                                putValue
+                                    (DTE.encodeUtf8 $ DT.pack opRetHashStr)
+                                    (encodeSubscriber net $
+                                     Subscriber
+                                         xPubKey
+                                         addressCount
+                                         (nextIndex + 1)
+                                         ppUtxos
+                                         addressMerkleTree
+                                         utxoMerkleTree
+                                         confirmed)
+                            let addressProof = getProof (fromIntegral nextIndex) addressMerkleTree
+                                utxoProof = getProof (fromIntegral nextIndex) utxoMerkleTree
+                            return (addr, ppUtxo, addressProof, utxoProof)
 
 generateAddresses :: XPubKey -> Int -> [Address]
 generateAddresses xPubKey count = (fst . (deriveAddr $ xPubKey)) <$> [1 .. (fromIntegral count)]

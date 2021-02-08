@@ -170,6 +170,14 @@ data RegValidationException
 
 instance Exception RegValidationException
 
+data AddressGenerationException
+    = InvalidOPReturnHashException
+    | OutOfAddressesException
+    | MissingCommittedUtxosException
+    deriving (Show, Eq)
+
+instance Exception AddressGenerationException
+
 data GetUtxosByAddressResponse =
     GetUtxosByAddressResponse
         { nextCursor :: Maybe String
