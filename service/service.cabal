@@ -84,7 +84,7 @@ executable aaproxy
                 , hashtables
                 , lens
                 , req
-                , daemons >= 0.3.0
+                , daemons
 
   other-modules:
          NodeConfig

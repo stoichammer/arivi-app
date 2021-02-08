@@ -62,6 +62,7 @@ import qualified NodeConfig as NC
 
 import Data.Int
 import LevelDB
+import Service.Merkle
 
 data RegDetails =
     RegDetails
