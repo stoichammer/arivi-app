@@ -21,6 +21,7 @@ import Data.ByteString.Char8 as C8
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString.Lazy.Char8 as LC
 import Data.Int
+import Data.List as L
 import Data.Map as M
 import Data.Maybe
 import Data.Serialize
@@ -72,6 +73,7 @@ addSubscriber name xPubKey ownerUri count = do
             when (isNothing $ M.lookup opRetHashStr subMap) $
                 liftIO $ putValue (DTE.encodeUtf8 $ DT.pack opRetHashStr) (encodeSubscriber net subscriberRecord)
             liftIO $ atomically $ writeTVar subs (M.alter f opRetHashStr subMap)
+            liftIO $ putValue "subscribers" (BSL.toStrict $ A.encode $ L.nub $ opRetHashStr : (M.keys subMap))
             return opRetData
 
 cancelSubscription :: (HasService env m, MonadIO m) => Hash256 -> m ()

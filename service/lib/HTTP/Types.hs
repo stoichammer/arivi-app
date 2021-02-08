@@ -47,12 +47,6 @@ data App =
         { _env :: AllpayProxyEnv
         }
 
-instance HasAddressMap (Handler App App) where
-    getAddressMap = asks (addressMap . _env)
-
-instance HasXPubInfoMap (Handler App App) where
-    getXPubHashMap = asks (xpubInfoMap . _env)
-
 instance HasSubscribers (Handler App App) where
     getSubscribers = asks (subscribers . _env)
 
@@ -100,8 +94,8 @@ instance FromJSON ReqParams' where
 data ResponseBody
     = RespPSAllpayTransaction
           { serialisedTx :: ByteString
-          , addressProof :: [(Bool, Hash256)]
-          , utxoProof :: [(Bool, Hash256)]
+          , addressProof :: [(ByteString, Bool)]
+          , utxoProof :: [(ByteString, Bool)]
           }
     | RespRegister
           { opReturnScript :: ByteString

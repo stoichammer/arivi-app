@@ -20,6 +20,7 @@ import Control.Concurrent.Async (AsyncCancelled, mapConcurrently, mapConcurrentl
 import Control.Concurrent.Async.Lifted (async, wait)
 import Control.Concurrent.STM.TVar
 import Control.Exception
+import Control.Exception.Lifted as LE
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Logger
@@ -68,50 +69,8 @@ import NodeConfig
 import Service.Env
 import qualified Service.Env as SE (ProxyProviderUtxo(..))
 import Service.ProxyProviderUtxo
+import Service.Subscriber
 import Service.Types
-
--- get address, pptuxo and Merkle proofs for address and pputxo
-getAddressAndProxyUtxo ::
-       (HasService env m, MonadIO m)
-    => Network
-    -> String
-    -> m (Either String (String, SE.ProxyProviderUtxo, [(Bool, Hash256)], [(Bool, Hash256)]))
-getAddressAndProxyUtxo net name = do
-    aMapTvar <- getXPubHashMap
-    addressTvar <- getAddressMap
-    aMap <- liftIO $ readTVarIO aMapTvar
-    case M.lookup (show name) aMap of
-        Just XPubInfo {..} -> do
-            if (count > fromIntegral index)
-                then do
-                    let addr = fst ((deriveAddr key) (index + 1))
-                    let utxoOp = utxoCommitment !! (fromIntegral index + 1)
-                    mbpputxo <- getCommittedUtxo utxoOp
-                    case mbpputxo of
-                        Nothing -> return $ Left "failed to fetch proxy-provider utxo; commitment set incomplete?"
-                        Just pputxo -> do
-                            liftIO $
-                                atomically $
-                                writeTVar
-                                    aMapTvar
-                                    (M.update (\(XPubInfo k c i u) -> Just $ XPubInfo k c (i + 1) u) name aMap)
-                            addressMap <- liftIO $ readTVarIO addressTvar
-                            case M.lookup (xPubExport net key) addressMap of
-                                Just hashes -> do
-                                    let addrProof = buildProof' hashes index
-                                    let utxoProof = buildProof' (outpointHashes utxoCommitment) index
-                                    liftIO $
-                                        putValue
-                                            (DTE.encodeUtf8 $ DT.pack name)
-                                            (encodeXPubInfo net $ XPubInfo key count (index + 1) utxoCommitment)
-                                    return $
-                                        Right
-                                            (DT.unpack $ fromJust $ addrToString net addr, pputxo, addrProof, utxoProof)
-                else do
-                    return $ Left "maximum address count reached"
-        Nothing -> do
-            liftIO $ print $ "Name lookup failed"
-            return undefined
 
 getPartiallySignedAllpayTransaction ::
        (HasService env m, MonadIO m)
@@ -119,24 +78,25 @@ getPartiallySignedAllpayTransaction ::
     -> Int64 -- value
     -> String -- receiver
     -> String -- change address
-    -> m (Either String (BC.ByteString, [(Bool, Hash256)], [(Bool, Hash256)])) -- serialized transaction
-getPartiallySignedAllpayTransaction inputs amount receiverName changeAddr = do
+    -> m (Either String (BC.ByteString, [(B.ByteString, Bool)], [(B.ByteString, Bool)])) -- serialized transaction
+getPartiallySignedAllpayTransaction inputs amount recipient changeAddr = do
     nodeCnf <- getNodeConfig
     let net = bitcoinNetwork nodeCnf
     poolAddr <- poolAddress <$> getNodeConfig
     poolSecKey <- poolSecKey <$> getNodeConfig
-    res <- getAddressAndProxyUtxo net receiverName
+    res <- LE.try $ generateAddress recipient
     let inputsOp =
             (\(op', val) ->
                  (OutPoint (fromJust $ hexToTxHash $ DT.pack $ opTxHash op') (fromIntegral $ opIndex op'), val)) <$>
             inputs
     case res of
-        Left err -> return $ Left $ "failed to get address or proxy-provider utxo: " ++ err
-        Right (addr, pputxo, addrProof, utxoProof) -> do
+        Left (e :: SomeException) -> return $ Left $ "failed to get address or proxy-provider utxo: " <> (show e)
+        Right (address, pputxo, addrProof, utxoProof) -> do
             let ppOutPoint =
                     OutPoint
                         (fromJust $ hexToTxHash $ DT.pack $ SE.txid $ pputxo)
                         (fromIntegral $ SE.outputIndex $ pputxo)
+            let addr = DT.unpack . fromJust $ addrToString net address
             let inputs' = ppOutPoint : ((\(outpoint, _) -> outpoint) <$> inputsOp)
             let fee = guessTxFee (fromIntegral 5) (1 + length inputs) 2
             -- compute change

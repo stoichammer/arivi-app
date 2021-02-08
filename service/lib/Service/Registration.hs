@@ -73,69 +73,15 @@ data RegDetails =
         }
     deriving (Show, Eq)
 
--- create: addressCommitment, utxoCommitment, list of pputxo outpoints and address hashes
-getRegistrationDetails ::
-       (HasService env m, MonadIO m) => Network -> C.ByteString -> Int -> m (RegDetails, [String], [TxHash], XPubKey)
-getRegistrationDetails net pubKey count = do
-    let res = A.String (DTE.decodeUtf8 pubKey)
-    case parse Prelude.id . xPubFromJSON net $ res of
-        Success k -> do
-            ops <- getFromPool count
-            let addrHashes = getAddressList k count
-                utxoRoot = buildMerkleRoot $ outpointHashes ops
-                addrRoot = buildMerkleRoot $ addrHashes
-                expiry = 2556143999 -- for demo, midnight 31st December 2050
-            return $
-                ( RegDetails
-                      (C.unpack . SH.fromShort $ getHash256 addrRoot)
-                      (C.unpack . SH.fromShort $ getHash256 utxoRoot)
-                      expiry
-                , ops
-                , addrHashes
-                , k)
-        Error err -> throw $ XPubKeyDecodeException (show err)
-
 registerNewUser :: (HasService env m, MonadIO m) => [Int] -> C.ByteString -> Int -> m (C.ByteString, Int64, String)
 registerNewUser allegoryName pubKey count = do
     nodeCnf <- getNodeConfig
     let net = NC.bitcoinNetwork nodeCnf
-    aMapTvar <- getXPubHashMap
-    addressTVar <- getAddressMap
     userValid <- liftIO $ validateUser (NC.nexaHost nodeCnf) (NC.nexaSessionKey nodeCnf) allegoryName
     let ownerUri = fromMaybe (throw NameValidationException) userValid
         feeSats = 100000
-    (reg, committedOps, addrHashes, k) <- getRegistrationDetails net pubKey count
-    (opRetScript, opRetHash) <- makeOpReturn allegoryName ownerUri (addrCom reg) (utxoCom reg) (exp' reg)
-    xPubInfo <- liftIO $ readTVarIO aMapTvar
-    let f x =
-            case x of
-                Just v -> Just v
-                Nothing -> Just (XPubInfo k count 0 committedOps)
-    liftIO $ atomically $ writeTVar aMapTvar (M.alter f (show opRetHash) xPubInfo)
-    liftIO $ atomically $ modifyTVar addressTVar (M.insert (xPubExport net k) addrHashes)
-    names <- liftIO $ M.keys <$> readTVarIO aMapTvar
-    liftIO $ putValue "names" (BSL.toStrict $ A.encode $ nub $ (show opRetHash) : names)
-    when (isNothing $ M.lookup (show opRetHash) xPubInfo) $
-        liftIO $
-        putValue (DTE.encodeUtf8 $ DT.pack (show opRetHash)) (encodeXPubInfo net $ XPubInfo k count 0 committedOps)
+    opRetScript <- addSubscriber allegoryName pubKey ownerUri count
     return (opRetScript, feeSats, NC.paymentAddress nodeCnf)
-
-cancelRegistration :: (HasService env m, MonadIO m) => Hash256 -> m ()
-cancelRegistration opReturnHash = do
-    nodeCnf <- getNodeConfig
-    let net = NC.bitcoinNetwork nodeCnf
-    aMapTVar <- getXPubHashMap
-    addressTVar <- getAddressMap
-    aMap <- liftIO $ readTVarIO aMapTVar
-    let (XPubInfo xpk count used committedOps) = fromJust $ M.lookup (show opReturnHash) aMap
-    -- delete XPubKey registration
-    liftIO $ atomically $ modifyTVar aMapTVar $ M.delete $ show opReturnHash
-    liftIO $ deleteValue (DTE.encodeUtf8 $ DT.pack $ show opReturnHash)
-    -- delete address hashes (Merkle leaves)
-    liftIO $ atomically $ modifyTVar addressTVar $ M.delete $ xPubExport net xpk
-    -- free up committed utxos; return them to pool
-    putBackInPool committedOps
-    return ()
 
 validateUser :: (MonadUnliftIO m) => String -> SessionKey -> [Int] -> m (Maybe String)
 validateUser host sk name = do
@@ -150,21 +96,21 @@ validateUser host sk name = do
 inspectAndRelayRegistrationTx :: (HasService env m, MonadIO m) => C.ByteString -> m Bool
 inspectAndRelayRegistrationTx rawTx = do
     nodeCfg <- getNodeConfig
-    regMapTVar <- getXPubHashMap
-    regMap <- liftIO $ readTVarIO regMapTVar
+    subs <- getSubscribers
+    subMap <- liftIO $ readTVarIO subs
     case runGetState getConfirmedTx rawTx 0 of
         Left e -> throw RawTxParseException
         Right (mbTx, _) -> do
             let tx@(Tx version ins outs locktime) = fromMaybe (throw RawTxParseException) mbTx
                 opRet = TC.scriptOutput $ outs !! 0
                 opRetHash = sha256 $ DTE.encodeUtf8 $ encodeHex opRet
-                reg = fromMaybe (throw InvalidNameException) $ M.lookup (show opRetHash) regMap
+                reg = fromMaybe (throw InvalidNameException) $ M.lookup (C.unpack . hash256ToHex $ opRetHash) subMap
             if verifyPayment (NC.bitcoinNetwork nodeCfg) (NC.paymentAddress nodeCfg) outs
                 then do
                     res <- liftIO $ relayTx (NC.nexaHost nodeCfg) (NC.nexaSessionKey nodeCfg) rawTx
                     return $ txBroadcast res
                 else do
-                    cancelRegistration opRetHash
+                    cancelSubscription opRetHash
                     return False
 
 fetchNameFromAllegoryData :: C.ByteString -> [Int]

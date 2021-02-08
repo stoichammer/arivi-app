@@ -39,26 +39,6 @@ import Service.Merkle
 import Service.Types
 import System.Logger (Logger)
 
-data XPubInfo =
-    XPubInfo
-        { key :: XPubKey
-        , count :: Int
-        , index :: KeyIndex
-        , utxoCommitment :: [String]
-        }
-    deriving (Show)
-
-decodeXPubInfo :: Network -> ByteString -> Parser XPubInfo
-decodeXPubInfo net bs =
-    case A.eitherDecode $ BSL.fromStrict bs of
-        Right (Object o) ->
-            XPubInfo <$> (xPubFromJSON net =<< o .: "key") <*> o .: "count" <*> o .: "index" <*> o .: "utxoCommitment"
-        _ -> fail "error while decoding xpubInfo"
-
-encodeXPubInfo :: Network -> XPubInfo -> ByteString
-encodeXPubInfo net (XPubInfo k c i u) =
-    BSL.toStrict $ A.encode $ A.object ["key" .= xPubToJSON net k, "count" .= c, "index" .= i, "utxoCommitment" .= u]
-
 getAddressList :: XPubKey -> Int -> [TxHash]
 getAddressList pubKey count =
     (TxHash . doubleSHA256 . S.encode . fst . (deriveAddr $ pubKey)) <$> [1 .. (fromIntegral count)]
@@ -87,12 +67,6 @@ instance ToJSON ProxyProviderUtxo where
 class HasNodeConfig m where
     getNodeConfig :: m (NodeConfig)
 
-class HasAddressMap m where
-    getAddressMap :: m (TVar (M.Map Base58 [TxHash]))
-
-class HasXPubInfoMap m where
-    getXPubHashMap :: m (TVar (M.Map String XPubInfo))
-
 class HasSubscribers m where
     getSubscribers :: m (TVar (M.Map String Subscriber))
 
@@ -110,8 +84,6 @@ type HasService env m
        , MonadBaseControl IO m
        , HasLogger m
        , HasNodeConfig m
-       , HasAddressMap m
-       , HasXPubInfoMap m
        , HasSubscribers m
        , HasUtxoPool m
        , HasCommittedUtxos m)
@@ -119,8 +91,6 @@ type HasService env m
 data AllpayProxyEnv =
     AllpayProxyEnv
         { nodeConfig :: NodeConfig
-        , addressMap :: TVar (M.Map Base58 [TxHash])
-        , xpubInfoMap :: TVar (M.Map String XPubInfo)
         , subscribers :: TVar (M.Map String Subscriber)
         , utxoPool :: TVar (M.Map String ProxyProviderUtxo)
         , committedUtxos :: TVar (M.Map String ProxyProviderUtxo)

@@ -80,45 +80,41 @@ runNode nodeConfig certPaths pool = do
     IO.putStrLn $ "UTXO pool address: " <> (show $ addresses !! 1)
     IO.putStrLn $ "Size of UTXO pool: " <> show (Prelude.length pool)
     let net = NC.bitcoinNetwork nodeConfig
-    -- read xpubKeys and build a HashMap
-    allXPubKeys <-
-        fmap (Prelude.map (Data.Text.unpack) . fromMaybe [] . Data.Aeson.decode . BSL.fromStrict) <$> getValue "names" :: IO (Maybe [String])
-    xPubInfoMap <-
-        case allXPubKeys of
-            Just ks -> do
+    --
+    --
+    subscriberHashes <-
+        fmap (Prelude.map (Data.Text.unpack) . fromMaybe [] . Data.Aeson.decode . BSL.fromStrict) <$>
+        getValue "subscribers" :: IO (Maybe [String])
+    subMap <-
+        case subscriberHashes of
+            Nothing -> return M.empty
+            Just hashes -> do
                 res <-
                     traverse
-                        (\name ->
-                             fmap (fmap (name, ) . parse Prelude.id . decodeXPubInfo net) <$>
-                             (getValue (DTE.encodeUtf8 . Data.Text.pack $ name)))
-                        ks
+                        (\hash ->
+                             fmap (fmap (hash, ) . parse Prelude.id . decodeSubscriber net) <$>
+                             (getValue (DTE.encodeUtf8 . Data.Text.pack $ hash)))
+                        hashes
                 case sequence $ catMaybes res of
-                    Success x -> pure $ M.fromList x
-                    Data.Aeson.Error err -> do
-                        print err
-                        pure M.empty
-            Nothing -> pure M.empty
+                    Success subs -> return $ M.fromList subs
+                    Data.Aeson.Error e -> do
+                        print e
+                        return M.empty
+    --
+    --
     -- build utxo pool
     let (utxoPool, committedUtxos) =
-            L.partition
-                (\opu -> (fst opu `L.notElem` (L.concat $ (\xpi -> utxoCommitment xpi) <$> M.elems xPubInfoMap))) $
+            L.partition (\opu -> (fst opu `L.notElem` (L.concat $ (\sub -> ppUtxos sub) <$> M.elems subMap))) $
             (\utxo -> (txid utxo ++ ":" ++ (show $ outputIndex utxo), utxo)) <$> pool
     up <- newTVarIO $ M.fromList utxoPool
     cu <- newTVarIO $ M.fromList committedUtxos
-    amr <- newTVarIO xPubInfoMap
-    let addressMap =
-            Prelude.foldl
-                (\m (name, XPubInfo {..}) -> M.insert (xPubExport net key) (getAddressList key count) m)
-                M.empty
-                (M.toList xPubInfoMap)
-    amT <- newTVarIO addressMap
-    sub <- newTVarIO M.empty
+    sub <- newTVarIO subMap
     lg <-
         LG.new
             (LG.setOutput
                  (LG.Path $ DT.unpack $ NC.logFileName nodeConfig)
                  (LG.setLogLevel (NC.logLevel nodeConfig) LG.defSettings))
-    let allpayProxyEnv = AllpayProxyEnv nodeConfig amT amr sub up cu lg
+    let allpayProxyEnv = AllpayProxyEnv nodeConfig sub up cu lg
     let snapConfig =
             Snap.defaultConfig & Snap.setSSLBind (DTE.encodeUtf8 $ DT.pack $ NC.endPointListenIP nodeConfig) &
             Snap.setSSLPort (fromEnum $ NC.endPointListenPort nodeConfig) &
