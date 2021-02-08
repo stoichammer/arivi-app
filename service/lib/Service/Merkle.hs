@@ -1,15 +1,39 @@
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE RecordWildCards #-}
+
 module Service.Merkle where
 
 import Control.Exception
 import Control.Monad.Writer.Lazy
-import qualified Data.ByteString as B
+import Data.Aeson
+import Data.ByteArray as BA
+import Data.ByteString as B
+import qualified Data.ByteString.Base16 as B16 (encode)
+import Data.ByteString.Short as BSS (fromShort)
 import Data.Int
 import qualified Data.List as L
 import Data.Map as M
 import Data.Maybe
 import Data.Serialize as DS
+import GHC.Generics
 import Network.Xoken.Block
 import Network.Xoken.Crypto
+
+data MerkleTree =
+    MerkleTree
+        { leafNodes :: [Hash256]
+        , transposeMT :: M.Map Hash256 (Bool, Hash256)
+        }
+    deriving (Show, Generic)
+
+instance FromJSON MerkleTree
+
+instance ToJSON MerkleTree
+
+instance FromJSONKey Hash256
+
+instance ToJSONKey Hash256
 
 data MerkleNode =
     MerkleNode
@@ -42,7 +66,7 @@ computeTreeHeight ntx
     | otherwise = computeTreeHeight $ ntx + 1
 
 hashPair :: Hash256 -> Hash256 -> Hash256
-hashPair a b = doubleSHA256 $ encode a `B.append` encode b
+hashPair a b = doubleSHA256 $ DS.encode a `B.append` DS.encode b
 
 pushHash :: HashCompute -> Hash256 -> Maybe Hash256 -> Maybe Hash256 -> Int8 -> Int8 -> Bool -> HashCompute
 pushHash (stateMap, res) nhash left right ht ind final =
@@ -124,7 +148,7 @@ getMerkleBranch leaf tmt = L.reverse . L.init $ getNextNode [] leaf tmt
 
 getMerkleRoot :: M.Map Hash256 (Bool, Hash256) -> Hash256
 getMerkleRoot tmt =
-    let start = fst . head $ M.toList tmt
+    let start = fst . L.head $ M.toList tmt
      in crawlUp start tmt
   where
     crawlUp node tree =
@@ -143,3 +167,17 @@ getSibling index leaves
         if odd index
             then (leaves !! (index - 1), True)
             else (leaves !! (index + 1), False)
+
+hash256ToHex :: Hash256 -> ByteString
+hash256ToHex = B16.encode . BA.reverse . fromShort . getHash256
+
+buildMerkleTree :: [Hash256] -> MerkleTree
+buildMerkleTree hashes = MerkleTree hashes (buildTMT hashes)
+
+getProof :: Int -> MerkleTree -> [(ByteString, Bool)]
+getProof leafIndex MerkleTree {..}
+    | leafIndex < L.length leafNodes =
+        let sibling = getSibling leafIndex leafNodes
+            path = getMerkleBranch (leafNodes !! leafIndex) transposeMT
+         in (\(h, b) -> (hash256ToHex h, b)) <$> (sibling : path)
+    | otherwise = throw MerkleBranchComputeException
