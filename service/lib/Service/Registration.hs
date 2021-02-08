@@ -30,7 +30,7 @@ import qualified Data.Text as DT
 import Data.Text.Encoding as DTE
 import Service.AllpayTransaction
 import Service.Data.Allegory
-import qualified Service.Data.Allegory as Al
+import qualified Service.Data.Allegory as AL
 import Service.Env
 import Service.Nexa
 import Service.ProxyProviderUtxo
@@ -63,6 +63,7 @@ import qualified NodeConfig as NC
 import Data.Int
 import LevelDB
 import Service.Merkle
+import Service.Subscriber
 
 data RegDetails =
     RegDetails
@@ -104,7 +105,7 @@ registerNewUser allegoryName pubKey count = do
     let ownerUri = fromMaybe (throw NameValidationException) userValid
         feeSats = 100000
     (reg, committedOps, addrHashes, k) <- getRegistrationDetails net pubKey count
-    (opRetScript, opRetHash) <- makeOpReturn allegoryName ownerUri reg
+    (opRetScript, opRetHash) <- makeOpReturn allegoryName ownerUri (addrCom reg) (utxoCom reg) (exp' reg)
     xPubInfo <- liftIO $ readTVarIO aMapTvar
     let f x =
             case x of
@@ -135,26 +136,6 @@ cancelRegistration opReturnHash = do
     -- free up committed utxos; return them to pool
     putBackInPool committedOps
     return ()
-
-makeOpReturn :: (HasService env m, MonadIO m) => [Int] -> String -> RegDetails -> m (C.ByteString, Hash256)
-makeOpReturn allegoryName ownerUri reg = do
-    providerUri <- NC.proxyProviderUri <$> getNodeConfig
-    let al =
-            Allegory
-                1
-                allegoryName
-                (OwnerAction
-                     (Al.Index 0)
-                     (OwnerOutput (Al.Index 1) (Just $ Endpoint "XokenP2P" ownerUri))
-                     [ ProxyProvider
-                           "AllPay"
-                           "Public"
-                           (Endpoint "XokenP2P" providerUri)
-                           (Registration (addrCom reg) (utxoCom reg) "" (fromIntegral $ exp' reg))
-                     ])
-        opRetScript = frameOpReturn $ LC.toStrict $ serialise al
-        opRetHash = sha256 $ DTE.encodeUtf8 $ encodeHex opRetScript
-    return (opRetScript, opRetHash)
 
 validateUser :: (MonadUnliftIO m) => String -> SessionKey -> [Int] -> m (Maybe String)
 validateUser host sk name = do
@@ -198,7 +179,7 @@ fetchNameFromAllegoryData allegoryData =
                         let alg' = deserialiseOrFail $ LC.fromStrict allegory :: Either DeserialiseFailure Allegory
                          in case alg' of
                                 Left df@(DeserialiseFailure b s) -> throw AllegoryMetadataException
-                                Right alg -> Al.name alg
+                                Right alg -> AL.name alg
 
 verifyPayment :: Network -> String -> [TxOut] -> Bool
 verifyPayment net paymentAddrString outs = do

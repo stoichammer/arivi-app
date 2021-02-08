@@ -17,7 +17,7 @@ import Control.Concurrent.STM
 import Control.Monad.Reader
 import Control.Monad.Trans.Control
 import Crypto.Secp256k1
-import Data.Aeson
+import Data.Aeson as A
 import Data.Aeson.Types
 import Data.ByteString
 import qualified Data.ByteString.Lazy as BSL
@@ -35,6 +35,7 @@ import Network.Xoken.Keys
 import Network.Xoken.Transaction.Common
 import NodeConfig as NC
 import Service.Data.Utxo
+import Service.Merkle
 import Service.Types
 import System.Logger (Logger)
 
@@ -49,15 +50,14 @@ data XPubInfo =
 
 decodeXPubInfo :: Network -> ByteString -> Parser XPubInfo
 decodeXPubInfo net bs =
-    case Data.Aeson.eitherDecode $ BSL.fromStrict bs of
+    case A.eitherDecode $ BSL.fromStrict bs of
         Right (Object o) ->
             XPubInfo <$> (xPubFromJSON net =<< o .: "key") <*> o .: "count" <*> o .: "index" <*> o .: "utxoCommitment"
         _ -> fail "error while decoding xpubInfo"
 
 encodeXPubInfo :: Network -> XPubInfo -> ByteString
 encodeXPubInfo net (XPubInfo k c i u) =
-    BSL.toStrict $
-    Data.Aeson.encode $ Data.Aeson.object ["key" .= xPubToJSON net k, "count" .= c, "index" .= i, "utxoCommitment" .= u]
+    BSL.toStrict $ A.encode $ A.object ["key" .= xPubToJSON net k, "count" .= c, "index" .= i, "utxoCommitment" .= u]
 
 getAddressList :: XPubKey -> Int -> [TxHash]
 getAddressList pubKey count =
@@ -93,6 +93,9 @@ class HasAddressMap m where
 class HasXPubInfoMap m where
     getXPubHashMap :: m (TVar (M.Map String XPubInfo))
 
+class HasSubscribers m where
+    getSubscribers :: m (TVar (M.Map String Subscriber))
+
 class HasUtxoPool m where
     getUtxoPool :: m (TVar (M.Map String ProxyProviderUtxo))
 
@@ -109,6 +112,7 @@ type HasService env m
        , HasNodeConfig m
        , HasAddressMap m
        , HasXPubInfoMap m
+       , HasSubscribers m
        , HasUtxoPool m
        , HasCommittedUtxos m)
 
@@ -117,7 +121,45 @@ data AllpayProxyEnv =
         { nodeConfig :: NodeConfig
         , addressMap :: TVar (M.Map Base58 [TxHash])
         , xpubInfoMap :: TVar (M.Map String XPubInfo)
+        , subscribers :: TVar (M.Map String Subscriber)
         , utxoPool :: TVar (M.Map String ProxyProviderUtxo)
         , committedUtxos :: TVar (M.Map String ProxyProviderUtxo)
         , loggerEnv :: Logger
         }
+
+data Subscriber =
+    Subscriber
+        { xPubKey :: XPubKey
+        , addressCount :: Int
+        , nextIndex :: KeyIndex
+        , ppUtxos :: [String]
+        , addressMerkleTree :: MerkleTree
+        , utxoMerkleTree :: MerkleTree
+        , confirmed :: Bool
+        }
+    deriving (Show, Generic)
+
+decodeSubscriber :: Network -> ByteString -> Parser Subscriber
+decodeSubscriber net bs =
+    case A.eitherDecode $ BSL.fromStrict bs of
+        Right (Object o) ->
+            Subscriber <$> (xPubFromJSON net =<< o .: "xPubKey") <*> o .: "addressCount" <*> o .: "nextIndex" <*>
+            o .: "ppUtxos" <*>
+            o .: "addressMerkleTree" <*>
+            o .: "utxoMerkleTree" <*>
+            o .: "confirmed"
+        _ -> fail "Error while reading user registration from DB"
+
+encodeSubscriber :: Network -> Subscriber -> ByteString
+encodeSubscriber net (Subscriber xpk count index ppu amt umt conf) =
+    BSL.toStrict $
+    A.encode $
+    A.object
+        [ "xPubKey" .= xPubToJSON net xpk
+        , "addressCount" .= count
+        , "nextIndex" .= index
+        , "ppUtxos" .= ppu
+        , "addressMerkleTree" .= amt
+        , "utxoMerkleTree" .= umt
+        , "confirmed" .= conf
+        ]

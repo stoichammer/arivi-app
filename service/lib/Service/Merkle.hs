@@ -146,10 +146,10 @@ getMerkleBranch leaf tmt = L.reverse . L.init $ getNextNode [] leaf tmt
             Nothing -> branch
             (Just (isLeft, par)) -> getNextNode ((node, isLeft) : branch) par tree
 
-getMerkleRoot :: M.Map Hash256 (Bool, Hash256) -> Hash256
-getMerkleRoot tmt =
-    let start = fst . L.head $ M.toList tmt
-     in crawlUp start tmt
+getMerkleRoot :: MerkleTree -> Hash256
+getMerkleRoot mt =
+    let start = L.head $ leafNodes mt
+     in crawlUp start $ transposeMT mt
   where
     crawlUp node tree =
         case M.lookup node tree of

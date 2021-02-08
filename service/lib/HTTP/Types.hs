@@ -53,6 +53,9 @@ instance HasAddressMap (Handler App App) where
 instance HasXPubInfoMap (Handler App App) where
     getXPubHashMap = asks (xpubInfoMap . _env)
 
+instance HasSubscribers (Handler App App) where
+    getSubscribers = asks (subscribers . _env)
+
 instance HasUtxoPool (Handler App App) where
     getUtxoPool = asks (utxoPool . _env)
 
