@@ -72,6 +72,21 @@ addSubscriber name xPubKey ownerUri count = do
             liftIO $ atomically $ writeTVar subs (M.alter f opRetHashStr subMap)
             return opRetData
 
+cancelSubscription :: (HasService env m, MonadIO m) => Hash256 -> m ()
+cancelSubscription opRetHash = do
+    nodeCnf <- getNodeConfig
+    let net = NC.bitcoinNetwork nodeCnf
+    subs <- getSubscribers
+    subMap <- liftIO $ readTVarIO subs
+    let opRetHashStr = C8.unpack . hash256ToHex $ opRetHash
+        committedUtxos = ppUtxos . fromJust $ M.lookup opRetHashStr subMap
+    -- delete subscription record
+    liftIO $ atomically $ modifyTVar subs $ M.delete opRetHashStr
+    liftIO $ deleteValue (DTE.encodeUtf8 $ DT.pack opRetHashStr)
+    -- free up committed utxos; return them to pool
+    putBackInPool committedUtxos
+    return ()
+
 generateAddresses :: XPubKey -> Int -> [Address]
 generateAddresses xPubKey count = (fst . (deriveAddr $ xPubKey)) <$> [1 .. (fromIntegral count)]
 
