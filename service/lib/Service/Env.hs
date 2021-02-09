@@ -23,6 +23,7 @@ import Data.ByteString
 import qualified Data.ByteString.Lazy as BSL
 import Data.Hashable
 import Data.IORef
+import Data.Int
 import Data.Map.Strict as M
 import Data.Serialize as S
 import GHC.Generics
@@ -100,11 +101,13 @@ data AllpayProxyEnv =
 data Subscriber =
     Subscriber
         { xPubKey :: XPubKey
+        , allegoryName :: [Int]
         , addressCount :: Int
         , nextIndex :: KeyIndex
         , ppUtxos :: [String]
         , addressMerkleTree :: MerkleTree
         , utxoMerkleTree :: MerkleTree
+        , created :: Int64
         , confirmed :: Bool
         }
     deriving (Show, Generic)
@@ -113,23 +116,27 @@ decodeSubscriber :: Network -> ByteString -> Parser Subscriber
 decodeSubscriber net bs =
     case A.eitherDecode $ BSL.fromStrict bs of
         Right (Object o) ->
-            Subscriber <$> (xPubFromJSON net =<< o .: "xPubKey") <*> o .: "addressCount" <*> o .: "nextIndex" <*>
+            Subscriber <$> (xPubFromJSON net =<< o .: "xPubKey") <*> o .: "allegoryName" <*> o .: "addressCount" <*>
+            o .: "nextIndex" <*>
             o .: "ppUtxos" <*>
             o .: "addressMerkleTree" <*>
             o .: "utxoMerkleTree" <*>
+            o .: "created" <*>
             o .: "confirmed"
         _ -> fail "Error while reading user registration from DB"
 
 encodeSubscriber :: Network -> Subscriber -> ByteString
-encodeSubscriber net (Subscriber xpk count index ppu amt umt conf) =
+encodeSubscriber net (Subscriber xpk name count index ppu amt umt cts conf) =
     BSL.toStrict $
     A.encode $
     A.object
         [ "xPubKey" .= xPubToJSON net xpk
+        , "allegoryName" .= name
         , "addressCount" .= count
         , "nextIndex" .= index
         , "ppUtxos" .= ppu
         , "addressMerkleTree" .= amt
         , "utxoMerkleTree" .= umt
+        , "created" .= cts
         , "confirmed" .= conf
         ]

@@ -27,6 +27,8 @@ import Data.Maybe
 import Data.Serialize
 import Data.Text as DT
 import Data.Text.Encoding as DTE
+import Data.Time.Clock
+import Data.Time.Clock.POSIX
 import GHC.Generics
 import LevelDB
 import Network.Xoken.Address
@@ -63,8 +65,10 @@ addSubscriber name xPubKey ownerUri count = do
                     (C8.unpack . hash256ToHex $ getMerkleRoot addressMT)
                     (C8.unpack . hash256ToHex $ getMerkleRoot addressMT)
                     expiry
-            let opRetHashStr = C8.unpack . hash256ToHex $ opRetHash
-                subscriberRecord = Subscriber key count 0 committedUtxos addressMT utxoMT False
+            u <- liftIO $ utcTimeToPOSIXSeconds <$> getCurrentTime
+            let ts = fromIntegral . fromEnum $ u :: Int64
+                opRetHashStr = C8.unpack . hash256ToHex $ opRetHash
+                subscriberRecord = Subscriber key name count 0 committedUtxos addressMT utxoMT ts False
                 f x =
                     case x of
                         Just v -> Just v
@@ -125,7 +129,7 @@ generateAddress opRetHashStr = do
                                 writeTVar
                                     subs
                                     (M.update
-                                         (\sub@(Subscriber k _ i _ _ _ _) -> Just $ sub {nextIndex = i + 1})
+                                         (\sub@(Subscriber k _ _ i _ _ _ _ _) -> Just $ sub {nextIndex = i + 1})
                                          opRetHashStr
                                          subMap)
                             liftIO $
@@ -134,11 +138,13 @@ generateAddress opRetHashStr = do
                                     (encodeSubscriber net $
                                      Subscriber
                                          xPubKey
+                                         allegoryName
                                          addressCount
                                          (nextIndex + 1)
                                          ppUtxos
                                          addressMerkleTree
                                          utxoMerkleTree
+                                         created
                                          confirmed)
                             let addressProof = getProof (fromIntegral nextIndex) addressMerkleTree
                                 utxoProof = getProof (fromIntegral nextIndex) utxoMerkleTree
