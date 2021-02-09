@@ -20,6 +20,7 @@ import Data.ByteString.Builder
 import Data.ByteString.Char8 as C8
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString.Lazy.Char8 as LC
+import Data.Char
 import Data.Int
 import Data.List as L
 import Data.Map as M
@@ -46,6 +47,7 @@ import System.Logger as LG
 
 addSubscriber :: (HasService env m, MonadIO m) => [Int] -> C8.ByteString -> String -> Int -> m C8.ByteString
 addSubscriber name xPubKey ownerUri count = do
+    lg <- getLogger
     net <- NC.bitcoinNetwork <$> getNodeConfig
     subs <- getSubscribers
     case parse Prelude.id . xPubFromJSON net $ A.String (DTE.decodeUtf8 xPubKey) of
@@ -68,6 +70,7 @@ addSubscriber name xPubKey ownerUri count = do
             u <- liftIO $ utcTimeToPOSIXSeconds <$> getCurrentTime
             let ts = fromIntegral . fromEnum $ u :: Int64
                 opRetHashStr = C8.unpack . hash256ToHex $ opRetHash
+                nameStr = (\x -> chr x) <$> name
                 subscriberRecord = Subscriber key name count 0 committedUtxos addressMT utxoMT ts False
                 f x =
                     case x of
@@ -78,6 +81,9 @@ addSubscriber name xPubKey ownerUri count = do
                 liftIO $ putValue (DTE.encodeUtf8 $ DT.pack opRetHashStr) (encodeSubscriber net subscriberRecord)
             liftIO $ atomically $ writeTVar subs (M.alter f opRetHashStr subMap)
             liftIO $ putValue "subscribers" (BSL.toStrict $ A.encode $ L.nub $ opRetHashStr : (M.keys subMap))
+            debug lg $
+                LG.msg $
+                "[NewSubscriber] Unconfirmed, Allegory name: " <> nameStr <> ", OP_RETURN hash: " <> opRetHashStr
             return opRetData
 
 cancelSubscription :: (HasService env m, MonadIO m) => Hash256 -> m ()
