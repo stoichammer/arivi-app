@@ -120,7 +120,7 @@ generateAddress opRetHashStr = do
                     debug lg $ LG.msg $ "Ran out of authorized addresses for OP_RETURN hash: " <> opRetHashStr
                     throw OutOfAddressesException
                 else do
-                    let addr = fst $ deriveAddr xPubKey nextIndex
+                    let addr = fst $ deriveAddr xPubKey (nextIndex + 1)
                         utxoOutpoint = ppUtxos !! (fromIntegral nextIndex)
                     mbPpUtxo <- getCommittedUtxo utxoOutpoint
                     case mbPpUtxo of
