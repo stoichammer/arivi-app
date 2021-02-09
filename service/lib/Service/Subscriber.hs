@@ -63,7 +63,7 @@ addSubscriber name xPubKey ownerUri count = do
                     name
                     ownerUri
                     (C8.unpack . hash256ToHex $ getMerkleRoot addressMT)
-                    (C8.unpack . hash256ToHex $ getMerkleRoot addressMT)
+                    (C8.unpack . hash256ToHex $ getMerkleRoot utxoMT)
                     expiry
             u <- liftIO $ utcTimeToPOSIXSeconds <$> getCurrentTime
             let ts = fromIntegral . fromEnum $ u :: Int64

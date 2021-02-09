@@ -101,6 +101,8 @@ executable aaproxy
          Service.Faucet
          Service.Nexa
          Service.Registration
+         Service.Merkle
+         Service.Subscriber
          LevelDB
          UtxoPool
 
