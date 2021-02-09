@@ -169,7 +169,7 @@ getSibling index leaves
             else (leaves !! (index + 1), False)
 
 hash256ToHex :: Hash256 -> ByteString
-hash256ToHex = B16.encode . BA.reverse . fromShort . getHash256
+hash256ToHex = B16.encode . fromShort . getHash256
 
 buildMerkleTree :: [Hash256] -> MerkleTree
 buildMerkleTree hashes = MerkleTree hashes (buildTMT hashes)
