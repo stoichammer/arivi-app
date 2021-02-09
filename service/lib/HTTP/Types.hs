@@ -94,8 +94,8 @@ instance FromJSON ReqParams' where
 data ResponseBody
     = RespPSAllpayTransaction
           { serialisedTx :: ByteString
-          , addressProof :: [(ByteString, Bool)]
-          , utxoProof :: [(ByteString, Bool)]
+          , addressProof :: [(String, Bool)]
+          , utxoProof :: [(String, Bool)]
           }
     | RespRegister
           { opReturnScript :: ByteString

@@ -78,7 +78,7 @@ getPartiallySignedAllpayTransaction ::
     -> Int64 -- value
     -> String -- receiver
     -> String -- change address
-    -> m (Either String (BC.ByteString, [(B.ByteString, Bool)], [(B.ByteString, Bool)])) -- serialized transaction
+    -> m (Either String (BC.ByteString, [(String, Bool)], [(String, Bool)])) -- serialized transaction
 getPartiallySignedAllpayTransaction inputs amount recipient changeAddr = do
     nodeCnf <- getNodeConfig
     let net = bitcoinNetwork nodeCnf
@@ -127,7 +127,11 @@ getPartiallySignedAllpayTransaction inputs amount recipient changeAddr = do
                                 Left err -> return $ Left $ "failed to partially sign transaction: " ++ err
                                 Right psaTx -> do
                                     let serializedTx = BSL.toStrict $ A.encode $ createTx' psaTx values
-                                    return $ Right (serializedTx, addrProof, utxoProof)
+                                    return $
+                                        Right
+                                            ( serializedTx
+                                            , (\(h, l) -> (BC.unpack h, l)) <$> addrProof
+                                            , (\(h, l) -> (BC.unpack h, l)) <$> utxoProof)
 
 buildProof' :: [TxHash] -> Word32 -> [(Bool, Hash256)]
 buildProof' hashes index =
