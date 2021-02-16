@@ -43,8 +43,8 @@ import Snap
 import qualified System.Logger as LG
 
 registerNewUser' :: ReqParams' -> Handler App App ()
-registerNewUser' (Register rname xpk count) = do
-    res <- LE.try $ SR.registerNewUser rname xpk count
+registerNewUser' (Register rname xpk count pke) = do
+    res <- LE.try $ SR.registerNewUser rname xpk count pke
     case res of
         Left (e :: RegistrationException) -> do
             case e of

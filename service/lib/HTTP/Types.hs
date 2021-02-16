@@ -73,6 +73,7 @@ data ReqParams'
           { rName :: [Int]
           , rXpk :: ByteString
           , rCount :: Int
+          , rPubKeyAuthEncrypt :: String
           }
     | RelayRegistrationTx
           { rTx :: ByteString
@@ -87,9 +88,10 @@ data ReqParams'
 
 instance FromJSON ReqParams' where
     parseJSON (Object o) =
+        (Register <$> o .: "name" <*> (T.encodeUtf8 <$> o .: "xpubKey") <*> o .: "addressCount" <*>
+         o .: "pubKeyAuthEncrypt") <|>
         (PSAllpayTransaction <$> o .: "inputs" <*> o .: "recipient" <*> o .: "amount" <*> o .: "change") <|>
-        (RelayRegistrationTx . B64.decodeLenient . T.encodeUtf8 <$> o .: "rawTx") <|>
-        (Register <$> o .: "name" <*> (T.encodeUtf8 <$> o .: "xpubKey") <*> o .: "addressCount")
+        (RelayRegistrationTx . B64.decodeLenient . T.encodeUtf8 <$> o .: "rawTx")
 
 data ResponseBody
     = RespPSAllpayTransaction

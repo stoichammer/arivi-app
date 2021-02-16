@@ -45,8 +45,8 @@ import Service.ProxyProviderUtxo
 import Service.Types
 import System.Logger as LG
 
-addSubscriber :: (HasService env m, MonadIO m) => [Int] -> C8.ByteString -> String -> Int -> m C8.ByteString
-addSubscriber name xPubKey ownerUri count = do
+addSubscriber :: (HasService env m, MonadIO m) => [Int] -> C8.ByteString -> String -> Int -> String -> m C8.ByteString
+addSubscriber name xPubKey ownerUri count pubKeyAuthEncrypt = do
     lg <- getLogger
     net <- NC.bitcoinNetwork <$> getNodeConfig
     subs <- getSubscribers
@@ -67,6 +67,7 @@ addSubscriber name xPubKey ownerUri count = do
                     (C8.unpack . hash256ToHex $ getMerkleRoot addressMT)
                     (C8.unpack . hash256ToHex $ getMerkleRoot utxoMT)
                     expiry
+                    pubKeyAuthEncrypt
             u <- liftIO $ utcTimeToPOSIXSeconds <$> getCurrentTime
             let ts = fromIntegral . fromEnum $ u :: Int64
                 opRetHashStr = C8.unpack . hash256ToHex $ opRetHash
@@ -160,8 +161,15 @@ generateAddresses :: XPubKey -> Int -> [Address]
 generateAddresses xPubKey count = (fst . (deriveAddr $ xPubKey)) <$> [1 .. (fromIntegral count)]
 
 makeOpReturn ::
-       (HasService env m, MonadIO m) => [Int] -> String -> String -> String -> Int64 -> m (C8.ByteString, Hash256)
-makeOpReturn allegoryName ownerUri addrCom utxoCom expiry = do
+       (HasService env m, MonadIO m)
+    => [Int]
+    -> String
+    -> String
+    -> String
+    -> Int64
+    -> String
+    -> m (C8.ByteString, Hash256)
+makeOpReturn allegoryName ownerUri addrCom utxoCom expiry pubKeyAuthEncrypt = do
     providerUri <- NC.proxyProviderUri <$> getNodeConfig
     let al =
             Allegory
@@ -174,7 +182,7 @@ makeOpReturn allegoryName ownerUri addrCom utxoCom expiry = do
                            "AllPay"
                            "Public"
                            (Endpoint "XokenP2P" providerUri)
-                           (AL.Registration addrCom utxoCom "" (fromIntegral $ expiry))
+                           (AL.Registration addrCom utxoCom pubKeyAuthEncrypt (fromIntegral $ expiry))
                      ])
         opRetScript = frameOpReturn $ LC.toStrict $ serialise al
         opRetHash = sha256 $ DTE.encodeUtf8 $ encodeHex opRetScript
