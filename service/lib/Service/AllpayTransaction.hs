@@ -139,9 +139,7 @@ getPartiallySignedAllpayTransaction inputs amount recipient changeAddr opReturnD
 makeOpReturn :: [Text] -> ByteString
 makeOpReturn opReturnData =
     let decodedData = fromMaybe (error "hex decode error") <$> decodeHex <$> opReturnData
-     in L.foldr B.append mempty $ encodeOutputScript <$> OP_0 : OP_RETURN : (opPushData <$> decodedData)
-  where
-    encodeOutputScript = B16.encode . S.encode
+     in L.foldr B.append mempty $ S.encode <$> OP_0 : OP_RETURN : (opPushData <$> decodedData)
 
 createTx' :: Tx -> [Int] -> Tx'
 createTx' (Tx version inputs outs locktime) values =
