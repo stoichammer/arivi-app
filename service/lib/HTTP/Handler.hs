@@ -62,8 +62,8 @@ registerNewUser' (Register rname xpk count pke) = do
 registerNewUser' _ = throwBadRequest
 
 getPartiallySignedAllpayTransaction' :: ReqParams' -> Handler App App ()
-getPartiallySignedAllpayTransaction' (PSAllpayTransaction inputs recipient amount change) = do
-    res <- getPartiallySignedAllpayTransaction inputs amount recipient change
+getPartiallySignedAllpayTransaction' (PSAllpayTransaction inputs recipient amount change opData) = do
+    res <- getPartiallySignedAllpayTransaction inputs amount recipient change opData
     case res of
         Left e -> do
             liftIO $ putStrLn $ "[ERROR] getPartiallySignedAllpayTransaction: " <> e

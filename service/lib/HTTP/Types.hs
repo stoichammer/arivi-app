@@ -83,6 +83,7 @@ data ReqParams'
           , recipient :: String
           , amount :: Int64
           , change :: String
+          , opData :: [ByteString]
           }
     deriving (Generic, Show, Eq, Serialise, ToJSON)
 
@@ -90,7 +91,8 @@ instance FromJSON ReqParams' where
     parseJSON (Object o) =
         (Register <$> o .: "name" <*> (T.encodeUtf8 <$> o .: "xpubKey") <*> o .: "addressCount" <*>
          o .: "pubKeyAuthEncrypt") <|>
-        (PSAllpayTransaction <$> o .: "inputs" <*> o .: "recipient" <*> o .: "amount" <*> o .: "change") <|>
+        (PSAllpayTransaction <$> o .: "inputs" <*> o .: "recipient" <*> o .: "amount" <*> o .: "change" <*>
+         o .: "opData") <|>
         (RelayRegistrationTx . B64.decodeLenient . T.encodeUtf8 <$> o .: "rawTx")
 
 data ResponseBody

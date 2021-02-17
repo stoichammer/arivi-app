@@ -32,6 +32,7 @@ import Crypto.Secp256k1
 import Data.Aeson as A
 import Data.Aeson
 import Data.Aeson.Types
+import Data.ByteString (ByteString(..))
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Base16 as B16 (decode, encode)
 import Data.ByteString.Base64 as B64
@@ -78,8 +79,9 @@ getPartiallySignedAllpayTransaction ::
     -> Int64 -- value
     -> String -- receiver
     -> String -- change address
+    -> [ByteString] -- OP_RETURN push data
     -> m (Either String (BC.ByteString, [(String, Bool)], [(String, Bool)])) -- serialized transaction
-getPartiallySignedAllpayTransaction inputs amount recipient changeAddr = do
+getPartiallySignedAllpayTransaction inputs amount recipient changeAddr opData = do
     nodeCnf <- getNodeConfig
     let net = bitcoinNetwork nodeCnf
     poolAddr <- poolAddress <$> getNodeConfig
@@ -102,7 +104,6 @@ getPartiallySignedAllpayTransaction inputs amount recipient changeAddr = do
             -- compute change
             let totalInput = L.foldl (+) 0 $ (\(_, val) -> val) <$> inputsOp
             let values = (SE.value pputxo) : ((\(_, value) -> fromIntegral value) <$> inputsOp)
-            -- let values = [50]
             let change = totalInput - (amount + fromIntegral fee)
             -- add proxy-provider utxo output
             let outputs =
@@ -110,9 +111,10 @@ getPartiallySignedAllpayTransaction inputs amount recipient changeAddr = do
                     , (DT.pack addr, fromIntegral amount)
                     , (DT.pack changeAddr, fromIntegral change)
                     ]
+            let opReturn = TxOut 0 $ S.encode $ OP_0 : OP_RETURN : (opPushData <$> opData)
             case buildAddrTx net inputs' outputs of
                 Left err -> return $ Left $ "failed to build transaction: " ++ err
-                Right tx -> do
+                Right (Tx version ins outs locktime) -> do
                     case decodeOutputBS (BC.pack $ SE.scriptPubKey pputxo) of
                         Left err -> return $ Left $ "failed to decode proxy-provider utxo script: " ++ err
                         Right so -> do
@@ -123,7 +125,7 @@ getPartiallySignedAllpayTransaction inputs amount recipient changeAddr = do
                                         ppOutPoint
                                         (setForkIdFlag sigHashAll)
                                         Nothing
-                            case signTx net tx [si] [poolSecKey] of
+                            case signTx net (Tx version ins (opReturn : outs) locktime) [si] [poolSecKey] of
                                 Left err -> return $ Left $ "failed to partially sign transaction: " ++ err
                                 Right psaTx -> do
                                     let serializedTx = BSL.toStrict $ A.encode $ createTx' psaTx values
@@ -132,18 +134,6 @@ getPartiallySignedAllpayTransaction inputs amount recipient changeAddr = do
                                             ( serializedTx
                                             , (\(h, l) -> (BC.unpack h, l)) <$> addrProof
                                             , (\(h, l) -> (BC.unpack h, l)) <$> utxoProof)
-
-buildProof' :: [TxHash] -> Word32 -> [(Bool, Hash256)]
-buildProof' hashes index =
-    (\(fb, pm) -> zip fb pm) $
-    buildPartialMerkle $
-    zipWith
-        (\h i ->
-             if i == index
-                 then (h, True)
-                 else (h, False))
-        hashes
-        [0 ..]
 
 createTx' :: Tx -> [Int] -> Tx'
 createTx' (Tx version inputs outs locktime) values =
