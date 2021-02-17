@@ -92,7 +92,7 @@ instance FromJSON ReqParams' where
         (Register <$> o .: "name" <*> (T.encodeUtf8 <$> o .: "xpubKey") <*> o .: "addressCount" <*>
          o .: "pubKeyAuthEncrypt") <|>
         (PSAllpayTransaction <$> o .: "inputs" <*> o .: "recipient" <*> o .: "amount" <*> o .: "change" <*>
-         o .: "opData") <|>
+         ((T.encodeUtf8 <$>) <$> o .: "opData")) <|>
         (RelayRegistrationTx . B64.decodeLenient . T.encodeUtf8 <$> o .: "rawTx")
 
 data ResponseBody
