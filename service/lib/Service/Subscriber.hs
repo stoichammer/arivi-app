@@ -61,7 +61,7 @@ addSubscriber name xPubKey ownerUri count pubKeyAuthEncrypt = do
                 addressMT = buildMerkleTree addrHashes
                 expiry = 2556143999
             (opRetData, opRetHash) <-
-                makeOpReturn
+                makeAllPayOpReturn
                     name
                     ownerUri
                     (C8.unpack . hash256ToHex $ getMerkleRoot addressMT)
@@ -160,7 +160,7 @@ generateAddress opRetHashStr = do
 generateAddresses :: XPubKey -> Int -> [Address]
 generateAddresses xPubKey count = (fst . (deriveAddr $ xPubKey)) <$> [1 .. (fromIntegral count)]
 
-makeOpReturn ::
+makeAllPayOpReturn ::
        (HasService env m, MonadIO m)
     => [Int]
     -> String
@@ -169,7 +169,7 @@ makeOpReturn ::
     -> Int64
     -> String
     -> m (C8.ByteString, Hash256)
-makeOpReturn allegoryName ownerUri addrCom utxoCom expiry pubKeyAuthEncrypt = do
+makeAllPayOpReturn allegoryName ownerUri addrCom utxoCom expiry pubKeyAuthEncrypt = do
     providerUri <- NC.proxyProviderUri <$> getNodeConfig
     let al =
             Allegory

@@ -29,7 +29,7 @@ import qualified Data.HashTable.IO as H
 import Data.Hashable
 import Data.Int
 import qualified Data.Map.Strict as M
-import Data.Text
+import Data.Text as DT
 import qualified Data.Text.Encoding as T
 import Data.Time.Clock
 import Data.Word
@@ -83,7 +83,7 @@ data ReqParams'
           , recipient :: String
           , amount :: Int64
           , change :: String
-          , opData :: [ByteString]
+          , opReturnData :: [Text]
           }
     deriving (Generic, Show, Eq, Serialise, ToJSON)
 
@@ -92,7 +92,7 @@ instance FromJSON ReqParams' where
         (Register <$> o .: "name" <*> (T.encodeUtf8 <$> o .: "xpubKey") <*> o .: "addressCount" <*>
          o .: "pubKeyAuthEncrypt") <|>
         (PSAllpayTransaction <$> o .: "inputs" <*> o .: "recipient" <*> o .: "amount" <*> o .: "change" <*>
-         ((T.encodeUtf8 <$>) <$> o .: "opData")) <|>
+         ((DT.pack <$>) <$> o .: "opReturnData")) <|>
         (RelayRegistrationTx . B64.decodeLenient . T.encodeUtf8 <$> o .: "rawTx")
 
 data ResponseBody

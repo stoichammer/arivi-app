@@ -53,6 +53,7 @@ import Data.Map.Strict as M
 import Data.Maybe
 import qualified Data.Serialize as S
 import Data.String (IsString, fromString)
+import Data.Text (Text(..))
 import qualified Data.Text as DT
 import qualified Data.Text.Encoding as DTE
 import qualified Data.Text.Encoding as E
@@ -79,9 +80,9 @@ getPartiallySignedAllpayTransaction ::
     -> Int64 -- value
     -> String -- receiver
     -> String -- change address
-    -> [ByteString] -- OP_RETURN push data
+    -> [Text] -- OP_RETURN push data
     -> m (Either String (BC.ByteString, [(String, Bool)], [(String, Bool)])) -- serialized transaction
-getPartiallySignedAllpayTransaction inputs amount recipient changeAddr opData = do
+getPartiallySignedAllpayTransaction inputs amount recipient changeAddr opReturnData = do
     nodeCnf <- getNodeConfig
     let net = bitcoinNetwork nodeCnf
     poolAddr <- poolAddress <$> getNodeConfig
@@ -111,7 +112,7 @@ getPartiallySignedAllpayTransaction inputs amount recipient changeAddr opData = 
                     , (DT.pack addr, fromIntegral amount)
                     , (DT.pack changeAddr, fromIntegral change)
                     ]
-            let opReturn = TxOut 0 $ S.encode $ OP_0 : OP_RETURN : (opPushData <$> opData)
+            let opReturn = TxOut 0 $ makeOpReturn opReturnData
             case buildAddrTx net inputs' outputs of
                 Left err -> return $ Left $ "failed to build transaction: " ++ err
                 Right (Tx version ins outs locktime) -> do
@@ -134,6 +135,13 @@ getPartiallySignedAllpayTransaction inputs amount recipient changeAddr opData = 
                                             ( serializedTx
                                             , (\(h, l) -> (BC.unpack h, l)) <$> addrProof
                                             , (\(h, l) -> (BC.unpack h, l)) <$> utxoProof)
+
+makeOpReturn :: [Text] -> ByteString
+makeOpReturn opReturnData =
+    let decodedData = fromMaybe (error "hex decode error") <$> decodeHex <$> opReturnData
+     in L.foldr B.append mempty $ encodeOutputScript <$> OP_0 : OP_RETURN : (opPushData <$> decodedData)
+  where
+    encodeOutputScript = B16.encode . S.encode
 
 createTx' :: Tx -> [Int] -> Tx'
 createTx' (Tx version inputs outs locktime) values =
