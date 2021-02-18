@@ -73,6 +73,7 @@ import qualified Service.Env as SE (ProxyProviderUtxo(..))
 import Service.ProxyProviderUtxo
 import Service.Subscriber
 import Service.Types
+import System.Logger as LG
 
 getPartiallySignedAllpayTransaction ::
        (HasService env m, MonadIO m)
@@ -81,19 +82,24 @@ getPartiallySignedAllpayTransaction ::
     -> String -- receiver
     -> String -- change address
     -> [Text] -- OP_RETURN push data
-    -> m (Either String (BC.ByteString, [(String, Bool)], [(String, Bool)])) -- serialized transaction
+    -> m (BC.ByteString, [(String, Bool)], [(String, Bool)]) -- serialized transaction
 getPartiallySignedAllpayTransaction inputs amount recipient changeAddr opReturnData = do
+    lg <- getLogger
     nodeCnf <- getNodeConfig
     let net = bitcoinNetwork nodeCnf
     poolAddr <- poolAddress <$> getNodeConfig
     poolSecKey <- poolSecKey <$> getNodeConfig
+    let opReturn = makeOpReturn opReturnData
     res <- LE.try $ generateAddress recipient
     let inputsOp =
             (\(op', val) ->
                  (OutPoint (fromJust $ hexToTxHash $ DT.pack $ opTxHash op') (fromIntegral $ opIndex op'), val)) <$>
             inputs
     case res of
-        Left (e :: SomeException) -> return $ Left $ "failed to get address or proxy-provider utxo: " <> (show e)
+        Left (e :: SomeException) -> do
+            err lg $
+                LG.msg $ BC.pack $ "[ERROR] Failed to generate address for subscriber " <> recipient <> ": " <> show e
+            throw $ AddressGenerationException (show e)
         Right (address, pputxo, addrProof, utxoProof) -> do
             let ppOutPoint =
                     OutPoint
@@ -112,12 +118,15 @@ getPartiallySignedAllpayTransaction inputs amount recipient changeAddr opReturnD
                     , (DT.pack addr, fromIntegral amount)
                     , (DT.pack changeAddr, fromIntegral change)
                     ]
-            let opReturn = TxOut 0 $ makeOpReturn opReturnData
             case buildAddrTx net inputs' outputs of
-                Left err -> return $ Left $ "failed to build transaction: " ++ err
+                Left e -> do
+                    err lg $ LG.msg $ BC.pack $ "[ERROR] Failed to build AllPay transaction: " <> e
+                    throw $ TransactionBuildingException e
                 Right (Tx version ins outs locktime) -> do
                     case decodeOutputBS (BC.pack $ SE.scriptPubKey pputxo) of
-                        Left err -> return $ Left $ "failed to decode proxy-provider utxo script: " ++ err
+                        Left e -> do
+                            err lg $ LG.msg $ BC.pack $ "[ERROR] Failed to decode proxy-provider UTXO script: " <> e
+                            throw ProxyUtxoException
                         Right so -> do
                             let si =
                                     SigInput
@@ -126,19 +135,20 @@ getPartiallySignedAllpayTransaction inputs amount recipient changeAddr opReturnD
                                         ppOutPoint
                                         (setForkIdFlag sigHashAll)
                                         Nothing
-                            case signTx net (Tx version ins (opReturn : outs) locktime) [si] [poolSecKey] of
-                                Left err -> return $ Left $ "failed to partially sign transaction: " ++ err
+                            case signTx net (Tx version ins (TxOut 0 opReturn : outs) locktime) [si] [poolSecKey] of
+                                Left e -> do
+                                    err lg $ LG.msg $ BC.pack $ "[ERROR] Failed to sign AllPay transaction: " <> e
+                                    throw $ TransactionSigningException e
                                 Right psaTx -> do
                                     let serializedTx = BSL.toStrict $ A.encode $ createTx' psaTx values
                                     return $
-                                        Right
-                                            ( serializedTx
-                                            , (\(h, l) -> (BC.unpack h, l)) <$> addrProof
-                                            , (\(h, l) -> (BC.unpack h, l)) <$> utxoProof)
+                                        ( serializedTx
+                                        , (\(h, l) -> (BC.unpack h, l)) <$> addrProof
+                                        , (\(h, l) -> (BC.unpack h, l)) <$> utxoProof)
 
 makeOpReturn :: [Text] -> ByteString
 makeOpReturn opReturnData =
-    let decodedData = fromMaybe (error "hex decode error") <$> decodeHex <$> opReturnData
+    let decodedData = fromMaybe (throw InvalidOpReturnDataException) <$> decodeHex <$> opReturnData
      in L.foldr B.append mempty $ S.encode <$> OP_0 : OP_RETURN : (opPushData <$> decodedData)
 
 createTx' :: Tx -> [Int] -> Tx'

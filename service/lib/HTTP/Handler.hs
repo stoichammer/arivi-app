@@ -63,12 +63,11 @@ registerNewUser' _ = throwBadRequest
 
 getPartiallySignedAllpayTransaction' :: ReqParams' -> Handler App App ()
 getPartiallySignedAllpayTransaction' (PSAllpayTransaction inputs recipient amount change opReturnData) = do
-    res <- getPartiallySignedAllpayTransaction inputs amount recipient change opReturnData
+    res <- LE.try $ getPartiallySignedAllpayTransaction inputs amount recipient change opReturnData
     case res of
-        Left e -> do
-            liftIO $ putStrLn $ "[ERROR] getPartiallySignedAllpayTransaction: " <> e
+        Left (e :: SomeException) -> do
             modifyResponse $ setResponseStatus 500 "Internal Server Error"
-            writeBS $ "INTERNAL_SERVER_ERROR: " <> (S.pack e)
+            writeBS $ "Error: " <> (S.pack $ show e)
         Right (stx, addrProof, utxoProof) -> do
             writeBS $ BSL.toStrict $ encodeResp True $ (Just $ RespPSAllpayTransaction stx addrProof utxoProof)
 getPartiallySignedAllpayTransaction' _ = throwBadRequest

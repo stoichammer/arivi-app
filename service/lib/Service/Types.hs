@@ -178,6 +178,23 @@ data AddressGenerationException
 
 instance Exception AddressGenerationException
 
+data AllPayTransactionException
+    = AddressGenerationException String
+    | TransactionBuildingException String
+    | TransactionSigningException String
+    | ProxyUtxoException
+    | InvalidOpReturnDataException
+    deriving (Eq)
+
+instance Exception AllPayTransactionException
+
+instance Show AllPayTransactionException where
+    show (AddressGenerationException s) = "Failed to generate address: " <> s
+    show (TransactionBuildingException s) = "Failed to build AllPay transaction: " <> s
+    show (TransactionSigningException s) = "Failed to sign AllPay transaction: " <> s
+    show ProxyUtxoException = "ProxyUtxoException"
+    show InvalidOpReturnDataException = "Invalid OP_RETURN data sent; check encoding (requires hexadecimal)"
+
 data GetUtxosByAddressResponse =
     GetUtxosByAddressResponse
         { nextCursor :: Maybe String
