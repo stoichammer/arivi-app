@@ -89,7 +89,7 @@ getPartiallySignedAllpayTransaction inputs amount recipient changeAddr opReturnD
     let net = bitcoinNetwork nodeCnf
     poolAddr <- poolAddress <$> getNodeConfig
     poolSecKey <- poolSecKey <$> getNodeConfig
-    let opReturn = makeOpReturn opReturnData
+    let !opReturn = makeOpReturn opReturnData
     res <- LE.try $ generateAddress recipient
     let inputsOp =
             (\(op', val) ->
