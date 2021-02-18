@@ -45,8 +45,9 @@ import Service.ProxyProviderUtxo
 import Service.Types
 import System.Logger as LG
 
-addSubscriber :: (HasService env m, MonadIO m) => [Int] -> C8.ByteString -> String -> Int -> String -> m C8.ByteString
-addSubscriber name xPubKey ownerUri count pubKeyAuthEncrypt = do
+addSubscriber ::
+       (HasService env m, MonadIO m) => [Int] -> C8.ByteString -> String -> Int -> String -> String -> m C8.ByteString
+addSubscriber name xPubKey ownerUri count pubKeySigning pubKeyAuthEncrypt = do
     lg <- getLogger
     net <- NC.bitcoinNetwork <$> getNodeConfig
     subs <- getSubscribers
@@ -67,6 +68,7 @@ addSubscriber name xPubKey ownerUri count pubKeyAuthEncrypt = do
                     (C8.unpack . hash256ToHex $ getMerkleRoot addressMT)
                     (C8.unpack . hash256ToHex $ getMerkleRoot utxoMT)
                     expiry
+                    pubKeySigning
                     pubKeyAuthEncrypt
             u <- liftIO $ utcTimeToPOSIXSeconds <$> getCurrentTime
             let ts = fromIntegral . fromEnum $ u :: Int64
@@ -168,8 +170,9 @@ makeAllPayOpReturn ::
     -> String
     -> Int64
     -> String
+    -> String
     -> m (C8.ByteString, Hash256)
-makeAllPayOpReturn allegoryName ownerUri addrCom utxoCom expiry pubKeyAuthEncrypt = do
+makeAllPayOpReturn allegoryName ownerUri addrCom utxoCom expiry pubKeySigning pubKeyAuthEncrypt = do
     providerUri <- NC.proxyProviderUri <$> getNodeConfig
     let al =
             Allegory
@@ -182,7 +185,7 @@ makeAllPayOpReturn allegoryName ownerUri addrCom utxoCom expiry pubKeyAuthEncryp
                            "AllPay"
                            "Public"
                            (Endpoint "XokenP2P" providerUri)
-                           (AL.Registration addrCom utxoCom pubKeyAuthEncrypt (fromIntegral $ expiry))
+                           (AL.Registration addrCom utxoCom pubKeySigning pubKeyAuthEncrypt (fromIntegral $ expiry))
                      ])
         opRetScript = frameOpReturn $ LC.toStrict $ serialise al
         opRetHash = sha256 $ DTE.encodeUtf8 $ encodeHex opRetScript

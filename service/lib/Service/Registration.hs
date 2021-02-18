@@ -74,14 +74,20 @@ data RegDetails =
     deriving (Show, Eq)
 
 registerNewUser ::
-       (HasService env m, MonadIO m) => [Int] -> C.ByteString -> Int -> String -> m (C.ByteString, Int64, String)
-registerNewUser allegoryName pubKey count pubKeyAuthEncrypt = do
+       (HasService env m, MonadIO m)
+    => [Int]
+    -> C.ByteString
+    -> Int
+    -> String
+    -> String
+    -> m (C.ByteString, Int64, String)
+registerNewUser allegoryName pubKey count pubKeySigning pubKeyAuthEncrypt = do
     nodeCnf <- getNodeConfig
     let net = NC.bitcoinNetwork nodeCnf
     userValid <- liftIO $ validateUser (NC.nexaHost nodeCnf) (NC.nexaSessionKey nodeCnf) allegoryName
     let ownerUri = fromMaybe (throw NameValidationException) userValid
         feeSats = 100000
-    opRetScript <- addSubscriber allegoryName pubKey ownerUri count pubKeyAuthEncrypt
+    opRetScript <- addSubscriber allegoryName pubKey ownerUri count pubKeySigning pubKeyAuthEncrypt
     return (opRetScript, feeSats, NC.paymentAddress nodeCnf)
 
 validateUser :: (MonadUnliftIO m) => String -> SessionKey -> [Int] -> m (Maybe String)
